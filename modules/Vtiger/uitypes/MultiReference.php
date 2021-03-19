@@ -20,9 +20,7 @@ class Vtiger_MultiReference_UIType extends Vtiger_Base_UIType
 	 */
 	const COMMA = ',';
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function validate($value, $isUserFormat = false)
 	{
 		$value = \is_array($value) ? implode(self::COMMA, $value) : $value;
@@ -42,9 +40,7 @@ class Vtiger_MultiReference_UIType extends Vtiger_Base_UIType
 		$this->validate[$value] = true;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getDBValue($value, $recordModel = false)
 	{
 		if (empty($value)) {
@@ -56,9 +52,7 @@ class Vtiger_MultiReference_UIType extends Vtiger_Base_UIType
 		return implode(',', $value);
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getDbConditionBuilderValue($value, string $operator)
 	{
 		$values = [];
@@ -71,9 +65,7 @@ class Vtiger_MultiReference_UIType extends Vtiger_Base_UIType
 		return implode('##', $values);
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getDisplayValue($value, $record = false, $recordModel = false, $rawText = false, $length = false)
 	{
 		$referenceModuleName = $this->getReferenceList($value);
@@ -90,7 +82,11 @@ class Vtiger_MultiReference_UIType extends Vtiger_Base_UIType
 					if ('Active' !== \App\Record::getState($recordId)) {
 						$name = '<s>' . $name . '</s>';
 					}
-					$name = "<a class='modCT_{$referenceModuleName} showReferenceTooltip js-popover-tooltip--record' href='index.php?module={$referenceModuleName}&view=" . $referenceModule->getDetailViewName() . "&record={$recordId}' title='" . App\Language::translateSingularModuleName($referenceModuleName) . "'>{$name}</a>";
+					$url = "index.php?module={$referenceModuleName}&view={$referenceModule->getDetailViewName()}&record={$recordId}";
+					if (!empty($this->fullUrl)) {
+						$url = Config\Main::$site_URL . $url;
+					}
+					$name = "<a class='modCT_{$referenceModuleName} showReferenceTooltip js-popover-tooltip--record' href='{$url}' title='" . App\Language::translateSingularModuleName($referenceModuleName) . "'>{$name}</a>";
 				}
 				$displayValue[$recordId] = $name;
 			}
@@ -109,9 +105,7 @@ class Vtiger_MultiReference_UIType extends Vtiger_Base_UIType
 		return $this->getFieldModel()->getFieldParams()['module'] ?? '';
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getListViewDisplayValue($value, $record = false, $recordModel = false, $rawText = false)
 	{
 		$referenceModuleName = $this->getReferenceList($value);
@@ -148,49 +142,37 @@ class Vtiger_MultiReference_UIType extends Vtiger_Base_UIType
 		return implode(', ', $displayValueRaw);
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getEditViewDisplayValue($value, $recordModel = false)
 	{
 		return $value ? explode(self::COMMA, $value) : [];
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getTemplateName()
 	{
 		return 'Edit/Field/MultiReference.tpl';
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getListSearchTemplateName()
 	{
 		return 'List/Field/MultiReference.tpl';
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getOperatorTemplateName(string $operator = '')
 	{
 		return 'ConditionBuilder/MultiReference.tpl';
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getAllowedColumnTypes()
 	{
 		return ['text'];
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getQueryOperators()
 	{
 		return ['c', 'k', 'y', 'ny'];

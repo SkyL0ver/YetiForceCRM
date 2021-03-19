@@ -15,6 +15,13 @@ namespace App\Controller;
 abstract class Modal extends View\Base
 {
 	/**
+	 * Page title.
+	 *
+	 * @var string
+	 */
+	protected $pageTitle;
+
+	/**
 	 * Modal size.
 	 *
 	 * @var string
@@ -82,6 +89,11 @@ abstract class Modal extends View\Base
 	public $showFooter = true;
 
 	/**
+	 * @var bool Auto register events
+	 */
+	public $autoRegisterEvents = true;
+
+	/**
 	 * {@inheritdoc}
 	 */
 	public function preProcessAjax(\App\Request $request)
@@ -103,6 +115,7 @@ abstract class Modal extends View\Base
 		$viewer->assign('MODAL_VIEW', $this);
 		$viewer->assign('MODAL_SCRIPTS', $this->getModalScripts($request));
 		$viewer->assign('MODAL_CSS', $this->getModalCss($request));
+		$viewer->assign('REGISTER_EVENTS', $this->autoRegisterEvents);
 		if ($request->getBoolean('onlyBody')) {
 			$this->showHeader = false;
 			$this->showFooter = false;

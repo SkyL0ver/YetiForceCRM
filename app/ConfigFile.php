@@ -172,7 +172,7 @@ This file is auto-generated.
 			return $status;
 		}
 		if (!isset($this->template[$key]['validation']) || !\is_callable($this->template[$key]['validation'])) {
-			throw new Exceptions\AppException("ERR_CONTENTS_VARIABLE_CANT_CALLED_FUNCTION ||{$this->template[$key]['validation']}", 406);
+			throw new Exceptions\AppException("ERR_CONTENTS_VARIABLE_CANT_CALLED_FUNCTION||{$key}||{$this->template[$key]['validation']}", 406);
 		}
 		return true === \call_user_func_array($this->template[$key]['validation'], [$value]);
 	}
@@ -190,9 +190,6 @@ This file is auto-generated.
 	 */
 	public function sanitize(string $key, $value)
 	{
-		if (!isset($this->template[$key])) {
-			throw new Exceptions\IllegalValue('ERR_NOT_ALLOWED_VALUE||' . $key, 406);
-		}
 		if (isset($this->template[$key]['sanitization'])) {
 			if (!\is_callable($this->template[$key]['sanitization'])) {
 				throw new Exceptions\AppException("ERR_CONTENTS_VARIABLE_CANT_CALLED_FUNCTION ||{$this->template[$key]['sanitization']}", 406);

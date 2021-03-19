@@ -243,4 +243,62 @@ class Utils
 		$string = preg_replace('/[^\p{L}\p{Nd}\.]+/u', $delimiter, $string);
 		return trim($string, $delimiter);
 	}
+
+	/**
+	 * Change the order of associative array.
+	 *
+	 * @param array $array
+	 * @param array $order
+	 *
+	 * @return array
+	 */
+	public static function changeSequence(array $array, array $order): array
+	{
+		if (!$order) {
+			return $array;
+		}
+		$returnLinks = [];
+		foreach ($order as $value) {
+			if ($array[$value]) {
+				$returnLinks[$value] = $array[$value];
+			}
+			unset($array[$value]);
+		}
+		return array_merge($returnLinks, $array);
+	}
+
+	/**
+	 * Get locks content by events.
+	 *
+	 * @param array $locks
+	 *
+	 * @return string
+	 */
+	public static function getLocksContent(array $locks): string
+	{
+		$return = '';
+		foreach ($locks as $lock) {
+			switch ($lock) {
+				case 'copy':
+					$return .= ' oncopy = "return false"';
+					break;
+				case 'cut':
+					$return .= ' oncut = "return false"';
+					break;
+				case 'paste':
+					$return .= ' onpaste = "return false"';
+					break;
+				case 'contextmenu':
+					$return .= ' oncontextmenu = "return false"';
+					break;
+				case 'selectstart':
+					$return .= ' onselectstart = "return false" onselect = "return false"';
+					break;
+				case 'drag':
+					$return .= ' ondragstart = "return false" ondrag = "return false"';
+					break;
+			}
+		}
+		return $return;
+	}
 }

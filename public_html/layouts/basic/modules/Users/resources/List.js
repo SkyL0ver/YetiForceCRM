@@ -16,7 +16,7 @@ Vtiger_List_Js(
 		 * @params: delete record url.
 		 */
 		deleteRecord: function (deleteRecordActionUrl) {
-			var message = app.vtranslate('LBL_DELETE_USER_CONFIRMATION');
+			var message = app.vtranslate('JS_DELETE_USER_CONFIRMATION');
 			Vtiger_Helper_Js.showConfirmationBox({ message: message })
 				.done(function (data) {
 					AppConnector.request(deleteRecordActionUrl).done(function (data) {
@@ -83,7 +83,7 @@ Vtiger_List_Js(
 						text: data.result.message,
 						type: 'success'
 					};
-					Vtiger_Helper_Js.showPnotify(params);
+					app.showNotify(params);
 				}
 			});
 		},
@@ -93,7 +93,7 @@ Vtiger_List_Js(
 		 */
 		deleteUserPermanently: function (userId, e) {
 			e.stopPropagation();
-			var message = app.vtranslate('LBL_DELETE_USER_PERMANENT_CONFIRMATION');
+			var message = app.vtranslate('JS_DELETE_USER_PERMANENT_CONFIRMATION');
 			var deleteRecordActionUrl =
 				'index.php?module=' +
 				app.getModuleName() +
@@ -132,7 +132,7 @@ Vtiger_List_Js(
 												text: response.result.message,
 												type: 'error'
 											};
-											Vtiger_Helper_Js.showPnotify(params);
+											app.showNotify(params);
 											jQuery('[data-id=' + userId + ']').hide();
 										}
 									});
@@ -157,7 +157,7 @@ Vtiger_List_Js(
 		restoreUser: function (userId, e) {
 			e.stopPropagation();
 			Vtiger_Helper_Js.showConfirmationBox({
-				message: app.vtranslate('LBL_RESTORE_CONFIRMATION')
+				message: app.vtranslate('JS_RESTORE_CONFIRMATION')
 			}).done(function () {
 				var progressInstance = jQuery.progressIndicator({
 					position: 'html',
@@ -176,7 +176,10 @@ Vtiger_List_Js(
 						progressInstance.progressIndicator({
 							mode: 'hide'
 						});
-						Vtiger_Helper_Js.showPnotify(response.result.message);
+						app.showNotify({
+							text: response.result.message,
+							type: 'success'
+						});
 						var url = response.result.listViewUrl;
 						window.location.href = url;
 					}
@@ -213,9 +216,10 @@ Vtiger_List_Js(
 								mode: 'hide'
 							});
 							if (data.error) {
-								Vtiger_Helper_Js.showPnotify({
+								app.showNotify({
 									text: app.vtranslate(data.error.message),
-									title: app.vtranslate('JS_LBL_PERMISSION')
+									title: app.vtranslate('JS_LBL_PERMISSION'),
+									type: 'error'
 								});
 							}
 							window.location.href = url;
@@ -283,9 +287,7 @@ Vtiger_List_Js(
 					if (listSearchInstance !== false) {
 						listSearchInstance.registerEvents();
 					} else {
-						App.Fields.Picklist.showSelect2ElementView(
-							$('#listViewContents').find('select.select2')
-						);
+						App.Fields.Picklist.showSelect2ElementView($('#listViewContents').find('select.select2'));
 					}
 				});
 			});

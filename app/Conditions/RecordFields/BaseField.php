@@ -87,13 +87,13 @@ class BaseField
 	}
 
 	/**
-	 * Get value.
+	 * Get value from record.
 	 *
 	 * @return mixed
 	 */
 	public function getValue()
 	{
-		return $this->recordModel->get($this->fieldModel->getFieldName());
+		return $this->recordModel->get($this->fieldModel->getName());
 	}
 
 	/**
@@ -125,7 +125,7 @@ class BaseField
 	{
 		$ssl = \strlen($this->value);
 		if (\strlen($this->getValue()) >= $ssl) {
-			return 0 == substr_compare($this->getValue(), $this->value, 0, $ssl);
+			return 0 == substr_compare($this->getValue(), $this->value, 0, $ssl, true);
 		}
 		return false;
 	}

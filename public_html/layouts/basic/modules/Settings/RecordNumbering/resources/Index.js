@@ -6,6 +6,7 @@ $.Class(
 	{},
 	{
 		form: false,
+		clipBoardInstances: [],
 		getForm: function () {
 			if (this.form == false) {
 				this.form = jQuery('#EditView');
@@ -19,41 +20,19 @@ $.Class(
 		registerOnChangeEventOfSourceModule() {
 			const editViewForm = this.getForm();
 			const sequenceBtn = editViewForm.find('.js-adavanced-sequence');
-			editViewForm.find('[name="sourceModule"]').on('change', function (e) {
+			editViewForm.find('[name="sourceModule"]').on('change', (e) => {
 				$('.saveButton').removeAttr('disabled');
 				sequenceBtn.addClass('d-none');
 				AppConnector.request({
 					module: app.getModuleName(),
 					parent: app.getParentModuleName(),
-					action: 'GetData',
-					mode: 'getModuleCustomNumberingData',
+					view: 'CustomRecordNumbering',
 					sourceModule: $(e.currentTarget).val()
-				}).done(function (data) {
+				}).done((data) => {
 					if (data) {
-						editViewForm.find('[name="prefix"]').val(data.result.prefix);
-						editViewForm
-							.find('[name="leading_zeros"]')
-							.val(data.result.leading_zeros)
-							.trigger('change');
-						editViewForm
-							.find('[name="reset_sequence"]')
-							.val(data.result.reset_sequence)
-							.trigger('change');
-						editViewForm.find('[name="postfix"]').val(data.result.postfix);
-						editViewForm.find('[name="sequenceNumber"]').val(data.result.cur_id);
-						editViewForm
-							.find('[name="sequenceNumber"]')
-							.data('oldSequenceNumber', data.result.cur_id);
-						let options = '';
-						for (var index in data.result.picklists) {
-							options +=
-								'<option value="picklist:' +
-								index +
-								'">' +
-								data.result.picklists[index] +
-								'</option>';
-						}
-						editViewForm.find('#picklistVariables').html(options);
+						$('.js-container').html(data);
+						this.form = false;
+						this.registerEvents();
 					}
 				});
 			});
@@ -124,27 +103,29 @@ $.Class(
 		 */
 		registerEventToUpdateRecordsWithSequenceNumber() {
 			const editViewForm = this.getForm();
-			editViewForm.find('[name="updateRecordWithSequenceNumber"]').on('click', function () {
-				const sourceModule = editViewForm.find('[name="sourceModule"]').val();
-				AppConnector.request({
-					module: app.getModuleName(),
-					parent: app.getParentModuleName(),
-					action: 'SaveAjax',
-					mode: 'updateRecordsWithSequenceNumber',
-					sourceModule: sourceModule
-				}).done(function (data) {
-					if (data.success === true) {
-						Settings_Vtiger_Index_Js.showMessage({
-							text:
-								app.vtranslate('JS_RECORD_NUMBERING_UPDATED_SUCCESSFULLY_FOR') +
-								' ' +
-								editViewForm.find('option[value="' + sourceModule + '"]').text()
-						});
-					} else {
-						Settings_Vtiger_Index_Js.showMessage(data.error.message);
-					}
+			$('[name="updateRecordWithSequenceNumber"]')
+				.off('click')
+				.on('click', function () {
+					const sourceModule = editViewForm.find('[name="sourceModule"]').val();
+					AppConnector.request({
+						module: app.getModuleName(),
+						parent: app.getParentModuleName(),
+						action: 'SaveAjax',
+						mode: 'updateRecordsWithSequenceNumber',
+						sourceModule: sourceModule
+					}).done(function (data) {
+						if (data.success === true) {
+							Settings_Vtiger_Index_Js.showMessage({
+								text:
+									app.vtranslate('JS_RECORD_NUMBERING_UPDATED_SUCCESSFULLY_FOR') +
+									' ' +
+									editViewForm.find('option[value="' + sourceModule + '"]').text()
+							});
+						} else {
+							Settings_Vtiger_Index_Js.showMessage(data.error.message);
+						}
+					});
 				});
-			});
 		},
 
 		/**
@@ -152,29 +133,39 @@ $.Class(
 		 */
 		registerChangeEvent() {
 			this.getForm()
-				.find(
-					'[name="prefix"],[name="leading_zeros"],[name="sequenceNumber"],[name="postfix"],[name="reset_sequence"]'
-				)
+				.find('[name="prefix"],[name="leading_zeros"],[name="sequenceNumber"],[name="postfix"],[name="reset_sequence"]')
 				.on('change', this.checkPrefix.bind(this));
 		},
 
 		registerCopyClipboard: function (editViewForm) {
-			new ClipboardJS('#customVariableCopy', {
+			for (let i in this.clipBoardInstances) {
+				this.clipBoardInstances[i].destroy();
+			}
+			this.clipBoardInstances[0] = new ClipboardJS('#customVariableCopy', {
 				text: function (trigger) {
-					Vtiger_Helper_Js.showPnotify({
+					app.showNotify({
 						text: app.vtranslate('JS_NOTIFY_COPY_TEXT'),
 						type: 'success'
 					});
 					return '{{' + editViewForm.find('#customVariables').val() + '}}';
 				}
 			});
-			new ClipboardJS('#picklistVariableCopy', {
+			this.clipBoardInstances[1] = new ClipboardJS('#picklistVariableCopy', {
 				text: function (trigger) {
-					Vtiger_Helper_Js.showPnotify({
+					app.showNotify({
 						text: app.vtranslate('JS_NOTIFY_COPY_TEXT'),
 						type: 'success'
 					});
 					return '{{' + editViewForm.find('#picklistVariables').val() + '}}';
+				}
+			});
+			this.clipBoardInstances[2] = new ClipboardJS('#referenceVariableCopy', {
+				text: function (trigger) {
+					app.showNotify({
+						text: app.vtranslate('JS_NOTIFY_COPY_TEXT'),
+						type: 'success'
+					});
+					return editViewForm.find('#referenceVariables').val();
 				}
 			});
 		},
@@ -263,19 +254,19 @@ $.Class(
 					sequenceExists = true;
 				}
 			}
-			this.checkAdavancedSequenceBtn();
+			this.checkAdvancedSequenceBtn();
 			return sequenceExists;
 		},
 
 		/**
 		 * Function to enable button if prefix or postfix has picklist value
 		 */
-		checkAdavancedSequenceBtn: function () {
+		checkAdvancedSequenceBtn: function () {
 			const editViewForm = this.getForm();
 			const sequenceBtn = editViewForm.find('.js-adavanced-sequence');
 			const prefix = editViewForm.find('[name="prefix"]').val();
 			const postfix = editViewForm.find('[name="postfix"]').val();
-			let regex = new RegExp('{{picklist:([a-z0-9_]+)}}', 'g');
+			let regex = new RegExp('{{picklist:([a-z0-9_]+)}}|\\$\\(relatedRecord', 'g');
 			let regexResult = (postfix + prefix).match(regex);
 			if ((regexResult && regexResult.length > 1) || !regexResult) {
 				sequenceBtn.addClass('d-none');
@@ -353,10 +344,11 @@ $.Class(
 		registerEvents: function () {
 			const thisInstance = this;
 			const editViewForm = this.getForm();
+			App.Fields.Picklist.showSelect2ElementView(editViewForm.find('select'));
 			this.registerOnChangeEventOfSourceModule();
 			this.registerEventToUpdateRecordsWithSequenceNumber();
 			this.registerChangeEvent();
-			this.checkAdavancedSequenceBtn();
+			this.checkAdvancedSequenceBtn();
 			this.registerAdavancedSequenceEvent();
 			let params = app.validationEngineOptions;
 			params.onValidationComplete = function (editViewForm, valid) {

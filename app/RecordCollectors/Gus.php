@@ -18,25 +18,19 @@ namespace App\RecordCollectors;
  */
 class Gus extends Base
 {
-	/**
-	 * {@inheritdoc}
-	 */
-	protected $allowedModules = ['Accounts', 'Leads', 'Vendors', 'Competition'];
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
+	public static $allowedModules = ['Accounts', 'Leads', 'Vendors', 'Competition'];
+
+	/** {@inheritdoc} */
 	public $icon = 'yfi yfi-gus';
-	/**
-	 * {@inheritdoc}
-	 */
+
+	/** {@inheritdoc} */
 	public $label = 'GUS';
-	/**
-	 * {@inheritdoc}
-	 */
+
+	/** {@inheritdoc} */
 	public $displayType = 'FillFields';
-	/**
-	 * {@inheritdoc}
-	 */
+
+	/** {@inheritdoc} */
 	protected $fields = [
 		'vatId' => [
 			'labelModule' => '_Base',
@@ -52,9 +46,7 @@ class Gus extends Base
 		]
 	];
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	protected $modulesFieldsMap = [
 		'Accounts' => [
 			'vatId' => 'vat_id',
@@ -77,15 +69,15 @@ class Gus extends Base
 			'ncr' => 'registration_number_1'
 		]
 	];
-	/**
-	 * {@inheritdoc}
-	 */
+
+	/** {@inheritdoc} */
 	public $formFieldsToRecordMap = [
 		'Accounts' => [
+			'Nazwa' => 'accountname',
+			'SzczegolnaFormaPrawna' => 'legal_form',
 			'Regon' => 'registration_number_2',
 			'Krs' => 'registration_number_1',
 			'Nip' => 'vat_id',
-			'Nazwa' => 'accountname',
 			'Wojewodztwo' => 'addresslevel2a',
 			'Powiat' => 'addresslevel3a',
 			'Gmina' => 'addresslevel4a',
@@ -96,17 +88,24 @@ class Gus extends Base
 			'NumerLokalu' => 'localnumbera',
 			'FormaPrawna' => 'legal_form',
 			'Kraj' => 'addresslevel1a',
+			'NumerTelefonu' => 'phone',
+			'NumerFaksu' => 'fax',
+			'AdresEmail' => 'email1',
 		],
 		'Leads' => [
-			'Regon' => 'registration_number_2',
 			'Nazwa' => 'company',
+			'SzczegolnaFormaPrawna' => 'legal_form',
+			'Regon' => 'registration_number_2',
 			'Wojewodztwo' => 'addresslevel2a',
 			'Powiat' => 'addresslevel3a',
 			'Gmina' => 'addresslevel4a',
 			'Miejscowosc' => 'addresslevel5a',
 			'KodPocztowy' => 'addresslevel7a',
 			'Ulica' => 'addresslevel8a',
-			'NumerBudynku' => 'buildingnumbera'
+			'NumerBudynku' => 'buildingnumbera',
+			'NumerTelefonu' => 'phone',
+			'NumerFaksu' => 'fax',
+			'AdresEmail' => 'email',
 		],
 		'Partners' => [
 			'Nazwa' => 'subject',
@@ -141,17 +140,13 @@ class Gus extends Base
 		],
 	];
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function isActive(): bool
 	{
-		return \App\YetiForce\Shop::check('YetiForcePlGus') && \in_array($this->moduleName, $this->allowedModules);
+		return parent::isActive() && \App\YetiForce\Shop::check('YetiForcePlGus');
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function search(): array
 	{
 		if (!$this->isActive()) {
@@ -176,7 +171,7 @@ class Gus extends Base
 				$fields = \Vtiger_Module_Model::getInstance($moduleName)->getFields();
 			}
 			if ($infoFromGus && isset($this->formFieldsToRecordMap[$moduleName])) {
-				$data = $skip = [];
+				$additional = $data = $skip = [];
 				foreach ($infoFromGus as $key => &$row) {
 					foreach ($this->formFieldsToRecordMap[$moduleName] as $apiName => $fieldName) {
 						if (empty($fields[$fieldName]) || !$fields[$fieldName]->isActiveField()) {
@@ -184,6 +179,7 @@ class Gus extends Base
 								$skip[$fieldName]['label'] = \App\Language::translate($fields[$fieldName]->getFieldLabel(), $moduleName);
 							}
 							$skip[$fieldName]['data'][$key]['display'] = $row[$apiName] ?? '';
+							unset($row[$apiName]);
 							continue;
 						}
 						if (isset($row[$apiName])) {
@@ -194,11 +190,16 @@ class Gus extends Base
 								'raw' => $row[$apiName],
 								'display' => $fields[$fieldName]->getDisplayValue($row[$apiName]),
 							];
+							unset($row[$apiName]);
 						}
+					}
+					foreach ($row as $name => $value) {
+						$additional[$name][$key] = \App\Purifier::encodeHtml($value);
 					}
 				}
 				$response['fields'] = $data;
-				$response['keys'] = array_keys($data[$fieldName]['data']);
+				$response['additional'] = $additional;
+				$response['keys'] = array_keys($infoFromGus);
 				$response['skip'] = $skip;
 			}
 		} catch (\SoapFault $e) {

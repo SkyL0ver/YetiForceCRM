@@ -13,13 +13,7 @@ jQuery.Class(
 	'Vtiger_RelatedList_Js',
 	{
 		relatedListInstance: false,
-		getInstance: function (
-			parentId,
-			parentModule,
-			selectedRelatedTabElement,
-			relatedModuleName,
-			url
-		) {
+		getInstance: function (parentId, parentModule, selectedRelatedTabElement, relatedModuleName, url) {
 			if (
 				Vtiger_RelatedList_Js.relatedListInstance === false ||
 				Vtiger_RelatedList_Js.relatedListInstance.moduleName !== relatedModuleName
@@ -37,10 +31,7 @@ jQuery.Class(
 				instance.selectedRelatedTabElement = selectedRelatedTabElement;
 				instance.moduleName = relatedModuleName;
 				instance.relatedTabsContainer = selectedRelatedTabElement.closest('div.related');
-				instance.content = $(
-					'div.contents',
-					instance.relatedTabsContainer.closest('div.detailViewContainer')
-				);
+				instance.content = $('div.contents', instance.relatedTabsContainer.closest('div.detailViewContainer'));
 				instance.relatedView = instance.content.find('input.relatedView').val();
 				Vtiger_RelatedList_Js.relatedListInstance = instance;
 			}
@@ -64,10 +55,7 @@ jQuery.Class(
 				}
 				instance.selectedRelatedTabElement = selectedRelatedTabElement;
 				instance.relatedTabsContainer = selectedRelatedTabElement.closest('div.related');
-				instance.content = $(
-					'div.contents',
-					instance.relatedTabsContainer.closest('div.detailViewContainer')
-				);
+				instance.content = $('div.contents', instance.relatedTabsContainer.closest('div.detailViewContainer'));
 				instance.relatedView = instance.content.find('input.relatedView').val();
 				Vtiger_RelatedList_Js.relatedListInstance = instance;
 			}
@@ -164,12 +152,81 @@ jQuery.Class(
 				thisInstance = this;
 			this.verifyFileExist().done(function (data) {
 				if (true === data) {
-					thisInstance.triggerMassAction(
-						massActionUrl.substring(0, massActionUrl.indexOf('&mode=multiple')),
-						type
-					);
+					thisInstance.triggerMassAction(massActionUrl.substring(0, massActionUrl.indexOf('&mode=multiple')), type);
 				}
 			});
+		},
+		triggerMassQuickCreate: function (moduleName, data) {
+			const self = this.relatedListInstance;
+			if (self.checkListRecordSelected() != true) {
+				let listParams = self.getSelectedParams();
+				let progress = $.progressIndicator({ blockInfo: { enabled: true } });
+				let params = {
+					callbackFunction: function () {
+						self.loadRelatedList();
+					},
+					noCache: true,
+					data: $.extend(data, {
+						sourceView: 'RelatedListView',
+						sourceModule: listParams.relatedModule,
+						entityState: listParams.entityState,
+						search_params: listParams.search_params,
+						excluded_ids: listParams.excluded_ids,
+						selected_ids: listParams.selected_ids,
+						relationId: listParams.relationId,
+						relatedRecord: listParams.record,
+						relatedModule: listParams.module
+					})
+				};
+				App.Components.QuickCreate.getForm(
+					'index.php?module=' + moduleName + '&view=MassQuickCreateModal',
+					moduleName,
+					params
+				).done((data) => {
+					progress.progressIndicator({
+						mode: 'hide'
+					});
+					App.Components.QuickCreate.showModal(data, params);
+					app.registerEventForClockPicker();
+				});
+			} else {
+				self.noRecordSelectedAlert();
+			}
+		},
+		/**
+		 * Function to trigger mass send email modal
+		 */
+		triggerSendEmail: function () {
+			let params = Vtiger_RelatedList_Js.relatedListInstance.getDefaultParams();
+			Vtiger_List_Js.triggerSendEmail(
+				$.extend(params, {
+					relatedLoad: true,
+					module: Vtiger_RelatedList_Js.relatedListInstance.moduleName,
+					sourceModule: app.getModuleName(),
+					sourceRecord: app.getRecordId()
+				}),
+				function () {
+					Vtiger_Detail_Js.reloadRelatedList();
+				}
+			);
+		},
+		/**
+		 * Function to trigger mass send email modal by row
+		 */
+		triggerSendEmailByRow: function (row) {
+			let params = Vtiger_RelatedList_Js.relatedListInstance.getDefaultParams();
+			Vtiger_List_Js.triggerSendEmail(
+				$.extend(params, {
+					relatedLoad: true,
+					module: Vtiger_RelatedList_Js.relatedListInstance.moduleName,
+					sourceModule: app.getModuleName(),
+					sourceRecord: app.getRecordId(),
+					selected_ids: '["' + $(row).closest('.js-list__row').data('id') + '"]'
+				}),
+				function () {
+					Vtiger_Detail_Js.reloadRelatedList();
+				}
+			);
 		}
 	},
 	{
@@ -219,11 +276,14 @@ jQuery.Class(
 		},
 		getDefaultParams: function () {
 			let container = this.getRelatedContainer();
-			let params = this.defaultParams;
+			let params = Object.assign({}, this.defaultParams);
 			params['page'] = this.getCurrentPageNum();
 			params['orderby'] = this.getOrderBy();
 			if (container.find('#relationId').val()) {
 				params['relationId'] = container.find('#relationId').val();
+			}
+			if (container.find('.js-relation-cv-id').val()) {
+				params['cvId'] = container.find('.js-relation-cv-id').val();
 			}
 			if (container.find('.pagination').length) {
 				params['totalCount'] = container.find('.pagination').data('totalCount');
@@ -261,6 +321,13 @@ jQuery.Class(
 			};
 			return $.extend(this.getDefaultParams(), params);
 		},
+		getSelectedParams: function () {
+			return $.extend(this.getCompleteParams(), {
+				selected_ids: this.readSelectedIds(true),
+				excluded_ids: this.readExcludedIds(true),
+				cvid: this.getCurrentCvId()
+			});
+		},
 		parseUrlParams: function (url) {
 			if (url) {
 				this.defaultParams = app.convertUrlToObject(url);
@@ -283,9 +350,7 @@ jQuery.Class(
 				}
 			});
 			let completeParams = this.getCompleteParams();
-			let activeTabsReference = thisInstance.relatedTabsContainer
-				.find('li.active')
-				.data('reference');
+			let activeTabsReference = thisInstance.relatedTabsContainer.find('li.active').data('reference');
 			AppConnector.request($.extend(completeParams, params))
 				.done(function (responseData) {
 					let currentInstance = Vtiger_Detail_Js.getInstance();
@@ -303,7 +368,7 @@ jQuery.Class(
 				})
 				.fail(function (textStatus, errorThrown) {
 					aDeferred.reject(textStatus, errorThrown);
-					Vtiger_Helper_Js.showPnotify({
+					app.showNotify({
 						text: app.vtranslate('JS_NOT_ALLOWED_VALUE'),
 						type: 'error'
 					});
@@ -323,13 +388,7 @@ jQuery.Class(
 			app.showRecordsList(params, (modal, instance) => {
 				instance.setSelectEvent((responseData) => {
 					this.addRelations(Object.keys(responseData)).done(() => {
-						app.event.trigger(
-							'RelatedListView.AfterSelectRelation',
-							responseData,
-							this,
-							instance,
-							params
-						);
+						app.event.trigger('RelatedListView.AfterSelectRelation', responseData, this, instance, params);
 						let detail = Vtiger_Detail_Js.getInstance();
 						this.loadRelatedList().done(function () {
 							detail.registerRelatedModulesRecordCount();
@@ -411,12 +470,18 @@ jQuery.Class(
 						}
 						detail.registerRelatedModulesRecordCount();
 					} else {
-						Vtiger_Helper_Js.showPnotify(app.vtranslate('JS_CANNOT_REMOVE_RELATION'));
+						app.showNotify({
+							text: app.vtranslate('JS_CANNOT_REMOVE_RELATION'),
+							type: 'error'
+						});
 					}
 				})
 				.fail(function (err, errThrow) {
 					progressInstance.progressIndicator({ mode: 'hide' });
-					Vtiger_Helper_Js.showPnotify(app.vtranslate('JS_CANNOT_REMOVE_RELATION'));
+					app.showNotify({
+						text: app.vtranslate('JS_CANNOT_REMOVE_RELATION'),
+						type: 'error'
+					});
 				});
 		},
 		/**
@@ -538,7 +603,6 @@ jQuery.Class(
 		 */
 		addRelatedRecord: function (element, callback) {
 			let aDeferred = jQuery.Deferred();
-			let thisInstance = this;
 			let referenceModuleName = this.moduleName;
 			let parentId = this.getParentId();
 			let parentModule = this.parentModuleName;
@@ -568,12 +632,8 @@ jQuery.Class(
 						}
 					}
 				}
-				jQuery('<input type="hidden" name="sourceModule" value="' + parentModule + '" />').appendTo(
-					data
-				);
-				jQuery('<input type="hidden" name="sourceRecord" value="' + parentId + '" />').appendTo(
-					data
-				);
+				jQuery('<input type="hidden" name="sourceModule" value="' + parentModule + '" />').appendTo(data);
+				jQuery('<input type="hidden" name="sourceRecord" value="' + parentId + '" />').appendTo(data);
 				jQuery('<input type="hidden" name="relationOperation" value="true" />').appendTo(data);
 
 				if (typeof relatedField !== 'undefined') {
@@ -581,9 +641,7 @@ jQuery.Class(
 					//If their is no element with the relatedField name,we are adding hidden element with
 					//name as relatedField name,for saving of record with relation to parent record
 					if (field.length == 0) {
-						jQuery(
-							'<input type="hidden" name="' + relatedField + '" value="' + parentId + '" />'
-						).appendTo(data);
+						jQuery('<input type="hidden" name="' + relatedField + '" value="' + parentId + '" />').appendTo(data);
 					}
 				}
 				for (index = 0; index < queryParameters.length; index++) {
@@ -594,11 +652,7 @@ jQuery.Class(
 						data.find('[name="' + queryParamComponents[0] + '"]').length == 0
 					) {
 						jQuery(
-							'<input type="hidden" name="' +
-								queryParamComponents[0] +
-								'" value="' +
-								queryParamComponents[1] +
-								'" />'
+							'<input type="hidden" name="' + queryParamComponents[0] + '" value="' + queryParamComponents[1] + '" />'
 						).appendTo(data);
 					}
 				}
@@ -606,12 +660,6 @@ jQuery.Class(
 					callback();
 				}
 			};
-			let postQuickCreateSave = function (data) {
-				thisInstance.loadRelatedList().done(function (data) {
-					aDeferred.resolve(data);
-				});
-			};
-
 			//If url contains params then seperate them and make them as relatedParams
 			if (typeof fullFormUrl !== 'undefined' && fullFormUrl.indexOf('?') !== -1) {
 				let urlSplit = fullFormUrl.split('?');
@@ -627,10 +675,12 @@ jQuery.Class(
 			}
 
 			quickCreateParams['data'] = relatedParams;
-			quickCreateParams['callbackFunction'] = postQuickCreateSave;
+			quickCreateParams['callbackFunction'] = function (data) {
+				aDeferred.resolve(data);
+			};
 			quickCreateParams['callbackPostShown'] = preQuickCreateSave;
 			quickCreateParams['noCache'] = true;
-			Vtiger_Header_Js.getInstance().quickCreateModule(referenceModuleName, quickCreateParams);
+			App.Components.QuickCreate.createRecord(referenceModuleName, quickCreateParams);
 			return aDeferred.promise();
 		},
 		getRelatedPageCount: function () {
@@ -700,9 +750,7 @@ jQuery.Class(
 			let defaultView = '';
 			if (app.getMainParams('defaultDetailViewName')) {
 				defaultView =
-					defaultView +
-					'&mode=showDetailViewByMode&requestMode=' +
-					app.getMainParams('defaultDetailViewName'); // full, summary
+					defaultView + '&mode=showDetailViewByMode&requestMode=' + app.getMainParams('defaultDetailViewName'); // full, summary
 			}
 			frame.attr('src', url.replace('view=Detail', 'view=DetailPreview') + defaultView);
 		},
@@ -763,16 +811,19 @@ jQuery.Class(
 			const self = this;
 			if (this.relatedView === 'List' || this.relatedView === 'Detail') {
 				this.content.find('.listViewEntries').on('click', function (e) {
-					if ($(e.target).is('td')) {
-						if (app.getViewName() == 'DetailPreview') {
-							if ($(e.target).closest('tr').data('recordurl')) {
-								top.document.location.href = $(e.target).closest('tr').data('recordurl');
-							}
-						} else {
-							if ($(e.target).closest('tr').data('recordurl')) {
-								document.location.href = $(e.target).closest('tr').data('recordurl');
-							}
-						}
+					if ($(e.target).closest('div').hasClass('actions')) return;
+					if ($(e.target).is('button') || $(e.target).parent().is('button') || $(e.target).is('a')) return;
+					if ($(e.target).closest('a').hasClass('noLinkBtn')) return;
+					if ($(e.target, $(e.currentTarget)).is('td:first-child')) return;
+					if ($(e.target).is('input[type="checkbox"]')) return;
+					if ($.contains($(e.currentTarget).find('td:last-child').get(0), e.target)) return;
+					if ($.contains($(e.currentTarget).find('td:first-child').get(0), e.target)) return;
+					let recordUrl = $(e.target).closest('tr').data('recordurl');
+					if (!recordUrl) return;
+					if (app.getViewName() === 'DetailPreview') {
+						top.document.location.href = recordUrl;
+					} else {
+						document.location.href = recordUrl;
 					}
 				});
 				this.content.find('.js-toggle-hidden-row').on('click', function (e) {
@@ -780,9 +831,7 @@ jQuery.Class(
 					let row = target.closest('tr');
 					let inventoryRow = row.next('.js-hidden-row');
 					if (inventoryRow.length) {
-						let block = inventoryRow.find(
-							'.js-hidden-row__block[data-element="' + target.data('element') + '"]'
-						);
+						let block = inventoryRow.find('.js-hidden-row__block[data-element="' + target.data('element') + '"]');
 						if (block.is(':visible') || !inventoryRow.is(':visible')) {
 							inventoryRow.toggleClass('d-none');
 						}
@@ -809,9 +858,7 @@ jQuery.Class(
 					self.updatePreview(recordUrl);
 				});
 			}
-			let widgetsContainer = this.content.find(
-				'.js-hidden-row .js-hidden-row__block[data-element="widgets"]'
-			);
+			let widgetsContainer = this.content.find('.js-hidden-row .js-hidden-row__block[data-element="widgets"]');
 			if (widgetsContainer.length) {
 				self.registerWidgets(widgetsContainer);
 			}
@@ -859,9 +906,7 @@ jQuery.Class(
 		registerPreviewEvent: function () {
 			let thisInstance = this;
 			let contentHeight = this.content.find('.js-detail-preview,.js-list-preview');
-			contentHeight.height(
-				app.getScreenHeight() - (this.content.offset().top + $('.js-footer').height())
-			);
+			contentHeight.height(app.getScreenHeight() - (this.content.offset().top + $('.js-footer').height()));
 			this.content.find('.listPreviewframe').on('load', function () {
 				if (thisInstance.frameProgress) {
 					thisInstance.frameProgress.progressIndicator({ mode: 'hide' });
@@ -929,27 +974,25 @@ jQuery.Class(
 				});
 				let element = $(this);
 				let row = element.closest('tr');
-				thisInstance
-					.favoritesRelation(row.data('id'), element.data('state'))
-					.done(function (response) {
-						if (response) {
-							let state = element.data('state') ? 0 : 1;
-							element.data('state', state);
-							if (state) {
-								element.find('.far').addClass('d-none');
-								element.find('.fas').removeClass('d-none');
-							} else {
-								element.find('.fas').addClass('d-none');
-								element.find('.far').removeClass('d-none');
-							}
-							progressInstance.progressIndicator({ mode: 'hide' });
-							let text = app.vtranslate('JS_REMOVED_FROM_FAVORITES');
-							if (state) {
-								text = app.vtranslate('JS_ADDED_TO_FAVORITES');
-							}
-							Vtiger_Helper_Js.showPnotify({ text: text, type: 'success' });
+				thisInstance.favoritesRelation(row.data('id'), element.data('state')).done(function (response) {
+					if (response) {
+						let state = element.data('state') ? 0 : 1;
+						element.data('state', state);
+						if (state) {
+							element.find('.far').addClass('d-none');
+							element.find('.fas').removeClass('d-none');
+						} else {
+							element.find('.fas').addClass('d-none');
+							element.find('.far').removeClass('d-none');
 						}
-					});
+						progressInstance.progressIndicator({ mode: 'hide' });
+						let text = app.vtranslate('JS_REMOVED_FROM_FAVORITES');
+						if (state) {
+							text = app.vtranslate('JS_ADDED_TO_FAVORITES');
+						}
+						app.showNotify({ text: text, type: 'success' });
+					}
+				});
 			});
 			this.content.find('[name="addButton"]').on('click', function (e) {
 				const element = $(this);
@@ -989,7 +1032,7 @@ jQuery.Class(
 					thisInstance.deleteRelation(target);
 				});
 			});
-			this.content.find('.js-switch--calendar').on('change', function (e) {
+			this.content.find('.js-switch--calendar,select.js-relation-cv-id').on('change', function (e) {
 				thisInstance.loadRelatedList();
 			});
 		},
@@ -1027,10 +1070,7 @@ jQuery.Class(
 			return maxWidth;
 		},
 		setDomParams: function (container) {
-			this.listColumnFirstWidth = container
-				.find('.listViewEntriesDiv .listViewHeaders th')
-				.first()
-				.width();
+			this.listColumnFirstWidth = container.find('.listViewEntriesDiv .listViewHeaders th').first().width();
 			this.listColumnSecondWidth = this.getSecondColMinWidth(container);
 			this.windowW = $(window).width();
 			this.mainBody = container.closest('.mainBody');
@@ -1046,8 +1086,7 @@ jQuery.Class(
 			this.headerH = $('.js-header').outerHeight();
 		},
 		getDefaultSplitSizes: function () {
-			let thWidth =
-				((this.listColumnFirstWidth + this.listColumnSecondWidth + 82) / this.windowW) * 100;
+			let thWidth = ((this.listColumnFirstWidth + this.listColumnSecondWidth + 82) / this.windowW) * 100;
 			return [thWidth, 100 - thWidth];
 		},
 		getSplitSizes() {
@@ -1321,7 +1360,10 @@ jQuery.Class(
 			return aDeferred.promise();
 		},
 		noRecordSelectedAlert: function (text = 'JS_PLEASE_SELECT_ONE_RECORD') {
-			Vtiger_Helper_Js.showPnotify({ text: app.vtranslate(text) });
+			app.showNotify({
+				text: app.vtranslate(text),
+				type: 'error'
+			});
 		},
 		getCurrentCvId: function () {
 			return $('#customFilter').find('option:selected').data('id');
@@ -1415,13 +1457,19 @@ jQuery.Class(
 				let selectedIds = self.readSelectedIds(),
 					excludedIds = self.readExcludedIds();
 				if ($('#relatedListViewEntriesMainCheckBox').is(':checked')) {
+					let progress = $.progressIndicator({ blockInfo: { enabled: true } });
 					let recordCountObj = self.getRecordsCount();
-					recordCountObj.done(function (data) {
-						$('#totalRecordsCount').text(data);
-						if ($('#deSelectAllMsgDiv').css('display') == 'none') {
-							$('#selectAllMsgDiv').show();
-						}
-					});
+					recordCountObj
+						.done(function (data) {
+							progress.progressIndicator({ mode: 'hide' });
+							$('#totalRecordsCount').text(data);
+							if ($('#deSelectAllMsgDiv').css('display') == 'none') {
+								$('#selectAllMsgDiv').show();
+							}
+						})
+						.fail(function () {
+							progress.progressIndicator({ mode: 'hide' });
+						});
 					$('.relatedListViewEntriesCheckBox').each(function (index, element) {
 						$(this).prop('checked', true).closest('tr').addClass('highlightBackgroundColor');
 						if (selectedIds == 'all' && $.inArray($(element).val(), excludedIds) != -1) {
@@ -1479,7 +1527,7 @@ jQuery.Class(
 					if (element.closest('.js-detail-widget').length) {
 						Vtiger_Detail_Js.getInstance().postSummaryWidgetAddRecord(data, element);
 					} else {
-						this.loadRelatedList(data.result);
+						this.loadRelatedList();
 					}
 				}
 			});

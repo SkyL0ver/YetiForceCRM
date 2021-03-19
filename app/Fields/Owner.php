@@ -469,7 +469,14 @@ class Owner
 			}
 		}
 		$users = $groups = [];
-		$ids = $queryGenerator->setFields([$fieldName])->createQuery()->distinct()->column();
+		$queryGenerator->clearFields();
+		if (false !== strpos($fieldName, ':')) {
+			$queryField = $queryGenerator->getQueryRelatedField($fieldName);
+			$queryGenerator->setFields([])->setCustomColumn($queryField->getColumnName())->addRelatedJoin($queryField->getRelated());
+		} else {
+			$queryGenerator->setFields([$fieldName]);
+		}
+		$ids = $queryGenerator->createQuery()->distinct()->column();
 		$adminInList = \App\Config::performance('SHOW_ADMINISTRATORS_IN_USERS_LIST');
 		foreach ($ids as $id) {
 			$userModel = \App\User::getUserModel($id);
@@ -762,7 +769,7 @@ class Owner
 			$users = \App\PrivilegeFile::getUser('id');
 			$isExists = isset($users[$id]);
 		} else {
-			$isExists = !empty(\App\Fields\Owner::getUserLabel($id));
+			$isExists = !empty(self::getUserLabel($id));
 		}
 		$result = $isExists ? 'Users' : 'Groups';
 		self::$typeCache[$id] = $result;
@@ -836,7 +843,7 @@ class Owner
 			$className = str_replace('"', '', $classNameWithDoubleQuotes);
 			require_once 'modules/com_vtiger_workflow/tasks/' . $className . '.php';
 			$unserializeTask = unserialize($task);
-			if (\array_key_exists('field_value_mapping', $unserializeTask)) {
+			if (isset($unserializeTask->field_value_mapping)) {
 				$fieldMapping = \App\Json::decode($unserializeTask->field_value_mapping);
 				if (!empty($fieldMapping)) {
 					foreach ($fieldMapping as $key => $condition) {
@@ -857,7 +864,7 @@ class Owner
 				}
 			} else {
 				//For VTCreateTodoTask and VTCreateEventTask
-				if (\array_key_exists('assigned_user_id', $unserializeTask)) {
+				if (isset($unserializeTask->assigned_user_id)) {
 					$value = $unserializeTask->assigned_user_id;
 					if ($value == $oldId) {
 						$unserializeTask->assigned_user_id = $newId;

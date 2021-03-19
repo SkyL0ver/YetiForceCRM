@@ -12,9 +12,7 @@ class Vtiger_MultiReferenceValue_UIType extends Vtiger_Base_UIType
 {
 	const COMMA = '|#|';
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getDisplayValue($value, $record = false, $recordModel = false, $rawText = false, $length = false)
 	{
 		$value = str_replace(self::COMMA, ', ', $value);
@@ -26,9 +24,7 @@ class Vtiger_MultiReferenceValue_UIType extends Vtiger_Base_UIType
 		return \App\Purifier::encodeHtml($value);
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getListViewDisplayValue($value, $record = false, $recordModel = false, $rawText = false)
 	{
 		$field = $this->getFieldModel();
@@ -47,17 +43,13 @@ class Vtiger_MultiReferenceValue_UIType extends Vtiger_Base_UIType
 		return \App\Purifier::encodeHtml(\App\TextParser::textTruncate($values, $field->get('maxlengthtext')));
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getTemplateName()
 	{
 		return 'Edit/Field/MultiReferenceValue.tpl';
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getListSearchTemplateName()
 	{
 		return 'List/Field/MultiReferenceValue.tpl';
@@ -66,12 +58,11 @@ class Vtiger_MultiReferenceValue_UIType extends Vtiger_Base_UIType
 	/**
 	 * Function to get all the available picklist values for the current field.
 	 *
-	 * @return <Array> List of picklist values if the field is of type MultiReferenceValue
+	 * @return array List of picklist values if the field is of type MultiReferenceValue
 	 */
 	public function getPicklistValues()
 	{
-		$picklistValues = $this->get('picklistValues');
-		if (!empty($picklistValues)) {
+		if ($picklistValues = $this->get('picklistValues')) {
 			return $picklistValues;
 		}
 		$params = $this->getFieldModel()->getFieldParams();
@@ -180,10 +171,13 @@ class Vtiger_MultiReferenceValue_UIType extends Vtiger_Base_UIType
 	 * @param mixed $module
 	 * @param mixed $view
 	 *
-	 * @return <Array> List of picklist values if the field is of type MultiReferenceValue
+	 * @return array List of picklist values if the field is of type MultiReferenceValue
 	 */
-	public function getPicklistValuesForModuleList($module, $view)
+	public function getPicklistValuesForModuleList($module, $view): array
 	{
+		if ($picklistValues = $this->get('picklistValues')) {
+			return $picklistValues;
+		}
 		$queryGenerator = new \App\QueryGenerator($module);
 		$queryGenerator->initForCustomViewById($view);
 		$queryGenerator->setFields([$this->getFieldModel()->get('name')]);
@@ -194,20 +188,18 @@ class Vtiger_MultiReferenceValue_UIType extends Vtiger_Base_UIType
 			$value = explode(self::COMMA, trim($value, self::COMMA));
 			$values = array_merge($values, $value);
 		}
-		return array_unique($values);
+		$values = array_unique($values);
+		$this->set('picklistValues', $values);
+		return $values;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getAllowedColumnTypes()
 	{
 		return ['text'];
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getQueryOperators()
 	{
 		return ['e', 'n', 'y', 'ny'];

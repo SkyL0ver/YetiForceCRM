@@ -70,6 +70,9 @@ class Vtiger_Detail_View extends Vtiger_Index_View
 		$this->exposeMethod('showChat');
 		$this->exposeMethod('processWizard');
 		$this->exposeMethod('showModTrackerByField');
+		$this->exposeMethod('showCharts');
+		$this->exposeMethod('showInventoryEntries');
+		$this->exposeMethod('showPDF');
 	}
 
 	/**
@@ -240,7 +243,9 @@ class Vtiger_Detail_View extends Vtiger_Index_View
 			'~libraries/leaflet/dist/leaflet.js',
 			'~libraries/leaflet.markercluster/dist/leaflet.markercluster.js',
 			'~libraries/leaflet.awesome-markers/dist/leaflet.awesome-markers.js',
-			'modules.OpenStreetMap.resources.Map'
+			'modules.OpenStreetMap.resources.Map',
+			'modules.Vtiger.resources.dashboards.Widget',
+			'~libraries/chart.js/dist/Chart.js'
 		];
 		if (\App\Privilege::isPermitted('Chat')) {
 			$jsFileNames[] = '~layouts/basic/modules/Chat/resources/Chat.js';
@@ -831,7 +836,18 @@ class Vtiger_Detail_View extends Vtiger_Index_View
 			throw new \App\Exceptions\NoPermittedToRecord('ERR_NO_PERMISSIONS_FOR_THE_RECORD', 406);
 		}
 		$parentRecordModel = Vtiger_Record_Model::getInstanceById($parentId, $moduleName);
-		$relationListView = Vtiger_RelationListView_Model::getInstance($parentRecordModel, $relatedModuleName, $relationId);
+		$cvId = $request->isEmpty('cvId', true) ? 0 : $request->getByType('cvId', 'Alnum');
+		$relationListView = Vtiger_RelationListView_Model::getInstance($parentRecordModel, $relatedModuleName, $relationId, $cvId);
+		if ($fieldRelation = $request->getArray('fromRelation', \App\Purifier::ALNUM, [], \App\Purifier::STANDARD)) {
+			if (($parentId = $parentRecordModel->get($fieldRelation['relatedField'])) && \App\Record::isExists($parentId)) {
+				$moduleName = \App\Record::getType($parentId);
+				$parentRecordModel = Vtiger_Record_Model::getInstanceById($parentId, $moduleName);
+				$relationId = $fieldRelation['relationId'];
+				$relationListView = Vtiger_RelationListView_Model::getInstance($parentRecordModel, $relatedModuleName, $relationId);
+			} else {
+				$relationListView->getQueryGenerator()->addNativeCondition((new \yii\db\Expression('0 > 1')));
+			}
+		}
 		$relationModel = $relationListView->getRelationModel();
 		if ($relationModel->isFavorites() && \App\Privilege::isPermitted($moduleName, 'FavoriteRecords')) {
 			$favorites = $relationListView->getFavoriteRecords();
@@ -977,6 +993,62 @@ class Vtiger_Detail_View extends Vtiger_Index_View
 		$viewer->assign('BLOCK_LIST', $moduleModel->getBlocks());
 		$viewer->assign('IS_READ_ONLY', $request->getBoolean('isReadOnly') || $this->record->getRecord()->isReadOnly());
 		return $viewer->view('DetailViewProductsServicesContents.tpl', $moduleName, true);
+	}
+
+	/**
+	 * Function returns related records based on related moduleName.
+	 *
+	 * @param \App\Request $request
+	 *
+	 * @return string
+	 */
+	public function showInventoryEntries(App\Request $request)
+	{
+		$recordId = $request->getInteger('record');
+		$pageNumber = $request->getInteger('page');
+		$moduleName = $request->getModule();
+		if (empty($pageNumber)) {
+			$pageNumber = 1;
+		}
+		$pagingModel = new Vtiger_Paging_Model();
+		$pagingModel->set('page', $pageNumber);
+		$limit = $request->isEmpty('limit', true) ? 10 : $request->getInteger('limit');
+		$pagingModel->set('limit', $limit);
+		$entries = \Vtiger_Inventory_Model::getInventoryDataById($recordId, $moduleName, $pagingModel);
+		$inventoryModel = \Vtiger_Inventory_Model::getInstance($moduleName);
+		$viewer = $this->getViewer($request);
+		$columns = $request->getExploded('fields');
+		$header = [];
+		foreach ($columns as $fieldName) {
+			$fieldModel = $inventoryModel->getField($fieldName);
+			if ($fieldModel && $fieldModel->isVisibleInDetail()) {
+				$header[$fieldName] = $fieldModel;
+			}
+		}
+		$viewer->assign('LIMIT', $limit);
+		$viewer->assign('ENTRIES', $entries);
+		$viewer->assign('HEADER_FIELD', $header);
+		$viewer->assign('PAGING_MODEL', $pagingModel);
+		return $viewer->view('Detail/Widget/InventoryBlock.tpl', $moduleName, true);
+	}
+
+	/**
+	 * Function shows PDF.
+	 *
+	 * @param \App\Request $request
+	 *
+	 * @return string
+	 */
+	public function showPDF(App\Request $request)
+	{
+		$recordId = $request->getInteger('record');
+		$templateId = $request->getInteger('template');
+		$moduleName = $request->getModule();
+		$viewer = $this->getViewer($request);
+		$viewer->assign('RECORD_ID', $recordId);
+		$viewer->assign('TEMPLATE', $templateId);
+		$viewer->assign('MODULE_NAME', $moduleName);
+		return $viewer->view('Detail/Widget/PDFViewer.tpl', $moduleName, true);
 	}
 
 	/**
@@ -1132,8 +1204,15 @@ class Vtiger_Detail_View extends Vtiger_Index_View
 		$viewer->assign('STEP', $step);
 		$viewer->assign('STEP_URL', "index.php?module={$moduleName}&view=Detail&record={$recordModel->getId()}&mode=processWizard&tab_label=LBL_RECORD_PROCESS_WIZARD&step=");
 		$viewer->assign('RECORD', $recordModel);
+		if (!$this->recordStructure) {
+			$this->recordStructure = Vtiger_RecordStructure_Model::getInstanceFromRecordModel($recordModel, Vtiger_RecordStructure_Model::RECORD_STRUCTURE_MODE_DETAIL);
+		}
+		$structuredValues = $this->recordStructure->getStructure();
+		$viewer->assign('RECORD_STRUCTURE', $structuredValues);
 		if (!empty($step['quickEdit'])) {
 			$viewer->assign('IS_AJAX_ENABLED', $this->isAjaxEnabled($recordModel));
+		} else {
+			$viewer->assign('IS_AJAX_ENABLED', false);
 		}
 		$viewer->assign('BLOCK_LIST', $recordModel->getModule()->getBlocks());
 		$viewer->assign('MODULE_MODEL', $recordModel->getModule());
@@ -1192,5 +1271,30 @@ class Vtiger_Detail_View extends Vtiger_Index_View
 		$viewer->assign('FIELD_LABEL', $recordModel->getField($fieldName)->getFieldLabel());
 		$viewer->assign('IS_READ_ONLY', $request->getBoolean('isReadOnly') || $this->record->getRecord()->isReadOnly());
 		return $viewer->view('Detail/Widget/UpdatesListContent.tpl', $moduleName, true);
+	}
+
+	/**
+	 * Show Chart.
+	 *
+	 * @param App\Request $request
+	 */
+	public function showCharts(App\Request $request)
+	{
+		$viewer = $this->getViewer($request);
+		$moduleName = $request->getModule();
+
+		$widgetId = $request->getByType('widgetId', \App\Purifier::INTEGER);
+		$widgetData = (new App\Db\Query())->from('vtiger_widgets')->where(['id' => $widgetId, 'tabid' => \App\Module::getModuleId($moduleName)])->one();
+		$data = App\Json::decode($widgetData['data']);
+		$data['module'] = \App\Module::getModuleName($data['relatedmodule']);
+		$data['recordId'] = $this->record->getRecord()->getId();
+		$widgetData['data'] = \App\Json::encode($data);
+		$widget = Vtiger_Widget_Model::getInstanceFromValues($widgetData);
+		$chartFilterWidgetModel = Vtiger_ChartFilter_Model::getInstance();
+		$chartFilterWidgetModel->setWidgetModel($widget);
+		$viewer->assign('MODULE_NAME', $moduleName);
+		$viewer->assign('CHART_MODEL', $chartFilterWidgetModel);
+		$viewer->assign('CHART_DATA', $chartFilterWidgetModel->getChartData());
+		$viewer->view('Detail/Widget/ShowChart.tpl', $moduleName);
 	}
 }

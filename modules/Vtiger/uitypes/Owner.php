@@ -6,21 +6,18 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
+ * Contributor(s): YetiForce Sp. z o.o
  * *********************************************************************************** */
 
 class Vtiger_Owner_UIType extends Vtiger_Base_UIType
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getDBValue($value, $recordModel = false)
 	{
 		return empty($value) ? \App\User::getCurrentUserRealId() : (int) $value;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getDbConditionBuilderValue($value, string $operator)
 	{
 		$values = [];
@@ -33,9 +30,7 @@ class Vtiger_Owner_UIType extends Vtiger_Base_UIType
 		return implode('##', $values);
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function validate($value, $isUserFormat = false)
 	{
 		if (empty($value) || isset($this->validate[$value])) {
@@ -54,38 +49,36 @@ class Vtiger_Owner_UIType extends Vtiger_Base_UIType
 		$this->validate[$value] = true;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getDisplayValue($value, $record = false, $recordModel = false, $rawText = false, $length = false)
 	{
 		if (empty($value)) {
 			return '';
 		}
 		$ownerName = \App\Fields\Owner::getLabel($value);
-		if (\is_int($length)) {
-			$ownerName = \App\TextParser::textTruncate($ownerName, $length);
-		}
 		if ($rawText) {
 			return $ownerName;
 		}
+		if (\is_int($length)) {
+			$ownerName = \App\TextParser::textTruncate($ownerName, $length);
+		}
 		switch (\App\Fields\Owner::getType($value)) {
 			case 'Users':
-				if(!\App\User::isExists($value, false)){
+				if (!\App\User::isExists($value, false)) {
 					$ownerName = '<span class="text-muted"><s>' . $ownerName ?: '---' . '</s></span>';
 				} else {
 					$userModel = Users_Privileges_Model::getInstanceById($value);
 					$userModel->setModule('Users');
 					if ('Inactive' === $userModel->get('status')) {
 						$ownerName = '<span class="redColor"><s>' . $ownerName . '</s></span>';
-					} elseif (\App\Privilege::isPermitted('Users', 'DetailView', $value)) {
+					} elseif (\App\User::getCurrentUserModel()->isAdmin()) {
 						$detailViewUrl = 'index.php?module=Users&view=Detail&record=' . $value;
 						$popoverRecordClass = 'class="js-popover-tooltip--record"';
 					}
 				}
 				break;
 			case 'Groups':
-				if (App\User::getCurrentUserModel()->isAdmin()) {
+				if (\App\User::getCurrentUserModel()->isAdmin()) {
 					$recordModel = new Settings_Groups_Record_Model();
 					$recordModel->set('groupid', $value);
 					$detailViewUrl = $recordModel->getDetailViewUrl();
@@ -97,38 +90,33 @@ class Vtiger_Owner_UIType extends Vtiger_Base_UIType
 				break;
 		}
 		if (isset($detailViewUrl)) {
+			if (!empty($this->fullUrl)) {
+				$detailViewUrl = Config\Main::$site_URL . $detailViewUrl;
+			}
 			return "<a $popoverRecordClass href=\"$detailViewUrl\"> $ownerName </a>";
 		}
 		return $ownerName;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getRelatedListDisplayValue($value)
 	{
 		return $value;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getListSearchTemplateName()
 	{
 		return 'List/Field/Owner.tpl';
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getTemplateName()
 	{
 		return 'Edit/Field/Owner.tpl';
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function isAjaxEditable()
 	{
 		$userPrivModel = Users_Privileges_Model::getCurrentUserPrivilegesModel();
@@ -139,25 +127,19 @@ class Vtiger_Owner_UIType extends Vtiger_Base_UIType
 		return false;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getAllowedColumnTypes()
 	{
 		return ['integer', 'smallint'];
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getQueryOperators()
 	{
 		return ['e', 'n', 'y', 'ny', 'om', 'nom', 'ogr', 'wr', 'nwr'];
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getOperatorTemplateName(string $operator = '')
 	{
 		return 'ConditionBuilder/Owner.tpl';

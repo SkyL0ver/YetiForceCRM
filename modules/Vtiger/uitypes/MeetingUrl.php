@@ -14,11 +14,12 @@
  */
 class Vtiger_MeetingUrl_UIType extends Vtiger_Url_UIType
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getDisplayValue($value, $record = false, $recordModel = false, $rawText = false, $length = false)
 	{
+		if (empty($value)) {
+			return '';
+		}
 		$rawValue = $value;
 		$value = \App\Purifier::encodeHtml($value);
 		preg_match('^[\\w]+:\\/\\/^', $value, $matches);
@@ -35,15 +36,7 @@ class Vtiger_MeetingUrl_UIType extends Vtiger_Url_UIType
 			$class = 'js-show-modal';
 		}
 		$rawValue = \App\TextParser::textTruncate($rawValue, \is_int($length) ? $length : 0);
-		return '<a class="noLinkBtn btnNoFastEdit ' . $class . ' u-cursor-pointer" title="' . $value . '" href="' . $value . '" target="_blank" rel="noreferrer noopener" data-url="' . $meetingModalUrl . '">' . \App\Purifier::encodeHtml($rawValue) . '</a>';
-	}
-
-	/**
-	 * {@inheritdoc}
-	 */
-	public function getHistoryDisplayValue($value, Vtiger_Record_Model $recordModel, $rawText = false)
-	{
-		return $this->getDisplayValue($value, $recordModel->getId(), $recordModel, $rawText, \App\Config::main('listview_max_textlength'));
+		return '<a class="noLinkBtn ' . $class . ' u-cursor-pointer" title="' . $value . '" href="' . $value . '" target="_blank" rel="noreferrer noopener" data-url="' . $meetingModalUrl . '">' . \App\Purifier::encodeHtml($rawValue) . '</a>';
 	}
 
 	/**
@@ -60,9 +53,7 @@ class Vtiger_MeetingUrl_UIType extends Vtiger_Url_UIType
 		return "index.php?module={$fieldModel->getModuleName()}&action=Meeting&fieldName={$fieldModel->getName()}&record=" . ($recordId ?: '') . '&expField=' . ($params['exp'] ?? '');
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getTemplateName()
 	{
 		return 'Edit/Field/MeetingUrl.tpl';

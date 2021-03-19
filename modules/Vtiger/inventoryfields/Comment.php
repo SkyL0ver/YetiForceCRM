@@ -13,15 +13,42 @@
  */
 class Vtiger_Comment_InventoryField extends Vtiger_Basic_InventoryField
 {
+	/** {@inheritdoc} */
 	protected $type = 'Comment';
+	/** {@inheritdoc} */
 	protected $defaultLabel = 'LBL_COMMENT';
+	/** {@inheritdoc} */
 	protected $colSpan = 0;
+	/** {@inheritdoc} */
 	protected $columnName = 'comment';
+	/** {@inheritdoc} */
 	protected $dbType = 'text';
+	/** {@inheritdoc} */
+	protected $params = ['width', 'height'];
+	/** {@inheritdoc} */
 	protected $onlyOne = false;
+	/** {@inheritdoc} */
 	protected $blocks = [2];
+	/** {@inheritdoc} */
 	public $isVisible = false;
+	/** {@inheritdoc} */
 	protected $purifyType = \App\Purifier::HTML;
+
+	/** {@inheritdoc} */
+	public function getEditTemplateName()
+	{
+		return 'inventoryTypes/Comment.tpl';
+	}
+
+	/**
+	 * Get width.
+	 *
+	 * @return int
+	 */
+	public function getWidth(): int
+	{
+		return $this->getParamsConfig()['width'] ?? 100;
+	}
 
 	/**
 	 * Get height.
@@ -43,9 +70,7 @@ class Vtiger_Comment_InventoryField extends Vtiger_Basic_InventoryField
 		return $this->getParamsConfig()['isOpened'] ?? false;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getDisplayValue($value, array $rowData = [], bool $rawText = false)
 	{
 		$conf = App\Config::module($this->getModuleName(), 'inventoryCommentIframeContent', null);
@@ -56,9 +81,14 @@ class Vtiger_Comment_InventoryField extends Vtiger_Basic_InventoryField
 		return $rawText ? $value : \App\Layout::truncateHtml($value, 'full');
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
+	public function getListViewDisplayValue($value, array $rowData = [], bool $rawText = false)
+	{
+		$value = \App\Utils\Completions::decode(\App\Purifier::purifyHtml($value));
+		return $rawText ? $value : \App\Layout::truncateHtml($value, 'mini', 50);
+	}
+
+	/** {@inheritdoc} */
 	public function validate($value, string $columnName, bool $isUserFormat, $originalValue = null)
 	{
 		if (!\is_string($value)) {
@@ -66,17 +96,13 @@ class Vtiger_Comment_InventoryField extends Vtiger_Basic_InventoryField
 		}
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getDBValue($value, ?string $name = '')
 	{
 		return \App\Utils\Completions::encodeAll(\App\Purifier::decodeHtml($value));
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getValue($value)
 	{
 		if ('' == $value) {

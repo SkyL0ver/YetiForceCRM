@@ -454,6 +454,9 @@ class ModuleBasic
 			$db->createCommand()->delete('vtiger_relatedlists_fields', ['relation_id' => $ids])->execute();
 			$db->createCommand()->delete('a_#__relatedlists_inv_fields', ['relation_id' => $ids])->execute();
 		}
+		foreach ($ids as $id) {
+			\App\Relation::clearCacheById($id);
+		}
 		\App\Log::trace('End', __METHOD__);
 	}
 

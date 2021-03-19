@@ -27,14 +27,12 @@ jQuery.Class(
 									var inst = $.jstree.reference(data.reference);
 									var id = inst.get_selected();
 									var progress = jQuery.progressIndicator();
-									app.showModalWindow(
-										null,
-										'index.php?module=Menu&parent=Settings&view=EditMenu&id=' + id,
-										function (container) {
-											thisInstance.registerEditMenu(container);
-											progress.progressIndicator({ mode: 'hide' });
-										}
-									);
+									app.showModalWindow(null, 'index.php?module=Menu&parent=Settings&view=EditMenu&id=' + id, function (
+										container
+									) {
+										thisInstance.registerEditMenu(container);
+										progress.progressIndicator({ mode: 'hide' });
+									});
 								}
 							},
 							remove: {
@@ -128,14 +126,12 @@ jQuery.Class(
 			var thisInstance = this;
 			$('.addMenu').on('click', function (e) {
 				var progress = jQuery.progressIndicator();
-				app.showModalWindow(
-					null,
-					'index.php?module=Menu&parent=Settings&view=CreateMenu&mode=step1',
-					function (container) {
-						thisInstance.registerStep1(container);
-						progress.progressIndicator({ mode: 'hide' });
-					}
-				);
+				app.showModalWindow(null, 'index.php?module=Menu&parent=Settings&view=CreateMenu&mode=step1', function (
+					container
+				) {
+					thisInstance.registerStep1(container);
+					progress.progressIndicator({ mode: 'hide' });
+				});
 			});
 		},
 		loadContent: function () {
@@ -231,6 +227,9 @@ jQuery.Class(
 		save: function (mode, data) {
 			var aDeferred = jQuery.Deferred();
 			var params = {};
+			if (typeof data['filters'] !== 'undefined' && !$.isArray(data['filters'])) {
+				data['filters'] = [data['filters']];
+			}
 			params['module'] = app.getModuleName();
 			params['parent'] = app.getParentModuleName();
 			params['action'] = 'SaveAjax';

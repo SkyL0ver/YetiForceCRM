@@ -48,6 +48,12 @@ abstract class AbstractBaseProduct
 	 */
 	public $category;
 	/**
+	 * Product website.
+	 *
+	 * @var string
+	 */
+	public $website;
+	/**
 	 * Price table depending on the size of the company.
 	 *
 	 * @var int[]
@@ -99,11 +105,12 @@ abstract class AbstractBaseProduct
 	/**
 	 * Verify the product.
 	 *
-	 * @param bool $cache
-	 *
 	 * @return bool
 	 */
-	abstract protected function verify($cache = true): bool;
+	public function verify(): bool
+	{
+		return true;
+	}
 
 	/**
 	 * Construct.
@@ -187,7 +194,7 @@ abstract class AbstractBaseProduct
 	{
 		$filePath = null;
 		$file = 'modules/Settings/YetiForce/' . $this->name . '.png';
-		if (\file_exists(\ROOT_DIRECTORY . \DIRECTORY_SEPARATOR . 'public_html' . \DIRECTORY_SEPARATOR . $file)) {
+		if (\file_exists(ROOT_DIRECTORY . \DIRECTORY_SEPARATOR . 'public_html' . \DIRECTORY_SEPARATOR . $file)) {
 			$filePath = \App\Layout::getPublicUrl($file);
 		}
 		return $filePath;
@@ -282,16 +289,40 @@ abstract class AbstractBaseProduct
 	/**
 	 * Show alert.
 	 *
-	 * @return string
+	 * @return array
 	 */
-	public function showAlert(): string
+	public function showAlert(): array
 	{
-		if (strtotime('now') > strtotime($this->expirationDate)) {
-			return 'LBL_SIZE_OF_YOUR_COMPANY_HAS_CHANGED';
+		$return = ['status' => false];
+		if (isset($this->paidPackage, $this->expirationDate)) {
+			if (strtotime('now') > strtotime($this->expirationDate)) {
+				$return = ['status' => true, 'type' => 'LBL_SHOP_RENEW', 'message' => 'LBL_SUBSCRIPTION_HAS_EXPIRED'];
+			} elseif (!\App\Company::compareSize($this->paidPackage)) {
+				$return = ['status' => true, 'type' => 'LBL_SHOP_RENEW', 'message' => 'LBL_SIZE_OF_YOUR_COMPANY_HAS_CHANGED'];
+			} elseif ($analyze = $this->analyzeConfiguration()) {
+				$return = array_merge(['status' => true], $analyze);
+			}
 		}
-		if (\App\Company::getSize() !== $this->paidPackage) {
-			return 'LBL_SIZE_OF_YOUR_COMPANY_HAS_CHANGED';
-		}
-		return '';
+		return $return;
+	}
+
+	/**
+	 * Analyze the configuration.
+	 *
+	 * @return array
+	 */
+	public function analyzeConfiguration(): array
+	{
+		return [];
+	}
+
+	/**
+	 * Product modal additional buttons.
+	 *
+	 * @return Vtiger_Link_Model[]
+	 */
+	public function getAdditionalButtons(): array
+	{
+		return [];
 	}
 }

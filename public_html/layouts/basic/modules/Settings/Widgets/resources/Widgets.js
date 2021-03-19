@@ -17,20 +17,20 @@ jQuery.Class(
 			var progressIndicatorElement = jQuery.progressIndicator({ position: 'html' });
 			app.showModalWindow(
 				null,
-				'index.php?parent=Settings&module=Widgets&view=Widget&mode=createStep2&type=' +
-					type +
-					'&tabId=' +
-					tabId,
+				'index.php?parent=Settings&module=Widgets&view=Widget&mode=createStep2&type=' + type + '&tabId=' + tabId,
 				function (wizardContainer) {
 					app.showPopoverElementView(wizardContainer.find('.js-help-info'));
-					if (type === 'RelatedModule') {
+					if (type === 'RelatedModule' || type === 'RelatedModuleChart' || type === 'Documents') {
 						thisInstance.loadFilters(wizardContainer);
 						thisInstance.relatedModuleFields(wizardContainer);
+						thisInstance.customView(wizardContainer);
 						wizardContainer.find("select[name='relation_id']").on('change', function () {
 							thisInstance.changeRelatedModule(wizardContainer);
 							thisInstance.relatedModuleFields(wizardContainer);
+							thisInstance.customView(wizardContainer);
 						});
 					}
+					thisInstance.registerSort(wizardContainer);
 					progressIndicatorElement.progressIndicator({ mode: 'hide' });
 					var form = jQuery('form', wizardContainer);
 					form.validationEngine(app.validationEngineOptions);
@@ -38,19 +38,14 @@ jQuery.Class(
 						e.preventDefault();
 						if (form.validationEngine('validate')) {
 							var save = true;
-							if (
-								form &&
-								form.hasClass('validateForm') &&
-								form.data('jqv').InvalidFields.length > 0
-							) {
+							if (form && form.hasClass('validateForm') && form.data('jqv').InvalidFields.length > 0) {
 								app.formAlignmentAfterValidation(form);
 								save = false;
 							}
 							if (save) {
-								var formData = form.serializeFormData();
 								thisInstance
 									.registerSaveEvent('saveWidget', {
-										data: formData,
+										data: form.serializeFormData(),
 										tabid: tabId
 									})
 									.done((_) => {
@@ -131,7 +126,7 @@ jQuery.Class(
 			})
 				.done((data) => {
 					aDeferred.resolve(data);
-					Vtiger_Helper_Js.showPnotify({
+					app.showNotify({
 						text: data['result']['message'],
 						type: 'success'
 					});
@@ -148,7 +143,7 @@ jQuery.Class(
 			let relatedModule = relatedModuleInput.val();
 			if (selected.length) {
 				relatedModule = selected.data('relatedmodule');
-				relatedModuleInput.val(selected.data('relatedmodule'));
+				relatedModuleInput.val(selected.data('relatedmodule')).data('module-name', selected.data('module-name'));
 			}
 			for (let i in types) {
 				let filters = app.getMainParams(types[i] + 'All', true);
@@ -176,7 +171,7 @@ jQuery.Class(
 		},
 		relatedModuleFields: function (container) {
 			const relatedModule = parseInt(container.find("input[name='relatedmodule']").val());
-			const relatedfields = container.find("select[name='relatedfields']");
+			const relatedfields = container.find("select[name='relatedfields'],select[name='groupField']");
 			relatedfields.find('optgroup').each(function (index, optgroup) {
 				optgroup = $(optgroup);
 				if (relatedModule !== optgroup.data('module')) {
@@ -189,7 +184,7 @@ jQuery.Class(
 				optgroup.find('option').each(function (index, option) {
 					option = $(option);
 					if (relatedModule !== option.data('module')) {
-						option.addClass('d-none');
+						option.addClass('d-none').removeAttr('selected');
 						option.prop('disabled', 'disabled');
 					} else {
 						option.removeClass('d-none');
@@ -204,18 +199,45 @@ jQuery.Class(
 			this.loadFilters(wizardContainer.find('.form-modalAddWidget'));
 		},
 
+		customView(container) {
+			const relatedModule = parseInt(container.find("input[name='relatedmodule']").val());
+			let customViews = app.getMainParams('customView', true);
+			let customView = container.find("select[name='customView']");
+			let customViewValues = container.find('.js-custom-view').val();
+			if (customViewValues) {
+				customViewValues = JSON.parse(customViewValues);
+			} else {
+				customViewValues = [];
+			}
+			customView.empty();
+			if (customViews[relatedModule] !== undefined) {
+				$.each(customViews[relatedModule], function (index, value) {
+					let option = { value: index, text: value };
+					if (customViewValues.includes(index)) {
+						option.selected = 'selected';
+					}
+					customView.append($('<option/>', option));
+				});
+			}
+			customView.trigger('change:select2');
+		},
+
 		modalFormEdit(wizardContainer) {
 			const thisInstance = this;
 			$('#massEditHeader.modal-title').text(app.vtranslate('JS_EDIT_WIDGET'));
 			app.showPopoverElementView(wizardContainer.find('.js-help-info'));
-			if (thisInstance.getType() == 'RelatedModule') {
+			let type = thisInstance.getType();
+			if (type == 'RelatedModule' || type === 'RelatedModuleChart' || type === 'Documents') {
 				thisInstance.loadFilters(wizardContainer);
 				thisInstance.relatedModuleFields(wizardContainer);
-				wizardContainer.find("select[name='relatedmodule']").on('change', function () {
+				thisInstance.customView(wizardContainer);
+				wizardContainer.find("select[name='relation_id']").on('change', function () {
 					thisInstance.changeRelatedModule(wizardContainer);
 					thisInstance.relatedModuleFields(wizardContainer);
+					thisInstance.customView(wizardContainer);
 				});
 			}
+			this.registerSort(wizardContainer);
 			const form = $('form', wizardContainer);
 			form.validationEngine(app.validationEngineOptions);
 			form.on('submit', (e) => {
@@ -238,6 +260,34 @@ jQuery.Class(
 							progress.progressIndicator({ mode: 'hide' });
 						});
 				}
+			});
+		},
+
+		registerSort: function (container) {
+			container.find("select[name='relation_id']").on('change', (e) => {
+				container.find('#orderBy').val('[]');
+			});
+			container.find('.js-sort-modal').on('click', (e) => {
+				let relatedModule = container.find("input[name='relatedmodule']").data('module-name');
+				let url = e.currentTarget.dataset.url;
+				app.showModalWindow(
+					null,
+					url + '&module=' + relatedModule,
+					function (wizardContainer) {
+						wizardContainer.find('.js-modal__save').on('click', (el) => {
+							el.preventDefault();
+							let sortData = {};
+							wizardContainer.find('.js-sort-container_element:not(.js-base-element)').each(function () {
+								let orderBy = $(this).find('.js-orderBy').val();
+								if (orderBy) {
+									sortData[orderBy] = $(this).find('.js-sort-order').val();
+								}
+							});
+							container.find('#orderBy').val(JSON.stringify(sortData));
+						});
+					},
+					{ modalId: e.currentTarget.dataset.modalid }
+				);
 			});
 		},
 

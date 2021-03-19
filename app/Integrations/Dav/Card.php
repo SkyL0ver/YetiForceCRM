@@ -4,6 +4,9 @@
  *
  * @package   Integrations
  *
+ * @see https://en.wikipedia.org/wiki/VCard#Properties
+ * @see https://tools.ietf.org/id/draft-calconnect-vobject-vformat-00.html
+ *
  * @copyright YetiForce Sp. z o.o
  * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
@@ -187,7 +190,11 @@ class Card
 	public function setValuesForRecord(\Vtiger_Record_Model $record)
 	{
 		$this->record = $record;
-		$head = $this->vcard->N->getParts();
+		if (isset($this->vcard->N)) {
+			$head = $this->vcard->N->getParts();
+		} elseif (isset($this->vcard->FN)) {
+			$head = $this->vcard->FN->getParts();
+		}
 		$moduleName = $record->getModuleName();
 		if ('Contacts' === $moduleName) {
 			if (isset($head[1]) && ($fieldModel = $record->getField('firstname'))) {
@@ -200,7 +207,7 @@ class Card
 				$record->set('jobtitle', $fieldModel->getDBValue(\App\Purifier::purify((string) $this->vcard->TITLE)));
 			}
 			if (isset($this->vcard->BDAY) && 8 === \strlen($this->vcard->BDAY) && ($fieldModel = $record->getField('birthday'))) {
-				$record->set('birthday', $fieldModel->getDBValue(date('Y-m-d', strtotime($this->vcard->BDAY))));
+				$record->set('birthday', date('Y-m-d', strtotime($this->vcard->BDAY)));
 			}
 			if (isset($this->vcard->GENDER) && ($fieldModel = $record->getField('salutationtype'))) {
 				$record->set('salutationtype', $fieldModel->getDBValue($this->getCardGender((string) $this->vcard->GENDER)));
@@ -213,7 +220,7 @@ class Card
 				$record->set('last_name', $fieldModel->getDBValue(\App\Purifier::purify($head[0])));
 			}
 			if (isset($this->vcard->BDAY) && ($fieldModel = $record->getField('birth_date'))) {
-				$record->set('birth_date', $fieldModel->getDBValue(date('Y-m-d', strtotime($this->vcard->BDAY))));
+				$record->set('birth_date', date('Y-m-d', strtotime($this->vcard->BDAY)));
 			}
 		}
 		if (isset($this->vcard->NOTE) && ($fieldModel = $record->getField('description'))) {

@@ -83,6 +83,37 @@ var App = (window.App = {
 			 */
 			moduleCache: {},
 			/**
+			 * Register function
+			 * @param {jQuery} container
+			 */
+			register(container) {
+				if (typeof container === 'undefined') {
+					container = $('body');
+				} else {
+					container = $(container);
+				}
+				container.on('click', '.js-quick-create-modal', function (e) {
+					e.preventDefault();
+					let element = $(this);
+					if (element.data('module')) {
+						App.Components.QuickCreate.createRecord(element.data('module'));
+					}
+					if (element.data('url')) {
+						let url = element.data('url');
+						let urlObject = app.convertUrlToObject(url);
+						let params = { callbackFunction: function () {} };
+						const progress = $.progressIndicator({ blockInfo: { enabled: true } });
+						App.Components.QuickCreate.getForm(url, urlObject.module, params).done((data) => {
+							progress.progressIndicator({
+								mode: 'hide'
+							});
+							App.Components.QuickCreate.showModal(data, params);
+							app.registerEventForClockPicker();
+						});
+					}
+				});
+			},
+			/**
 			 * createRecord
 			 *
 			 * @param   {string}  moduleName
@@ -98,8 +129,7 @@ var App = (window.App = {
 					params.callbackFunction = function () {};
 				}
 				if (
-					(app.getViewName() === 'Detail' ||
-						(app.getViewName() === 'Edit' && app.getRecordId() !== undefined)) &&
+					(app.getViewName() === 'Detail' || (app.getViewName() === 'Edit' && app.getRecordId() !== undefined)) &&
 					app.getParentModuleName() != 'Settings'
 				) {
 					url += '&sourceModule=' + app.getModuleName();
@@ -155,7 +185,7 @@ var App = (window.App = {
 			 */
 			showModal(html, params = {}) {
 				app.showModalWindow(html, (container) => {
-					const quickCreateForm = container.find('form[name="QuickCreate"]');
+					const quickCreateForm = container.find('form.js-form');
 					const moduleName = quickCreateForm.find('[name="module"]').val();
 					const editViewInstance = Vtiger_Edit_Js.getInstanceByModuleName(moduleName);
 					const moduleClassName = moduleName + '_QuickCreate_Js';
@@ -211,9 +241,7 @@ var App = (window.App = {
 						});
 						if (!recordPreSaveEvent.isDefaultPrevented()) {
 							const moduleInstance = Vtiger_Edit_Js.getInstanceByModuleName(moduleName);
-							const saveHandler = !!moduleInstance.quickCreateSave
-								? moduleInstance.quickCreateSave
-								: this.save;
+							const saveHandler = !!moduleInstance.quickCreateSave ? moduleInstance.quickCreateSave : this.save;
 							let progress = $.progressIndicator({
 								message: app.vtranslate('JS_SAVE_LOADER_INFO'),
 								position: 'html',
@@ -221,27 +249,39 @@ var App = (window.App = {
 									enabled: true
 								}
 							});
-							saveHandler(form).done((data) => {
-								const modalContainer = form.closest('.modalContainer');
-								const parentModuleName = app.getModuleName();
-								const viewName = app.getViewName();
-								if (modalContainer.length) {
-									app.hideModalWindow(false, modalContainer[0].id);
-								}
-								if (moduleName === parentModuleName && 'List' === viewName) {
-									const listInstance = new Vtiger_List_Js();
-									listInstance.getListViewRecords();
-								}
-								submitSuccessCallback(data);
-								app.event.trigger('QuickCreate.AfterSaveFinal', data, form);
-								progress.progressIndicator({ mode: 'hide' });
-								if (data.success) {
-									Vtiger_Helper_Js.showPnotify({
-										text: app.vtranslate('JS_SAVE_NOTIFY_SUCCESS'),
-										type: 'success'
+							saveHandler(form)
+								.done((data) => {
+									let modalContainer = form.closest('.modalContainer');
+									if (modalContainer.length) {
+										app.hideModalWindow(false, modalContainer[0].id);
+									}
+									submitSuccessCallback(data);
+									app.event.trigger('QuickCreate.AfterSaveFinal', data, form);
+									progress.progressIndicator({ mode: 'hide' });
+									if (data.success) {
+										app.showNotify({
+											text: app.vtranslate('JS_SAVE_NOTIFY_SUCCESS'),
+											type: 'success'
+										});
+										if ('List' === app.getViewName()) {
+											let listInstance = new Vtiger_List_Js();
+											listInstance.getListViewRecords();
+										} else if ('Detail' === app.getViewName()) {
+											if (app.getUrlVar('mode') === 'showRelatedList') {
+												Vtiger_Detail_Js.getInstance().loadRelatedList();
+											} else {
+												window.location.reload();
+											}
+										}
+									}
+								})
+								.fail(function (textStatus, errorThrown) {
+									app.showNotify({
+										text: errorThrown,
+										title: app.vtranslate('JS_ERROR'),
+										type: 'error'
 									});
-								}
-							});
+								});
 						} else {
 							//If validation fails in recordPreSaveEvent, form should submit again
 							form.removeData('submit');
@@ -299,9 +339,7 @@ var App = (window.App = {
 						.find('[data-element-name]')
 						.each(function (index, element) {
 							element = $(element);
-							element
-								.attr('name', element.attr('data-element-name'))
-								.removeAttr('data-element-name');
+							element.attr('name', element.attr('data-element-name')).removeAttr('data-element-name');
 						});
 				};
 				tabElements.on('click', function (e) {
@@ -323,16 +361,14 @@ var App = (window.App = {
 			 * @return  {Promise}        aDeferred
 			 */
 			save(form) {
-				const aDeferred = $.Deferred();
-				const quickCreateSaveUrl = form.serializeFormData();
-				AppConnector.request(quickCreateSaveUrl).done(
-					(data) => {
+				let aDeferred = $.Deferred();
+				AppConnector.request(form.serializeFormData())
+					.done((data) => {
 						aDeferred.resolve(data);
-					},
-					(textStatus, errorThrown) => {
+					})
+					.fail(function (textStatus, errorThrown) {
 						aDeferred.reject(textStatus, errorThrown);
-					}
-				);
+					});
 				return aDeferred.promise();
 			}
 		},
@@ -375,6 +411,7 @@ var App = (window.App = {
 			 */
 			registerPostLoadEvents(form, params, element) {
 				const submitSuccessCallback = params.callbackFunction || function () {};
+				const goToFullFormCallBack = params.goToFullFormcallback || function () {};
 				form.on('submit', (e) => {
 					const form = $(e.currentTarget);
 					if (form.hasClass('not_validation')) {
@@ -404,9 +441,7 @@ var App = (window.App = {
 						});
 						if (!recordPreSaveEvent.isDefaultPrevented()) {
 							const moduleInstance = Vtiger_Edit_Js.getInstanceByModuleName(moduleName);
-							const saveHandler = !!moduleInstance.quickEditSave
-								? moduleInstance.quickEditSave
-								: this.save;
+							const saveHandler = !!moduleInstance.quickEditSave ? moduleInstance.quickEditSave : this.save;
 							let progress = $.progressIndicator({
 								message: app.vtranslate('JS_SAVE_LOADER_INFO'),
 								position: 'html',
@@ -429,19 +464,15 @@ var App = (window.App = {
 								app.event.trigger('QuickEdit.AfterSaveFinal', data, form, element);
 								progress.progressIndicator({ mode: 'hide' });
 								if (data.success) {
-									Vtiger_Helper_Js.showPnotify({
+									app.showNotify({
 										text: app.vtranslate('JS_SAVE_NOTIFY_SUCCESS'),
 										type: 'success'
 									});
 								}
-								if (
-									'Detail' === viewName &&
-									app.getRecordId() === form.find('[name="record"]').val()
-								) {
+								if ('Detail' === viewName && app.getRecordId() === form.find('[name="record"]').val()) {
 									if (data.result._isViewable == false) {
 										if (window !== window.parent) {
-											window.parent.location.href =
-												'index.php?module=' + moduleName + '&view=ListPreview';
+											window.parent.location.href = 'index.php?module=' + moduleName + '&view=ListPreview';
 										} else {
 											window.location.href = 'index.php?module=' + moduleName + '&view=List';
 										}
@@ -462,6 +493,26 @@ var App = (window.App = {
 						e.preventDefault();
 					}
 				});
+				form.find('.js-full-editlink').on('click', (e) => {
+					const form = $(e.currentTarget).closest('form');
+					const editViewUrl = $(e.currentTarget).data('url');
+					goToFullFormCallBack(form);
+					this.goToFullForm(form, editViewUrl);
+				});
+			},
+			/**
+			 * Function to navigate from quick create to edit iew full form
+			 *
+			 * @param   {object}  form  jQuery
+			 */
+			goToFullForm(form) {
+				form.find('input[name="action"]').remove();
+				form.append('<input type="hidden" name="view" value="Edit" />');
+				$.each(form.find('[data-validation-engine]'), function (key, data) {
+					$(data).removeAttr('data-validation-engine');
+				});
+				form.addClass('not_validation');
+				form.submit();
 			},
 			/**
 			 * Save quick create form
@@ -480,14 +531,13 @@ var App = (window.App = {
 					data: formData,
 					processData: false,
 					contentType: false
-				}).done(
-					(data) => {
+				})
+					.done(function (data) {
 						aDeferred.resolve(data);
-					},
-					(textStatus, errorThrown) => {
+					})
+					.fail(function (textStatus, errorThrown) {
 						aDeferred.reject(textStatus, errorThrown);
-					}
-				);
+					});
 				return aDeferred.promise();
 			}
 		},
@@ -527,6 +577,133 @@ var App = (window.App = {
 				const mergedOptions = Object.assign(this.defaults, options, yOptions);
 				return element.overlayScrollbars(mergedOptions).overlayScrollbars();
 			}
+		},
+		DropFile: class {
+			constructor(container, params) {
+				this.container = container;
+				this.init(params);
+			}
+			/**
+			 * Register function
+			 * @param {jQuery} container
+			 * @param {Object} params
+			 */
+			static register(container, params = {}) {
+				if (typeof container === 'undefined') {
+					container = $('body');
+				}
+				if (container.hasClass('js-drop-container') && !container.prop('disabled')) {
+					return new App.Components.DropFile(container, params);
+				}
+				const instances = [];
+				container.find('.js-drop-container').each((_, e) => {
+					instances.push(new App.Components.DropFile($(e), params));
+				});
+				return instances;
+			}
+			/**
+			 * Initiation
+			 * @param {Object} params
+			 */
+			init(params) {
+				let css = {
+					border: this.container.css('border'),
+					opacity: 'unset'
+				};
+				this.container.bind('dragenter dragover', (e) => {
+					$(e.currentTarget).css({
+						border: '2px dashed #4aa1f3',
+						opacity: 0.4
+					});
+					e.preventDefault();
+				});
+				this.container.bind('dragleave', (e) => {
+					$(e.currentTarget).css(css);
+					e.preventDefault();
+				});
+				this.container.bind('drop', (e) => {
+					let element = $(e.currentTarget).css(css);
+					e.preventDefault();
+					const files = e.originalEvent.dataTransfer.files;
+					if (files.length < 1) {
+						return false;
+					}
+					params.callback =
+						params.callback ||
+						function () {
+							let progressIndicatorElement = $.progressIndicator({
+								blockInfo: { enabled: true }
+							});
+							let formData = new FormData();
+							for (let file of files) {
+								formData.append(element.data('field-name'), file, file.name);
+							}
+							formData.append('action', 'SaveAjax');
+							formData.append('record', element.data('id'));
+							formData.append('module', element.data('module'));
+							AppConnector.request({
+								method: 'POST',
+								data: formData,
+								processData: false,
+								contentType: false
+							})
+								.done(function (data) {
+									if (data.success) {
+										progressIndicatorElement.progressIndicator({ mode: 'hide' });
+										app.showNotify({ text: app.vtranslate('JS_SAVE_NOTIFY_SUCCESS'), type: 'success' });
+										if (element.closest('.js-detail-widget').length) {
+											Vtiger_Detail_Js.getInstance().getFiltersDataAndLoad(e);
+										}
+									} else {
+										app.showNotify({ text: app.vtranslate('JS_UNEXPECTED_ERROR'), type: 'error' });
+										progressIndicatorElement.progressIndicator({ mode: 'hide' });
+									}
+								})
+								.fail(function (error, err) {
+									app.showNotify({ text: app.vtranslate('JS_ERROR'), type: 'error' });
+									progressIndicatorElement.progressIndicator({ mode: 'hide' });
+									app.errorLog(error, err);
+								});
+						};
+					app.showConfirmModal(app.vtranslate('JS_CHANGE_CONFIRMATION'), (result) => {
+						if (result) {
+							params.callback(e, this);
+						}
+					});
+				});
+			}
+		}
+	},
+	Notify: {
+		/**
+		 * Check if notifications are allowed
+		 */
+		isDesktopPermitted: function () {
+			return typeof Notification !== 'undefined' && Notification.permission === 'granted';
+		},
+		/**
+		 * Show desktop notification
+		 * @param {Object} params
+		 */
+		desktop: function (params) {
+			let type = 'error';
+			params.modules = new Map([
+				...PNotify.defaultModules,
+				[
+					PNotifyDesktop,
+					{
+						fallback: false,
+						icon: params.icon
+					}
+				]
+			]);
+			if (typeof params.type !== 'undefined') {
+				type = params.type;
+				if (params.type != 'error') {
+					params.hide = true;
+				}
+			}
+			return PNotify[type](params);
 		}
 	}
 });
@@ -591,10 +768,7 @@ var app = (window.app = {
 	getRecordId: function () {
 		var view = this.getViewName();
 		var recordId;
-		if (
-			$.inArray(view, ['Edit', 'PreferenceEdit', 'Detail', 'PreferenceDetail', 'DetailPreview']) !==
-			-1
-		) {
+		if ($.inArray(view, ['Edit', 'PreferenceEdit', 'Detail', 'PreferenceDetail', 'DetailPreview']) !== -1) {
 			recordId = this.getMainParams('recordId');
 		}
 		return recordId;
@@ -759,10 +933,7 @@ var app = (window.app = {
 			.addClass('u-text-ellipsis--not-active')
 			.css(element.css(['font-size', 'font-weight', 'font-family']))
 			.appendTo('body');
-		clone
-			.find('.u-text-ellipsis')
-			.removeClass('u-text-ellipsis')
-			.addClass('u-text-ellipsis--not-active');
+		clone.find('.u-text-ellipsis').removeClass('u-text-ellipsis').addClass('u-text-ellipsis--not-active');
 		if (clone.width() - 1 > element.width()) {
 			clone.remove();
 			return true;
@@ -822,9 +993,7 @@ var app = (window.app = {
 			template:
 				'<div class="popover js-popover--before-positioned" role="tooltip"><div class="popover-body"></div></div>'
 		};
-		let popoverText = element.find('.js-popover-text').length
-			? element.find('.js-popover-text')
-			: element;
+		let popoverText = element.find('.js-popover-text').length ? element.find('.js-popover-text') : element;
 		if (!app.isEllipsisActive(popoverText)) {
 			element.addClass('popover-triggered');
 			return;
@@ -837,9 +1006,7 @@ var app = (window.app = {
 	) {
 		selectElement.each(function (index, domElement) {
 			let element = $(domElement);
-			let popoverText = element.find('.js-popover-text').length
-				? element.find('.js-popover-text')
-				: element;
+			let popoverText = element.find('.js-popover-text').length ? element.find('.js-popover-text') : element;
 			if (!app.isEllipsisActive(popoverText)) {
 				return;
 			}
@@ -862,7 +1029,7 @@ var app = (window.app = {
 		container = $(document)
 	) {
 		const self = this;
-		let params = {
+		app.showPopoverElementView(selectElement, {
 			template:
 				'<div class="popover c-popover--link js-popover--before-positioned" role="tooltip"><div class="popover-body"></div></div>',
 			content: '<div class="d-none"></div>',
@@ -898,8 +1065,7 @@ var app = (window.app = {
 					});
 				}
 			}
-		};
-		app.showPopoverElementView(selectElement, params);
+		});
 	},
 	/**
 	 * Update popover record position (overwrite bootstrap positioning, failing on huge elements)
@@ -1013,22 +1179,6 @@ var app = (window.app = {
 		}
 		return keyValueMap;
 	},
-	/**
-	 * Function animates bootstrap modal with animate.css
-	 * @params: jQuery object with class .modal,
-	 * @params: string with animation name,
-	 * @params: string with animation name,
-	 */
-	animateModal(modal, openAnimation, closeAnimation) {
-		modal.on('show.bs.modal', function (e) {
-			modal.removeClass(`animated ${closeAnimation}`);
-			modal.addClass(`animated ${openAnimation}`);
-		});
-		modal.on('hide.bs.modal', function (e) {
-			modal.removeClass(`animated ${openAnimation}`);
-			modal.addClass(`animated ${closeAnimation}`);
-		});
-	},
 	showModalData(data, container, paramsObject, cb, url, sendByAjaxCb) {
 		const thisInstance = this;
 		let params = {
@@ -1061,7 +1211,7 @@ var app = (window.app = {
 		};
 		const modalContainer = container.find('.modal:first');
 		modalContainer.one('shown.bs.modal', function () {
-			thisInstance.registerDataTables(modalContainer.find('.dataTable'));
+			thisInstance.registerDataTables(modalContainer.find('.js-modal-data-table'));
 			cb(modalContainer);
 			App.Fields.Picklist.changeSelectElementView(modalContainer);
 			App.Fields.Date.register(modalContainer);
@@ -1070,6 +1220,11 @@ var app = (window.app = {
 				toolbar: 'Min'
 			});
 			app.registesterScrollbar(modalContainer);
+			app.registerIframeEvents(modalContainer);
+			modalContainer.find('.modal-dialog').draggable({
+				handle: '.modal-title'
+			});
+			modalContainer.find('.modal-title').css('cursor', 'move');
 		});
 		$('body').append(container);
 		modalContainer.modal(params);
@@ -1216,25 +1371,28 @@ var app = (window.app = {
 		}
 	},
 	registerModalEvents: function (container, sendByAjaxCb) {
-		var form = container.find('form');
-		var validationForm = false;
+		let form = container.find('form');
+		let validationForm = false;
 		if (form.hasClass('validateForm') || form.hasClass('js-validate-form')) {
 			form.validationEngine(app.validationEngineOptions);
 			validationForm = true;
 		}
-		if (form.hasClass('sendByAjax')) {
+		if (container.data('view') === 'QuickDetailModal') {
+			this.registerBlockAnimationEvent(container);
+		}
+		if (form.hasClass('sendByAjax') || form.hasClass('js-send-by-ajax')) {
 			form.on('submit', function (e) {
-				var save = true;
+				let save = true;
 				e.preventDefault();
 				if (validationForm && form.data('jqv').InvalidFields.length > 0) {
 					app.formAlignmentAfterValidation(form);
 					save = false;
 				}
 				if (save) {
-					var progressIndicatorElement = $.progressIndicator({
+					let progressIndicatorElement = $.progressIndicator({
 						blockInfo: { enabled: true }
 					});
-					var formData = form.serializeFormData();
+					let formData = form.serializeFormData();
 					AppConnector.request(formData)
 						.done(function (responseData) {
 							sendByAjaxCb(formData, responseData);
@@ -1251,11 +1409,89 @@ var app = (window.app = {
 							progressIndicatorElement.progressIndicator({ mode: 'hide' });
 						})
 						.fail(function () {
+							app.showNotify({
+								text: app.vtranslate('JS_UNEXPECTED_ERROR'),
+								type: 'error'
+							});
 							progressIndicatorElement.progressIndicator({ mode: 'hide' });
 						});
 				}
 			});
 		}
+	},
+	registerFormsEvents: function (container) {
+		let forms = container.find('form.js-form-ajax-submit,form.js-form-single-save');
+		forms.each((i, form) => {
+			form = $(form);
+			let validationForm = false;
+			if (form.hasClass('js-validate-form')) {
+				form.validationEngine(app.validationEngineOptions);
+				validationForm = true;
+			}
+			if (form.hasClass('js-form-single-save')) {
+				form.find('select,input').on('change', function () {
+					let element = $(this);
+					if (validationForm && element.validationEngine('validate')) {
+						return;
+					}
+					let progressIndicatorElement = $.progressIndicator({
+						blockInfo: { enabled: true }
+					});
+					let formData = form.serializeFormData();
+					let name = element.attr('name').replace('[]', '');
+					formData['updateField'] = name;
+					formData['updateValue'] = formData[name];
+					AppConnector.request(formData)
+						.done(function (responseData) {
+							if (responseData.success && responseData.result) {
+								if (responseData.result.notify) {
+									app.showNotify(responseData.result.notify);
+								}
+							}
+							progressIndicatorElement.progressIndicator({ mode: 'hide' });
+						})
+						.fail(function (error) {
+							app.showNotify({
+								title: app.vtranslate('JS_UNEXPECTED_ERROR'),
+								text: error,
+								type: 'error'
+							});
+							progressIndicatorElement.progressIndicator({ mode: 'hide' });
+						});
+				});
+			}
+			if (form.hasClass('js-form-ajax-submit')) {
+				form.on('submit', function (e) {
+					let save = true;
+					e.preventDefault();
+					if (validationForm && form.data('jqv').InvalidFields.length > 0) {
+						app.formAlignmentAfterValidation(form);
+						save = false;
+					}
+					if (save) {
+						let progressIndicatorElement = $.progressIndicator({
+							blockInfo: { enabled: true }
+						});
+						AppConnector.request(form.serializeFormData())
+							.done(function (responseData) {
+								if (responseData.success && responseData.result) {
+									if (responseData.result.notify) {
+										Vtiger_Helper_Js.showMessage(responseData.result.notify);
+									}
+								}
+								progressIndicatorElement.progressIndicator({ mode: 'hide' });
+							})
+							.fail(function () {
+								app.showNotify({
+									text: app.vtranslate('JS_UNEXPECTED_ERROR'),
+									type: 'error'
+								});
+								progressIndicatorElement.progressIndicator({ mode: 'hide' });
+							});
+					}
+				});
+			}
+		});
 	},
 	isHidden: function (element) {
 		if (element.css('display') == 'none') {
@@ -1406,6 +1642,44 @@ var app = (window.app = {
 		}
 		return year + '-' + month + '-' + day;
 	},
+
+	registerBlockAnimationEvent: function (container = false) {
+		let detailViewContentHolder = $('div.details div.contents');
+		let blockHeader = detailViewContentHolder.find('.blockHeader');
+		if (container !== false) {
+			blockHeader = container.find('.blockHeader');
+		}
+		blockHeader.on('click', function (e) {
+			const target = $(e.target);
+			if (
+				target.is('input') ||
+				target.is('button') ||
+				target.parents().is('button') ||
+				target.hasClass('js-stop-propagation') ||
+				target.parents().hasClass('js-stop-propagation')
+			) {
+				return false;
+			}
+			let currentTarget = $(this).find('.js-block-toggle').not('.d-none');
+			let blockId = currentTarget.data('id');
+			let closestBlock = currentTarget.closest('.js-toggle-panel');
+			let bodyContents = closestBlock.find('.blockContent');
+			let data = currentTarget.data();
+			let module = app.getModuleName();
+			if (data.mode === 'show') {
+				bodyContents.addClass('d-none');
+				app.cacheSet(module + '.' + blockId, 0);
+				currentTarget.addClass('d-none');
+				closestBlock.find('[data-mode="hide"]').removeClass('d-none');
+			} else {
+				bodyContents.removeClass('d-none');
+				app.cacheSet(module + '.' + blockId, 1);
+				currentTarget.addClass('d-none');
+				closestBlock.find('[data-mode="show"]').removeClass('d-none');
+			}
+		});
+	},
+
 	registerEventForDateFields: function (parentElement) {
 		if (typeof parentElement === 'undefined') {
 			parentElement = $('body');
@@ -1442,10 +1716,7 @@ var app = (window.app = {
 		$('.js-clock__btn').on('click', (e) => {
 			e.stopPropagation();
 			let tempElement = $(e.currentTarget).closest('.time').find('input.clockPicker');
-			if (
-				tempElement.attr('disabled') !== 'disabled' &&
-				tempElement.attr('readonly') !== 'readonly'
-			) {
+			if (tempElement.attr('disabled') !== 'disabled' && tempElement.attr('readonly') !== 'readonly') {
 				tempElement.clockpicker('show');
 			}
 		});
@@ -1461,9 +1732,7 @@ var app = (window.app = {
 					app.event.trigger('Clockpicker.changed', timeInput);
 				};
 				params.beforeHide = () => {
-					meridiemTime = $('.clockpicker-buttons-am-pm:visible')
-						.find('a:not(.text-white-50)')
-						.text();
+					meridiemTime = $('.clockpicker-buttons-am-pm:visible').find('a:not(.text-white-50)').text();
 				};
 			} else {
 				params.afterDone = () => {
@@ -1554,10 +1823,7 @@ var app = (window.app = {
 		let scrollbarBottomRightInit = new PerfectScrollbar(element[0], options);
 		return [scrollbarTopLeftInit, scrollbarBottomRightInit];
 	},
-	showNewScrollbarTopBottom: function (
-		element,
-		options = { wheelPropagation: true, suppressScrollY: true }
-	) {
+	showNewScrollbarTopBottom: function (element, options = { wheelPropagation: true, suppressScrollY: true }) {
 		if (typeof element === 'undefined' || !element.length) return;
 		options = Object.assign(this.scrollOptions, options);
 		new PerfectScrollbar(element[0], options);
@@ -1572,10 +1838,7 @@ var app = (window.app = {
 			bottom: 'auto'
 		});
 	},
-	showNewScrollbarTop: function (
-		element,
-		options = { wheelPropagation: true, suppressScrollY: true }
-	) {
+	showNewScrollbarTop: function (element, options = { wheelPropagation: true, suppressScrollY: true }) {
 		if (typeof element === 'undefined' || !element.length) return;
 		options = Object.assign(this.scrollOptions, options);
 		new PerfectScrollbar(element[0], options);
@@ -1729,14 +1992,8 @@ var app = (window.app = {
 	 */
 	placeAtCenter: function (element) {
 		element.css('position', 'absolute');
-		element.css(
-			'top',
-			($(window).height() - element.outerHeight()) / 2 + $(window).scrollTop() + 'px'
-		);
-		element.css(
-			'left',
-			($(window).width() - element.outerWidth()) / 2 + $(window).scrollLeft() + 'px'
-		);
+		element.css('top', ($(window).height() - element.outerHeight()) / 2 + $(window).scrollTop() + 'px');
+		element.css('left', ($(window).width() - element.outerWidth()) / 2 + $(window).scrollLeft() + 'px');
 	},
 	getvalidationEngineOptions: function (select2Status) {
 		return Object.assign({}, app.validationEngineOptions);
@@ -2027,10 +2284,7 @@ var app = (window.app = {
 							if (typeof call !== 'undefined') {
 								if (call.indexOf('.') !== -1) {
 									var callerArray = call.split('.');
-									if (
-										typeof window[callerArray[0]] === 'object' ||
-										typeof window[callerArray[0]] === 'function'
-									) {
+									if (typeof window[callerArray[0]] === 'object' || typeof window[callerArray[0]] === 'function') {
 										window[callerArray[0]][callerArray[1]](container);
 									}
 								} else {
@@ -2049,6 +2303,24 @@ var app = (window.app = {
 				}
 				e.stopPropagation();
 			});
+		container.off('click', '.js-show-modal-content').on('click', '.js-show-modal-content', function (e) {
+			e.preventDefault();
+			let currentElement = $(e.currentTarget);
+			let content = currentElement.data('content');
+			let title = '',
+				modalClass = '';
+			if (currentElement.data('title')) {
+				title = currentElement.data('title');
+			}
+			if (currentElement.data('class')) {
+				modalClass = currentElement.data('class');
+			}
+			app.showModalWindow(`<div class="modal" tabindex="-1" role="dialog"><div class="modal-dialog ${modalClass}" role="document"><div class="modal-content">
+			<div class="modal-header"> <h5 class="modal-title">${title}</h5>
+			  <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+			</div><div class="modal-body text-break">${content}</div></div></div></div>`);
+			e.stopPropagation();
+		});
 	},
 	playSound: function (action) {
 		var soundsConfig = app.getMainParams('sounds');
@@ -2111,9 +2383,7 @@ var app = (window.app = {
 				self.closeSidebar();
 			}
 		});
-		self.sidebar
-			.on('mouseenter', self.openSidebar.bind(self))
-			.on('mouseleave', self.closeSidebar.bind(self));
+		self.sidebar.on('mouseenter', self.openSidebar.bind(self)).on('mouseleave', self.closeSidebar.bind(self));
 		self.sidebar.find('.js-menu__content').on('keydown', self.sidebarKeyboard.bind(self));
 		self.sidebar.on('keydown', (e) => {
 			if (e.which == self.keyboard.ESCAPE) {
@@ -2163,9 +2433,7 @@ var app = (window.app = {
 			} else {
 				pinButton.addClass('u-opacity-muted');
 				baseContainer.removeClass('c-menu--open');
-				self.sidebar
-					.on('mouseenter', self.openSidebar.bind(self))
-					.on('mouseleave', self.closeSidebar.bind(self));
+				self.sidebar.on('mouseenter', self.openSidebar.bind(self)).on('mouseleave', self.closeSidebar.bind(self));
 				self.closeSidebar.bind(self);
 			}
 			AppConnector.request({
@@ -2198,9 +2466,7 @@ var app = (window.app = {
 				}
 			}
 		} else if (
-			(target.hasClass('js-submenu-toggler') &&
-				e.which == this.keyboard.RIGHT &&
-				target.hasClass('collapsed')) ||
+			(target.hasClass('js-submenu-toggler') && e.which == this.keyboard.RIGHT && target.hasClass('collapsed')) ||
 			(target.hasClass('js-submenu-toggler') && e.which == this.keyboard.SPACE)
 		) {
 			target.click();
@@ -2252,9 +2518,7 @@ var app = (window.app = {
 			action: 'BrowsingHistory'
 		}).done(function (response) {
 			$('.historyList').html(
-				`<a class="item dropdown-item" href="#" role="listitem">${app.vtranslate(
-					'JS_NO_RECORDS'
-				)}</a>`
+				`<a class="item dropdown-item" href="#" role="listitem">${app.vtranslate('JS_NO_RECORDS')}</a>`
 			);
 		});
 	},
@@ -2337,8 +2601,7 @@ var app = (window.app = {
 		if (element) {
 			element = $(element);
 			if (!params.title) {
-				params.title =
-					element.html() + ' ' + (element.data('content') ? element.data('content') : '');
+				params.title = element.html() + ' ' + (element.data('content') ? element.data('content') : '');
 			}
 			if (!params.message) {
 				params.message = element.data('confirm');
@@ -2369,14 +2632,10 @@ var app = (window.app = {
 			result += short ? hour + app.vtranslate('JS_H') : `${hour} ` + app.vtranslate('JS_H_LONG');
 		}
 		if ((hour || min) && withMinutes) {
-			result += short
-				? ` ${min}` + app.vtranslate('JS_M')
-				: ` ${min} ` + app.vtranslate('JS_M_LONG');
+			result += short ? ` ${min}` + app.vtranslate('JS_M') : ` ${min} ` + app.vtranslate('JS_M_LONG');
 		}
 		if (withSeconds !== false) {
-			result += short
-				? ` ${sec}` + app.vtranslate('JS_S')
-				: ` ${sec} ` + app.vtranslate('JS_S_LONG');
+			result += short ? ` ${sec}` + app.vtranslate('JS_S') : ` ${sec} ` + app.vtranslate('JS_S_LONG');
 		}
 		if (!hour && !min && withSeconds === false && withMinutes) {
 			result += short ? '0' + app.vtranslate('JS_M') : '0 ' + app.vtranslate('JS_M_LONG');
@@ -2386,8 +2645,8 @@ var app = (window.app = {
 		}
 		return result.trim();
 	},
-	showRecordsList: function (params = {}, cb, afterShowModal) {
-		if (!params.view) {
+	showRecordsList: function (params, cb, afterShowModal) {
+		if (typeof params === 'object' && !params.view) {
 			params.view = 'RecordsList';
 		}
 		this.showRecordsListModal(params).done(function (modal) {
@@ -2482,26 +2741,6 @@ var app = (window.app = {
 			})
 		});
 	},
-	showDesktopNotification: function (params) {
-		let type = 'error';
-		params.modules = new Map([
-			...PNotify.defaultModules,
-			[
-				PNotifyDesktop,
-				{
-					fallback: false,
-					icon: params.icon
-				}
-			]
-		]);
-		if (typeof params.type !== 'undefined') {
-			type = params.type;
-			if (params.type != 'error') {
-				params.hide = true;
-			}
-		}
-		returnPNotify[type](params);
-	},
 	showNotify: function (customParams) {
 		let params = {
 			hide: false
@@ -2530,7 +2769,7 @@ var app = (window.app = {
 		PNotify.defaults.sticker = false;
 		PNotify.defaults.styling = 'bootstrap4';
 		PNotify.defaults.icons = 'fontawesome5';
-		PNotify.defaults.delay = 4000;
+		PNotify.defaults.delay = 3000;
 		PNotify.defaults.stack.maxOpen = 10;
 		PNotify.defaults.stack.spacing1 = 5;
 		PNotify.defaults.stack.spacing2 = 5;
@@ -2610,10 +2849,7 @@ var app = (window.app = {
 					if (currentTarget.hasClass('js-popover-tooltip--record')) {
 						app.registerPopoverRecord(currentTarget, {}, container);
 						currentTarget.trigger('mouseenter');
-					} else if (
-						!currentTarget.hasClass('js-popover-tooltip--record') &&
-						currentTarget.data('field-type')
-					) {
+					} else if (!currentTarget.hasClass('js-popover-tooltip--record') && currentTarget.data('field-type')) {
 						app.registerPopoverRecord(currentTarget.children('a'), {}, container); //popoverRecord on children doesn't need triggering
 					} else if (
 						!currentTarget.hasClass('js-popover-tooltip--record') &&
@@ -2688,6 +2924,8 @@ $(document).ready(function () {
 	app.registesterScrollbar(document);
 	app.registerHtmlToImageDownloader(document);
 	app.registerShowHideBlock(document);
+	app.registerFormsEvents(document);
+	App.Components.QuickCreate.register(document);
 	App.Components.Scrollbar.initPage();
 	String.prototype.toCamelCase = function () {
 		let value = this.valueOf();
@@ -2715,9 +2953,7 @@ $(document).ready(function () {
 	};
 	$.fn.formatNumber = function () {
 		let element = $(this);
-		element.val(
-			App.Fields.Double.formatToDisplay(App.Fields.Double.formatToDb(element.val()), false)
-		);
+		element.val(App.Fields.Double.formatToDisplay(App.Fields.Double.formatToDb(element.val()), false));
 	};
 	$.fn.disable = function () {
 		this.attr('disabled', 'disabled');
@@ -2734,16 +2970,11 @@ $(document).ready(function () {
 		let data = {};
 		if (values) {
 			$(values).each(function (k, v) {
-				if (v.name in data && typeof data[v.name] !== 'object') {
-					let element = form.find('[name="' + v.name + '"]');
-					//Only for muti select element we need to send array of values
-					if (element.is('select') && element.attr('multiple') != undefined) {
-						let prevValue = data[v.name];
+				let element = form.find('[name="' + v.name + '"]');
+				if (element.is('select') && element.attr('multiple') != undefined) {
+					if (data[v.name] == undefined) {
 						data[v.name] = [];
-						data[v.name].push(prevValue);
 					}
-				}
-				if (typeof data[v.name] === 'object') {
 					data[v.name].push(v.value);
 				} else {
 					data[v.name] = v.value;
@@ -2761,9 +2992,7 @@ $(document).ready(function () {
 	// Case-insensitive :icontains expression
 	$.expr[':'].icontains = function (obj, index, meta, stack) {
 		return (
-			(obj.textContent || obj.innerText || $(obj).text() || '')
-				.toLowerCase()
-				.indexOf(meta[3].toLowerCase()) !== -1
+			(obj.textContent || obj.innerText || $(obj).text() || '').toLowerCase().indexOf(meta[3].toLowerCase()) !== -1
 		);
 	};
 	$.fn.removeTextNode = function () {

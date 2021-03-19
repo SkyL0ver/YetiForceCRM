@@ -7,6 +7,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
+ * Contributor(s): YetiForce Sp. z o.o
  * *********************************************************************************** */
 
 class Users_Record_Model extends Vtiger_Record_Model
@@ -307,8 +308,7 @@ class Users_Record_Model extends Vtiger_Record_Model
 			}
 		}
 		if (!$this->isNew() && false !== $this->getPreviousValue('user_password') && App\User::getCurrentUserId() === $this->getId()) {
-			$isExists = (new \App\Db\Query())->from('l_#__userpass_history')->where(['user_id' => $this->getId(), 'pass' => \App\Encryption::createHash($this->get('user_password'))])->exists();
-			if ($isExists) {
+			if (App\User::checkPreviousPassword($this->getId(), $this->get('user_password'))) {
 				throw new \App\Exceptions\SaveRecord('ERR_PASSWORD_HAS_ALREADY_BEEN_USED', 406);
 			}
 		}
@@ -679,6 +679,85 @@ class Users_Record_Model extends Vtiger_Record_Model
 		return $activityReminderInSeconds;
 	}
 
+	/** {@inheritdoc} */
+	public function getRecordListViewLinksLeftSide()
+	{
+		$links = $recordLinks = [];
+		if ($this->isViewable()) {
+			$recordLinks['LBL_SHOW_COMPLETE_DETAILS'] = [
+				'linktype' => 'LIST_VIEW_ACTIONS_RECORD_LEFT_SIDE',
+				'linklabel' => 'LBL_SHOW_COMPLETE_DETAILS',
+				'linkurl' => $this->getFullDetailViewUrl(),
+				'linkicon' => 'fas fa-th-list',
+				'linkclass' => 'btn-sm btn-default',
+				'linkhref' => true,
+			];
+		}
+		if ($this->isEditable() && $this->isActive()) {
+			$recordLinks['LBL_EDIT'] = [
+				'linktype' => 'LIST_VIEW_ACTIONS_RECORD_LEFT_SIDE',
+				'linklabel' => 'LBL_EDIT',
+				'linkurl' => $this->getEditViewUrl(),
+				'linkicon' => 'yfi yfi-full-editing-view',
+				'linkclass' => 'btn-sm btn-default',
+				'linkhref' => true,
+			];
+			if ($this->isPermitted('DuplicateRecord')) {
+				$recordLinks['LBL_DUPLICATE'] = [
+					'linktype' => 'LIST_VIEW_ACTIONS_RECORD_LEFT_SIDE',
+					'linklabel' => 'LBL_DUPLICATE',
+					'linkurl' => $this->getDuplicateRecordUrl(),
+					'linkicon' => 'fas fa-clone',
+					'linkclass' => 'btn-outline-dark btn-sm',
+					'title' => \App\Language::translate('LBL_DUPLICATE_RECORD')
+				];
+			}
+		}
+		if ($this->privilegeToDelete()) {
+			if ($this->isActive()) {
+				$recordLinks['LBL_DELETE_RECORD_COMPLETELY'] = [
+					'linktype' => 'LIST_VIEW_ACTIONS_RECORD_LEFT_SIDE',
+					'linklabel' => 'LBL_DELETE_RECORD_COMPLETELY',
+					'linkicon' => 'fas fa-eraser',
+					'linkclass' => 'btn-sm btn-primary deleteRecordButton'
+				];
+			} else {
+				$recordLinks['LBL_DELETE_USER_PERMANENTLY'] = [
+					'linktype' => 'LIST_VIEW_ACTIONS_RECORD_LEFT_SIDE',
+					'linklabel' => 'LBL_DELETE_USER_PERMANENTLY',
+					'linkurl' => 'javascript:Settings_Users_List_Js.deleteUserPermanently(' . $this->getId() . ', event)',
+					'linkicon' => 'fas fa-eraser',
+					'linkclass' => 'btn-sm btn-dark',
+				];
+			}
+		}
+		foreach ($recordLinks as $key => $recordLink) {
+			$links[$key] = Vtiger_Link_Model::getInstanceFromValues($recordLink);
+		}
+		if (!$this->isActive()) {
+			$links['BUTTONS'][] = Vtiger_Link_Model::getInstanceFromValues([
+				'linklabel' => 'LBL_RESTORE',
+				'linkicon' => 'fas fa-sync-alt',
+				'linkclass' => 'btn btn-sm btn-light',
+				'linkurl' => 'javascript:Settings_Users_List_Js.restoreUser(' . $this->getId() . ', event)',
+			]);
+		}
+		return \App\Utils::changeSequence($links, App\Config::module($this->getModuleName(), 'recordListViewButtonSequence', []));
+	}
+
+	/** Checking if the record is active.
+	 *
+	 * @return bool
+	 */
+	public function isActive(): bool
+	{
+		$active = false;
+		if ('Active' === $this->get('status')) {
+			$active = true;
+		}
+		return $active;
+	}
+
 	/**
 	 * Function to get the users count.
 	 *
@@ -833,34 +912,14 @@ class Users_Record_Model extends Vtiger_Record_Model
 		return [];
 	}
 
-	public function getBodyLocks()
+	/**
+	 * Get locks content.
+	 *
+	 * @return string
+	 */
+	public function getBodyLocks(): string
 	{
-		$return = '';
-		foreach ($this->getLocks() as $lock) {
-			switch ($lock) {
-				case 'copy':
-					$return .= ' oncopy = "return false"';
-					break;
-				case 'cut':
-					$return .= ' oncut = "return false"';
-					break;
-				case 'paste':
-					$return .= ' onpaste = "return false"';
-					break;
-				case 'contextmenu':
-					$return .= ' oncontextmenu = "return false"';
-					break;
-				case 'selectstart':
-					$return .= ' onselectstart = "return false" onselect = "return false"';
-					break;
-				case 'drag':
-					$return .= ' ondragstart = "return false" ondrag = "return false"';
-					break;
-				default:
-					break;
-			}
-		}
-		return $return;
+		return \App\Utils::getLocksContent($this->getLocks());
 	}
 
 	public function getHeadLocks()
@@ -1064,7 +1123,7 @@ class Users_Record_Model extends Vtiger_Record_Model
 			$fieldModel = $this->getModule()->getFieldByColumn($columnName);
 			$labelName[] = $fieldModel->getDisplayValue($this->get($fieldModel->getName()), $this->getId(), $this, true);
 		}
-		$label = \App\Purifier::encodeHtml(\App\TextParser::textTruncate(\App\Purifier::decodeHtml(implode(' ', $labelName)), 250, false));
+		$label = \App\TextParser::textTruncate(implode($metaInfo['separator'] ?? ' ', $labelName), 250, false);
 		if (!empty($label)) {
 			$db = \App\Db::getInstance();
 			if (!(new \App\Db\Query())->from('u_#__users_labels')->where(['id' => $this->getId()])->exists()) {

@@ -2,6 +2,11 @@
 <div class="o-breadcrumb widget_header row">
 	<div class="col-12">
 		{include file=\App\Layout::getTemplatePath('BreadCrumbs.tpl', $MODULE_NAME)}
+		<div class="d-flex align-items-center ml-auto">
+			<a href="https://yetiforce.com/en/knowledge-base/documentation/administrator-documentation/item/mail-scanner" target="_blank" class="btn btn-outline-info js-popover-tooltip" data-content="{App\Language::translate('BTM_GOTO_YETIFORCE_DOCUMENTATION')}" rel="noreferrer noopener" data-js="popover">
+				<span class="mdi mdi-book-open-page-variant u-fs-lg"></span>
+			</a>
+		</div>
 	</div>
 </div>
 {if ($CHECKCRON[0]['status'] == 0 ) || !$CHECKCRON || ($CHECKCRON[1]['status'] == 0)}
@@ -260,11 +265,10 @@
 										{if $WIDGET_CFG['emailsearch']['changeTicketStatus'] eq 'openTicket'}checked
 										data-active="1"{/if}>
 								<strong>
-									{assign var="TICKET_STATUS" value=\App\Config::component('Mail', 'HELPDESK_OPENTICKET_STATUS')}
 									{\App\Language::translate('LBL_OPEN_TICKET', $MODULE_NAME)}:&nbsp;
-									"{\App\Language::translate($TICKET_STATUS, 'HelpDesk')}"
+									"{\App\Language::translate(\Config\Modules\OSSMailScanner::$helpdeskBindOpenStatus, 'HelpDesk')}"
 								</strong>
-								{if empty($TICKET_STATUS) }
+								{if empty(\Config\Modules\OSSMailScanner::$helpdeskBindOpenStatus) }
 									<strong class="color-red-a200">{\App\Language::translate('LBL_EMPTY_PARAMETER', $MODULE_NAME)}</strong>
 								{/if}
 							</label>

@@ -106,13 +106,7 @@ $.Class(
 				month = splittedDate[splittedDateFormat.indexOf('mm')],
 				date = splittedDate[splittedDateFormat.indexOf('dd')],
 				dateInstance = Date.parse(year + '/' + month + '/' + date);
-			if (
-				isNaN(dateInstance) ||
-				year.length > 4 ||
-				month.length > 2 ||
-				date.length > 2 ||
-				dateInstance == null
-			) {
+			if (isNaN(dateInstance) || year.length > 4 || month.length > 2 || date.length > 2 || dateInstance == null) {
 				throw app.vtranslate('JS_INVALID_DATE');
 			}
 
@@ -174,30 +168,9 @@ $.Class(
 			if (typeof params.title === 'undefined') {
 				params.title = app.vtranslate('JS_MESSAGE');
 			}
-			Vtiger_Helper_Js.showPnotify(params);
+			app.showNotify(params);
 		},
-		/*
-		 * Function to show pnotify message
-		 */
-		showPnotify: function (customParams) {
-			let userParams = customParams;
-			let type = 'error';
-			if (typeof customParams === 'string') {
-				userParams = {};
-				userParams.text = customParams;
-			}
-			let params = {
-				hide: false
-			};
-			if (typeof customParams.type !== 'undefined') {
-				type = customParams.type;
-				if (customParams.type != 'error') {
-					params.hide = true;
-				}
-			}
-			params = $.extend(params, userParams);
-			return PNotify[type](params);
-		},
+
 		/*
 		 * Function to add clickoutside event on the element - By using outside events plugin
 		 * @params element---On which element you want to apply the click outside event

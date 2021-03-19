@@ -572,7 +572,7 @@ class CustomView_Record_Model extends \App\Base
 	/**
 	 * Function to add the custom view record in db.
 	 */
-	public function addCustomView()
+	protected function addCustomView()
 	{
 		$currentUser = Users_Record_Model::getCurrentUserModel();
 		$moduleName = $this->getModule()->get('name');
@@ -612,7 +612,7 @@ class CustomView_Record_Model extends \App\Base
 	/**
 	 * Function to update the custom view record in db.
 	 */
-	public function updateCustomView()
+	protected function updateCustomView()
 	{
 		$db = App\Db::getInstance();
 		$dbCommand = $db->createCommand();
@@ -748,6 +748,7 @@ class CustomView_Record_Model extends \App\Base
 		App\Db::getInstance()->createCommand()
 			->update('vtiger_customview', ['status' => App\CustomView::CV_STATUS_PUBLIC], ['cvid' => $this->getId()])
 			->execute();
+		\App\CustomView::clearCacheById($this->getId());
 	}
 
 	/**
@@ -758,6 +759,7 @@ class CustomView_Record_Model extends \App\Base
 		App\Db::getInstance()->createCommand()
 			->update('vtiger_customview', ['status' => App\CustomView::CV_STATUS_PRIVATE], ['cvid' => $this->getId()])
 			->execute();
+		\App\CustomView::clearCacheById($this->getId());
 	}
 
 	/**
@@ -858,7 +860,7 @@ class CustomView_Record_Model extends \App\Base
 		if (\App\Cache::has('CustomView_Record_ModelgetInstanceById', $cvId)) {
 			$row = \App\Cache::get('CustomView_Record_ModelgetInstanceById', $cvId);
 		} else {
-			$row = (new \App\Db\Query())->from('vtiger_customview')->where(['cvid' => $cvId])->one();
+			$row = \App\CustomView::getCustomViewsDetails([$cvId])[$cvId] ?? [];
 			\App\Cache::save('CustomView_Record_ModelgetInstanceById', $cvId, $row, \App\Cache::LONG);
 		}
 		if ($row) {
@@ -879,26 +881,9 @@ class CustomView_Record_Model extends \App\Base
 	public static function getAllByGroup($moduleName = '', $menuId = false)
 	{
 		$customViews = self::getAll($moduleName);
-		$filters = array_keys($customViews);
 		$groupedCustomViews = [];
-		if ($menuId) {
-			$userPrivModel = Users_Privileges_Model::getCurrentUserPrivilegesModel();
-			$roleMenu = 'user_privileges/menu_' . filter_var($userPrivModel->get('roleid'), FILTER_SANITIZE_NUMBER_INT) . '.php';
-			if (file_exists($roleMenu)) {
-				require $roleMenu;
-			} else {
-				require 'user_privileges/menu_0.php';
-			}
-			if (0 == \count($menus)) {
-				require 'user_privileges/menu_0.php';
-			}
-			if (isset($filterList[$menuId])) {
-				$filtersMenu = explode(',', $filterList[$menuId]['filters']);
-				$filters = array_intersect($filtersMenu, $filters);
-				if (empty($filters)) {
-					$filters = [App\CustomView::getInstance($moduleName)->getDefaultCvId()];
-				}
-			}
+		if (!$menuId || empty($filters = \App\CustomView::getModuleFiltersByMenuId($menuId, $moduleName))) {
+			$filters = array_keys($customViews);
 		}
 		foreach ($filters as $id) {
 			$customView = $customViews[$id];

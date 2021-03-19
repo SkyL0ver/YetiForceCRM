@@ -62,8 +62,7 @@ var Vtiger_Index_Js = {
 						if (selectedTabElement.data('reference') === relatedModuleName) {
 							detailView.reloadTabContent();
 						} else if (
-							detailView.getContentHolder().find('.detailViewBlockLink').data('reference') ===
-							relatedModuleName
+							detailView.getContentHolder().find('.detailViewBlockLink').data('reference') === relatedModuleName
 						) {
 							Vtiger_RelatedList_Js.getInstance(
 								detailView.getRecordId(),
@@ -114,7 +113,7 @@ var Vtiger_Index_Js = {
 								app.hideModalWindow();
 								aDeferred.resolve(email);
 							} else {
-								Vtiger_Helper_Js.showPnotify({
+								app.showNotify({
 									text: app.vtranslate('JS_SELECT_AN_OPTION'),
 									type: 'info'
 								});
@@ -140,7 +139,7 @@ var Vtiger_Index_Js = {
 				let popup = sendButton.data('popup');
 				let toMail = sendButton.data('to');
 				if (toMail) {
-					url += '&to=' + toMail;
+					url += '&to=' + encodeURIComponent(toMail);
 				}
 				if (app.getRecordId() && sendButton.data('record') !== app.getRecordId()) {
 					url += '&crmModule=' + app.getModuleName() + '&crmRecord=' + app.getRecordId();
@@ -160,8 +159,7 @@ var Vtiger_Index_Js = {
 				window.open(
 					url,
 					'_blank',
-					popupParams +
-						',resizable=yes,scrollbars=yes,toolbar=yes,menubar=no,location=no,status=nomenubar=no'
+					popupParams + ',resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no,menubar=no'
 				);
 				return;
 			}
@@ -231,10 +229,7 @@ var Vtiger_Index_Js = {
 			if (data == '') {
 				widgetContainer.closest('.quickWidget').addClass('d-none');
 			} else {
-				let label = widgetContainer
-					.closest('.quickWidget')
-					.find('.quickWidgetHeader')
-					.data('label');
+				let label = widgetContainer.closest('.quickWidget').find('.quickWidgetHeader').data('label');
 			}
 			$('.bodyContents').trigger('Vtiger.Widget.Load.' + label, $(widgetContainer));
 		});
@@ -286,7 +281,7 @@ var Vtiger_Index_Js = {
 		AppConnector.request(params)
 			.done(function (data) {
 				let row = $('.notificationEntries .noticeRow[data-id="' + id + '"]');
-				Vtiger_Helper_Js.showPnotify({
+				app.showNotify({
 					title: app.vtranslate('JS_MESSAGE'),
 					text: app.vtranslate('JS_MARKED_AS_READ'),
 					type: 'info'
@@ -331,7 +326,7 @@ var Vtiger_Index_Js = {
 		li.progressIndicator({ position: 'html' });
 		AppConnector.request(params).done(function (data) {
 			li.progressIndicator({ mode: 'hide' });
-			Vtiger_Helper_Js.showPnotify({
+			app.showNotify({
 				title: app.vtranslate('JS_MESSAGE'),
 				text: app.vtranslate('JS_MARKED_AS_READ'),
 				type: 'info'
@@ -373,11 +368,7 @@ var Vtiger_Index_Js = {
 					thisInstance.markNotifications(recordID).done(function (data) {
 						currentElement.closest('.js-notification-panel').fadeOut(300, function () {
 							$(this).remove();
-							thisInstance.refreshReminderCount(
-								content,
-								element,
-								'js-count-notifications-reminder'
-							);
+							thisInstance.refreshReminderCount(content, element, 'js-count-notifications-reminder');
 						});
 					});
 				});
@@ -536,7 +527,7 @@ var Vtiger_Index_Js = {
 		});
 	},
 	sendNotification: function () {
-		Vtiger_Header_Js.getInstance().quickCreateModule('Notification');
+		App.Components.QuickCreate.createRecord('Notification');
 	},
 	performPhoneCall: function (phoneNumber, record) {
 		AppConnector.request({
@@ -554,29 +545,41 @@ var Vtiger_Index_Js = {
 		const thisInstance = this;
 		let modalContainer = false;
 		if (typeof CONFIG.ShowAuthy2faModal !== 'undefined') {
-			modalContainer = app.showModalWindow(null, 'index.php?module=Users&view=TwoFactorAuthenticationModal&record=' + CONFIG.userId, () => {
-				delete(CONFIG.ShowAuthy2faModal)
-			});
+			modalContainer = app.showModalWindow(
+				null,
+				'index.php?module=Users&view=TwoFactorAuthenticationModal&record=' + CONFIG.userId,
+				() => {
+					delete CONFIG.ShowAuthy2faModal;
+				}
+			);
 		} else if (typeof CONFIG.showVisitPurpose !== 'undefined') {
 			modalContainer = app.showModalWindow(null, 'index.php?module=Users&view=VisitPurpose', () => {
-				delete(CONFIG.showVisitPurpose)
+				delete CONFIG.showVisitPurpose;
 			});
 		} else if (typeof CONFIG.ShowUserPwnedPasswordChange !== 'undefined') {
-			modalContainer = app.showModalWindow(null, 'index.php?module=Users&view=PasswordModal&mode=change&type=pwned&record=' + CONFIG.userId, () => {
-				delete(CONFIG.ShowUserPwnedPasswordChange)
-			});
+			modalContainer = app.showModalWindow(
+				null,
+				'index.php?module=Users&view=PasswordModal&mode=change&type=pwned&record=' + CONFIG.userId,
+				() => {
+					delete CONFIG.ShowUserPwnedPasswordChange;
+				}
+			);
 		} else if (typeof CONFIG.ShowUserPasswordChange !== 'undefined') {
-			modalContainer = app.showModalWindow(null, 'index.php?module=Users&view=PasswordModal&mode=change&record=' + CONFIG.userId, () => {
-				delete(CONFIG.ShowUserPasswordChange)
-			});
+			modalContainer = app.showModalWindow(
+				null,
+				'index.php?module=Users&view=PasswordModal&mode=change&record=' + CONFIG.userId,
+				() => {
+					delete CONFIG.ShowUserPasswordChange;
+				}
+			);
 		} else {
 			$('.js-system-modal[data-url]').each((_, e) => {
 				modalContainer = app.showModalWindow(null, e.dataset.url, () => {
-					e.remove()
+					e.remove();
 				});
 			});
 		}
-		if(modalContainer){
+		if (modalContainer) {
 			modalContainer.one('hidden.bs.modal', function () {
 				thisInstance.registerAfterLoginEvents();
 			});

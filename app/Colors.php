@@ -1,6 +1,8 @@
 <?php
 /**
- * Colors stylesheet generator class.
+ * Colors stylesheet generator file.
+ *
+ * @package   App
  *
  * @copyright YetiForce Sp. z o.o
  * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
@@ -11,7 +13,7 @@
 namespace App;
 
 /**
- * Custom colors stylesheet file generator.
+ * Colors stylesheet generator class.
  */
 class Colors
 {
@@ -330,7 +332,7 @@ class Colors
 		$filterColors = [];
 		$by = $byFilterValue ? 'viewname' : 'cvid';
 		foreach ($customViews as $viewData) {
-			$filterColors[$viewData[$by]] = $viewData['color'] ? $viewData['color'] : static::getRandomColor($viewData[$by]);
+			$filterColors[$viewData[$by]] = $viewData['color'] ?: static::getRandomColor($viewData[$by]);
 		}
 		Cache::save('getAllFilterColors', $byFilterValue, $filterColors);
 		return $filterColors;

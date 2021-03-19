@@ -5,6 +5,7 @@
  * @copyright YetiForce Sp. z o.o
  * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Tomasz Kur <t.kur@yetiforce.com>
+ * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 
 /**
@@ -722,8 +723,14 @@ class Vtiger_ChartFilter_Model extends Vtiger_Widget_Model
 	protected function getQuery($filter)
 	{
 		$request = \App\Request::init();
-		$queryGenerator = new \App\QueryGenerator($this->getTargetModule());
-		$queryGenerator->initForCustomViewById($filter);
+		if ($this->getExtraData('relation_id') && $this->getExtraData('recordId')) {
+			$relationModelInstance = Vtiger_Relation_Model::getInstanceById($this->getExtraData('relation_id'));
+			$relationModelInstance->set('parentRecord', Vtiger_Record_Model::getInstanceById($this->getExtraData('recordId'), \App\Module::getModuleName($this->widgetModel->get('tabid'))));
+			$queryGenerator = $relationModelInstance->getQuery();
+		} else {
+			$queryGenerator = new \App\QueryGenerator($this->getTargetModule());
+			$queryGenerator->initForCustomViewById($filter);
+		}
 		$this->queryGeneratorModuleName = $queryGenerator->getModuleModel()->getName();
 		if (!empty($this->groupName)) {
 			$queryGenerator->setField($this->groupName);
@@ -1159,7 +1166,7 @@ class Vtiger_ChartFilter_Model extends Vtiger_Widget_Model
 	 */
 	protected function getValue($valueType, $groupValue, $dividingValue)
 	{
-		return isset($this->data[$dividingValue][$groupValue][$valueType]) ? $this->data[$dividingValue][$groupValue][$valueType] : 0;
+		return $this->data[$dividingValue][$groupValue][$valueType] ?? 0;
 	}
 
 	/**
@@ -1245,7 +1252,7 @@ class Vtiger_ChartFilter_Model extends Vtiger_Widget_Model
 	 */
 	public function getExtraData($key)
 	{
-		return isset($this->extraData[$key]) ? $this->extraData[$key] : null;
+		return $this->extraData[$key] ?? null;
 	}
 
 	/**
@@ -1373,7 +1380,8 @@ class Vtiger_ChartFilter_Model extends Vtiger_Widget_Model
 		$title = $this->widgetModel->get('title');
 		if (empty($title)) {
 			$suffix = '';
-			$viewName = (new App\Db\Query())->select(['viewname'])->from(['vtiger_customview'])->where(['cvid' => $this->getFilterId(0)])->scalar();
+			$cvId = $this->getFilterId(0);
+			$viewName = \App\CustomView::getCustomViewsDetails([$cvId])[$cvId]['viewname'] ?? '';
 			if ($viewName) {
 				$suffix = ' - ' . \App\Language::translate($viewName, $this->getTargetModule());
 				if (!empty($this->extraData['groupField'])) {

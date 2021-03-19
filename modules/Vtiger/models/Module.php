@@ -530,7 +530,7 @@ class Vtiger_Module_Model extends \vtlib\Module
 			$type = [$type];
 		}
 		$fieldList = [];
-		foreach ($this->getFields() as &$field) {
+		foreach ($this->getFields() as $field) {
 			if (\in_array($field->getFieldDataType(), $type) && (!$active || ($active && $field->isActiveField()))) {
 				$fieldList[$field->getName()] = $field;
 			}
@@ -538,16 +538,13 @@ class Vtiger_Module_Model extends \vtlib\Module
 		return $fieldList;
 	}
 
-	public function getFieldsByReference($fieldName = false)
+	public function getFieldsByReference()
 	{
 		$fieldList = [];
-		foreach ($this->getFields() as &$field) {
+		foreach ($this->getFields() as $field) {
 			if ($field->isReferenceField()) {
 				$fieldList[$field->getName()] = $field;
 			}
-		}
-		if ($fieldName) {
-			return $fieldList[$fieldName] ?? false;
 		}
 		return $fieldList;
 	}
@@ -936,8 +933,7 @@ class Vtiger_Module_Model extends \vtlib\Module
 		$searchableModules = [];
 		foreach ($entityModules as $moduleModel) {
 			$moduleName = $moduleModel->getName();
-			$entityInfo = \App\Module::getEntityInfo($moduleName);
-			if ('Users' == $moduleName || !$entityInfo['turn_off']) {
+			if ('Users' == $moduleName || empty(\App\Module::getEntityInfo($moduleName)['turn_off'])) {
 				continue;
 			}
 			if ($userPrivModel->hasModuleActionPermission($moduleModel->getId(), 'DetailView')) {
@@ -1410,7 +1406,7 @@ class Vtiger_Module_Model extends \vtlib\Module
 						foreach ($referenceList as $referenceModule) {
 							if (isset($fieldMap[$referenceModule]) && $sourceModule != $referenceModule) {
 								$fieldValue = $recordModel->get($fieldName);
-								if (0 != $fieldValue && \App\Record::getType($fieldValue) == $referenceModule) {
+								if (0 != $fieldValue && empty($data[$fieldMap[$referenceModule]]) && \App\Record::getType($fieldValue) == $referenceModule) {
 									$data[$fieldMap[$referenceModule]] = $fieldValue;
 								}
 							}

@@ -46,6 +46,7 @@ class Headers
 		'script-src' => '\'self\' \'unsafe-inline\' blob:',
 		'form-action' => '\'self\'',
 		'frame-ancestors' => '\'self\'',
+		'frame-src' => '\'self\' mailto: tel:',
 		'style-src' => '\'self\' \'unsafe-inline\'',
 		'connect-src' => '\'self\'',
 	];
@@ -138,7 +139,9 @@ class Headers
 	 */
 	public function getHeaders(): array
 	{
-		$this->headers['content-security-policy'] = $this->getCspHeader();
+		if (\App\Config::security('cspHeaderActive')) {
+			$this->headers['content-security-policy'] = $this->getCspHeader();
+		}
 		$return = [];
 		foreach ($this->headers as $name => $value) {
 			$return[] = "$name: $value";
