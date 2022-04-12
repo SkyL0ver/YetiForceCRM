@@ -5,8 +5,8 @@
  *
  * @package View
  *
- * @copyright YetiForce Sp. z o.o.
- * @license YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author Arkadiusz Adach <a.adach@yetiforce.com>
  */
 
@@ -15,19 +15,22 @@
  */
 class Settings_YetiForce_Shop_View extends Settings_Vtiger_Index_View
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function process(App\Request $request)
 	{
+		\App\YetiForce\Shop::generateCache();
+		\App\Utils\ConfReport::saveEnv();
+
 		$viewer = $this->getViewer($request);
 		$qualifiedModuleName = $request->getModule(false);
 		$viewer->assign('MODULE_NAME', $qualifiedModuleName);
-		$viewer->assign('STATUS', $request->getByType('status'));
-		$viewer->assign('TAB', $request->isEmpty('tab') ? 'Premium' : $request->getByType('tab'));
-		$viewer->assign('CATEGORY', $request->isEmpty('category') ? 'All' : $request->getByType('category'));
-		$viewer->assign('PRODUCTS_PREMIUM', \App\YetiForce\Shop::getProducts());
-		$viewer->assign('PRODUCTS_PARTNER', \App\YetiForce\Shop::getProducts('', 'Partner'));
+		if (\App\YetiForce\Register::isRegistered()) {
+			$viewer->assign('STATUS', $request->getByType('status'));
+			$viewer->assign('TAB', $request->isEmpty('tab') ? 'Premium' : $request->getByType('tab'));
+			$viewer->assign('CATEGORY', $request->isEmpty('category') ? 'All' : $request->getByType('category'));
+			$viewer->assign('PRODUCTS_PREMIUM', \App\YetiForce\Shop::getProducts());
+			$viewer->assign('PRODUCTS_PARTNER', \App\YetiForce\Shop::getProducts('', 'Partner'));
+		}
 		$viewer->view('Shop.tpl', $qualifiedModuleName);
 	}
 }

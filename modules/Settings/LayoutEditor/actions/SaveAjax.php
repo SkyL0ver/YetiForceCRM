@@ -1,11 +1,17 @@
 <?php
 
 /**
- * Save Inventory Action Class.
+ * Settings layout editor save action field.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package   Settings.Action
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
+ */
+
+/**
+ * Settings layout editor save action class.
  */
 class Settings_LayoutEditor_SaveAjax_Action extends Settings_Vtiger_Basic_Action
 {
@@ -32,7 +38,7 @@ class Settings_LayoutEditor_SaveAjax_Action extends Settings_Vtiger_Basic_Action
 	{
 		$type = $request->getInteger('type');
 		$moduleName = $request->getByType('sourceModule', 'Alnum');
-		if ($result['success'] = (new \App\BatchMethod(['method' => '\App\Module::changeType', 'params' => ['module' => $moduleName, 'type' => $type]]))->save()) {
+		if ($result['success'] = (new \App\BatchMethod(['method' => '\App\Module::changeType', 'params' => [$moduleName, $type]]))->save()) {
 			$result['message'] = \App\Language::translate('LBL_CHANGED_MODULE_TYPE_INFO', $request->getModule(false));
 		}
 		$response = new Vtiger_Response();

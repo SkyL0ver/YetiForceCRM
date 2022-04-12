@@ -4,8 +4,8 @@
  *
  * @package   Cron
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -14,12 +14,12 @@
  */
 class Vtiger_MailRbl_Cron extends \App\CronHandler
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function process()
 	{
-		\App\Mail\Rbl::sync(\App\Mail\Rbl::LIST_TYPE_PUBLIC_BLACK_LIST);
-		\App\Mail\Rbl::sync(\App\Mail\Rbl::LIST_TYPE_PUBLIC_WHITE_LIST);
+		if (\App\YetiForce\Shop::check('YetiForceRbl')) {
+			\App\Mail\Rbl::sync(\App\Mail\Rbl::LIST_TYPE_PUBLIC_BLACK_LIST);
+			\App\Mail\Rbl::sync(\App\Mail\Rbl::LIST_TYPE_PUBLIC_WHITE_LIST);
+		}
 	}
 }

@@ -3,15 +3,13 @@
 /**
  * Action to mass upload files.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Tomasz Kur <t.kur@yetiforce.com>
  */
 class Documents_MassAdd_Action extends Vtiger_Mass_Action
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function checkPermission(App\Request $request)
 	{
 		if (!\App\Privilege::isPermitted($request->getModule(), 'CreateView')) {
@@ -19,9 +17,7 @@ class Documents_MassAdd_Action extends Vtiger_Mass_Action
 		}
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function process(App\Request $request)
 	{
 		$moduleName = $request->getModule();

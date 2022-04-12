@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce Sp. z o.o
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Vtiger_Owner_UIType extends Vtiger_Base_UIType
@@ -25,7 +25,26 @@ class Vtiger_Owner_UIType extends Vtiger_Base_UIType
 			$value = $value ? explode('##', $value) : [];
 		}
 		foreach ($value as $val) {
-			$values[] = parent::getDbConditionBuilderValue($val, $operator);
+			if (false !== strpos($val, ':') && \in_array($operator, ['e', 'n'])) {
+				[$type, $val] = explode(':', $val);
+				switch ($type) {
+					case \App\PrivilegeUtil::MEMBER_TYPE_GROUPS:
+						$val = parent::getDbConditionBuilderValue($val, $operator);
+						break;
+					case \App\PrivilegeUtil::MEMBER_TYPE_ROLES:
+					case \App\PrivilegeUtil::MEMBER_TYPE_ROLE_AND_SUBORDINATES:
+						if (!preg_match('/^H[1-9]+$/', $val)) {
+							throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getName() . '||' . $this->getFieldModel()->getModuleName() . '||' . \App\Utils::varExport($value), 406);
+						}
+						break;
+					default:
+						throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getName() . '||' . $this->getFieldModel()->getModuleName() . '||' . \App\Utils::varExport($value), 406);
+						break;
+				}
+				$values[] = "{$type}:{$val}";
+			} else {
+				$values[] = parent::getDbConditionBuilderValue($val, $operator);
+			}
 		}
 		return implode('##', $values);
 	}
@@ -65,7 +84,7 @@ class Vtiger_Owner_UIType extends Vtiger_Base_UIType
 		switch (\App\Fields\Owner::getType($value)) {
 			case 'Users':
 				if (!\App\User::isExists($value, false)) {
-					$ownerName = '<span class="text-muted"><s>' . $ownerName ?: '---' . '</s></span>';
+					$ownerName = '<span class="text-muted"><s>' . ($ownerName ?: '---') . '</s></span>';
 				} else {
 					$userModel = Users_Privileges_Model::getInstanceById($value);
 					$userModel->setModule('Users');
@@ -79,9 +98,9 @@ class Vtiger_Owner_UIType extends Vtiger_Base_UIType
 				break;
 			case 'Groups':
 				if (\App\User::getCurrentUserModel()->isAdmin()) {
-					$recordModel = new Settings_Groups_Record_Model();
-					$recordModel->set('groupid', $value);
-					$detailViewUrl = $recordModel->getDetailViewUrl();
+					$groupRecordModel = new Settings_Groups_Record_Model();
+					$groupRecordModel->set('groupid', $value);
+					$detailViewUrl = $groupRecordModel->getDetailViewUrl();
 					$popoverRecordClass = '';
 				}
 				break;
@@ -96,6 +115,31 @@ class Vtiger_Owner_UIType extends Vtiger_Base_UIType
 			return "<a $popoverRecordClass href=\"$detailViewUrl\"> $ownerName </a>";
 		}
 		return $ownerName;
+	}
+
+	/** {@inheritdoc} */
+	public function getValueToExport($value, int $recordId)
+	{
+		return \App\Fields\Owner::getLabel($value);
+	}
+
+	/** {@inheritdoc} */
+	public function getValueFromImport($value, $defaultValue = null)
+	{
+		$ownerId = \App\User::getUserIdByName(trim($value));
+		if (empty($ownerId)) {
+			$ownerId = \App\User::getUserIdByFullName(trim($value));
+		}
+		if (empty($ownerId)) {
+			$ownerId = \App\Fields\Owner::getGroupId($value);
+		}
+		if (empty($ownerId) && null !== $defaultValue) {
+			$ownerId = $defaultValue;
+		}
+		if (!empty($ownerId) && 'Users' === \App\Fields\Owner::getType($ownerId) && !\array_key_exists($ownerId, \App\Fields\Owner::getInstance($this->getFieldModel()->getModuleName())->getAccessibleUsers('', 'owner'))) {
+			$ownerId = $defaultValue;
+		}
+		return $ownerId;
 	}
 
 	/** {@inheritdoc} */
@@ -136,7 +180,7 @@ class Vtiger_Owner_UIType extends Vtiger_Base_UIType
 	/** {@inheritdoc} */
 	public function getQueryOperators()
 	{
-		return ['e', 'n', 'y', 'ny', 'om', 'nom', 'ogr', 'wr', 'nwr'];
+		return ['e', 'n', 'y', 'ny', 'om', 'nom', 'ogr', 'wr', 'nwr', 'ef', 'nf'];
 	}
 
 	/** {@inheritdoc} */

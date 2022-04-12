@@ -3,8 +3,8 @@
 /**
  * Settings TreesManager record model class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 class Settings_TreesManager_Record_Model extends Settings_Vtiger_Record_Model
@@ -134,7 +134,7 @@ class Settings_TreesManager_Record_Model extends Settings_Vtiger_Record_Model
 			'depth' => $depth,
 			'label' => $label,
 			'state' => $tree['state'] ? \App\Json::encode($tree['state']) : '',
-			'icon' => $icon
+			'icon' => $icon,
 		];
 		App\Db::getInstance()->createCommand()->insert('vtiger_trees_templates_data', $params)->execute();
 		if (!empty($tree['children'])) {
@@ -416,8 +416,10 @@ class Settings_TreesManager_Record_Model extends Settings_Vtiger_Record_Model
 
 	/**
 	 * Function clears cache.
+	 *
+	 * @return void
 	 */
-	public function clearCache()
+	public function clearCache():void
 	{
 		\App\Cache::delete('TreeValuesById', $this->getId());
 	}

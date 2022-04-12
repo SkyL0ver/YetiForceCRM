@@ -4,9 +4,10 @@
  *
  * @package   Settings.Model
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 
 /**
@@ -102,15 +103,20 @@ class Settings_FieldsDependency_Record_Model extends Settings_Vtiger_Record_Mode
 		if (isset($data['id'])) {
 			$data['id'] = \App\Purifier::purifyByType($data['id'], 'Integer');
 		}
-		$data['name'] = \App\Purifier::purifyByType($data['name'], 'Text');
 		$data['status'] = $data['status'] ? 0 : 1;
 		$data['mandatory'] = (int) $data['mandatory'];
 		$data['gui'] = (int) $data['gui'];
 		$data['tabid'] = (int) $data['tabid'];
-		$data['conditionsFields'] = \App\Json::encode(\App\Condition::getFieldsFromConditions($data['conditions'])['baseModule'] ?? []);
-		$data['conditions'] = \App\Json::encode($data['conditions']);
-		$data['views'] = \App\Json::encode($data['views']);
-		$data['fields'] = \App\Json::encode($data['fields']);
+		$conditions = \is_array($data['conditions']) ? $data['conditions'] : \App\Json::decode($data['conditions']);
+		$data['conditionsFields'] = \App\Json::encode(\App\Condition::getFieldsFromConditions($conditions)['baseModule'] ?? []);
+		$data['conditions'] = \App\Json::encode($conditions);
+		if (\is_array($data['views'])) {
+			$data['views'] = \App\Json::encode($data['views']);
+		}
+		if (\is_array($data['fields'])) {
+			$data['fields'] = \App\Json::encode($data['fields']);
+		}
+
 		return $data;
 	}
 
@@ -129,7 +135,8 @@ class Settings_FieldsDependency_Record_Model extends Settings_Vtiger_Record_Mode
 		} else {
 			$db->createCommand()->insert('s_#__fields_dependency', $data)->execute();
 		}
-		\App\Cache::delete('FieldsDependency', $data['tabid']);
+		\App\Cache::delete('FieldsDependency', $this->get('tabid'));
+		\App\FieldsDependency::$recordModelCache = [];
 		$this->checkHandler();
 	}
 
@@ -142,6 +149,7 @@ class Settings_FieldsDependency_Record_Model extends Settings_Vtiger_Record_Mode
 			->delete('s_#__fields_dependency', ['id' => $this->getId()])
 			->execute();
 		\App\Cache::delete('FieldsDependency', $this->get('tabid'));
+		\App\FieldsDependency::$recordModelCache = [];
 		$this->checkHandler();
 		return $return;
 	}
@@ -169,8 +177,9 @@ class Settings_FieldsDependency_Record_Model extends Settings_Vtiger_Record_Mode
 			case 'fields':
 				$moduleModel = Vtiger_Module_Model::getInstance($this->get('tabid'));
 				$value = implode(', ', array_map(function ($fieldName) use ($moduleModel) {
-					return $moduleModel->getField($fieldName)->getFullLabelTranslation();
+					return $moduleModel->getFieldByName($fieldName)->getFullLabelTranslation();
 				}, \App\Json::decode($value) ?? []));
+				$value = "<div class=\"js-popover-tooltip ml-2 mr-2 d-inline mt-2\" data-js=\"popover\" data-content=\"$value\">" . \App\TextParser::textTruncate($value) . '</div>';
 				break;
 			case 'mandatory':
 			case 'gui':
@@ -232,12 +241,25 @@ class Settings_FieldsDependency_Record_Model extends Settings_Vtiger_Record_Mode
 	 */
 	public function checkHandler()
 	{
-		if ((new \App\Db\Query())->from('s_#__fields_dependency')->where(['status' => 0])->exists(\App\Db::getInstance('admin'))) {
-			if (!App\EventHandler::registerHandler('EditViewChangeValue', 'Vtiger_FieldsDependency_Handler') || !App\EventHandler::registerHandler('EditViewPreSave', 'Vtiger_FieldsDependency_Handler')) {
-				App\EventHandler::setActive('Vtiger_FieldsDependency_Handler');
-			}
+		$tableName = $this->getModule()->baseTable;
+		$modules = (new \App\Db\Query())->select(['vtiger_tab.name'])
+			->from($tableName)->innerJoin('vtiger_tab', "{$tableName}.tabid=vtiger_tab.tabid")
+			->where(["{$tableName}.status" => 0])->distinct()->column();
+		if (!$modules) {
+			\App\EventHandler::deleteHandler('Vtiger_FieldsDependency_Handler');
 		} else {
-			App\EventHandler::setInActive('Vtiger_FieldsDependency_Handler');
+			$types = ['EditViewChangeValue', 'EditViewPreSave'];
+			$handlers = (new \App\Db\Query())->from('vtiger_eventhandlers')
+				->where(['handler_class' => 'Vtiger_FieldsDependency_Handler', 'event_name' => $types])
+				->indexBy('event_name')->all();
+			foreach ($types as $type) {
+				if (isset($handlers[$type])) {
+					$data = ['include_modules' => implode(',', $modules), 'is_active' => 1];
+					\App\EventHandler::update($data, $handlers[$type]['eventhandler_id']);
+				} else {
+					\App\EventHandler::registerHandler($type, 'Vtiger_FieldsDependency_Handler', implode(',', $modules), '', 5, true, 0, \App\EventHandler::SYSTEM);
+				}
+			}
 		}
 	}
 }

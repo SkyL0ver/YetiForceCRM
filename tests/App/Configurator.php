@@ -1,19 +1,20 @@
 <?php
 /**
- * Configurator test class.
+ * Configurator test file.
  *
  * @package   Tests
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Sławomir Kłos <s.klos@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
 namespace Tests\App;
 
 /**
- * Class Configurator tests.
+ *  Configurator test class.
  */
 class Configurator extends \Tests\Base
 {
@@ -31,8 +32,8 @@ class Configurator extends \Tests\Base
 	 */
 	public function testInstance()
 	{
-		static::$instance = new \App\ConfigFile('component', 'YetiForce');
-		$this->assertInstanceOf('\App\ConfigFile', static::$instance);
+		self::$instance = new \App\ConfigFile('component', 'YetiForce');
+		$this->assertInstanceOf('\App\ConfigFile', self::$instance);
 	}
 
 	/**
@@ -46,8 +47,8 @@ class Configurator extends \Tests\Base
 	{
 		$flagName = \array_search('bool', \App\YetiForce\Watchdog::$variables);
 		$previousValue = \App\Config::component('YetiForce', $flagName, false);
-		static::$instance->set($flagName, !$previousValue);
-		static::$instance->create();
+		self::$instance->set($flagName, !$previousValue);
+		self::$instance->create();
 		$this->assertNotSame($previousValue, \App\Config::component('YetiForce', $flagName, false));
 	}
 }

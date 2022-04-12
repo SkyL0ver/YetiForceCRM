@@ -6,14 +6,12 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Users_DetailView_Model extends Vtiger_DetailView_Model
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getDetailViewLinks(array $linkParams): array
 	{
 		$currentUserModel = Users_Record_Model::getCurrentUserModel();
@@ -72,7 +70,10 @@ class Users_DetailView_Model extends Vtiger_DetailView_Model
 				'linkicon' => 'yfi yfi-full-editing-view',
 				'showLabel' => true,
 			];
-			if ('PLL_PASSWORD_2FA' === $recordModel->get('login_method') && $recordModel->getId() === \App\User::getCurrentUserRealId() && 'TOTP_OFF' !== \App\Config::security('USER_AUTHY_MODE')) {
+			if (
+				('PLL_PASSWORD_2FA' === $recordModel->get('login_method') || 'PLL_LDAP_2FA' === $recordModel->get('login_method'))
+			 && $recordModel->getId() === \App\User::getCurrentUserRealId() && 'TOTP_OFF' !== \App\Config::security('USER_AUTHY_MODE')
+			) {
 				$detailViewActionLinks[] = [
 					'linktype' => 'DETAIL_VIEW_BASIC',
 					'linklabel' => 'LBL_2FA_TOTP_QR_CODE',

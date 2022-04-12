@@ -5,8 +5,10 @@ namespace App\Layout;
 /**
  * Icon class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Adrian Koń <a.kon@yetiforce.com>
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
@@ -55,7 +57,7 @@ class Icon
 
 	public static function getIconByFileType($exntension)
 	{
-		$explodeExtension = explode('/', $exntension);
+		$explodeExtension = explode('/', $exntension ?? '');
 		$explodeExtension = reset($explodeExtension);
 		if (isset(self::$extensionIcon[$explodeExtension])) {
 			$fileIcon = self::$extensionIcon[$explodeExtension];
@@ -197,6 +199,24 @@ class Icon
 		static::init();
 		return array_merge(
 			self::getImageIcons(),
+			self::getUserIcons(),
+			self::getAdminIcons(),
+			self::getAdditionalIcons(),
+			self::getYetiForceIcons(),
+			self::getFontAwesomeIcons(),
+			self::getMaterialDesignIcons()
+		);
+	}
+
+	/**
+	 * Get only icons excluding images.
+	 *
+	 * @return array
+	 */
+	public static function getIcons(): array
+	{
+		static::init();
+		return array_merge(
 			self::getUserIcons(),
 			self::getAdminIcons(),
 			self::getAdditionalIcons(),

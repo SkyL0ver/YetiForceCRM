@@ -2,9 +2,12 @@
 /**
  * Mail Scanner bind email action.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package Model
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 
 /**
@@ -12,38 +15,22 @@
  */
 class OSSMail_Mail_Model extends \App\Base
 {
-	/**
-	 * Mail account.
-	 *
-	 * @var array
-	 */
+	/** @var string[] Ignored mail addresses */
+	public const IGNORED_MAILS = ['@', 'undisclosed-recipients',  'Undisclosed-recipients', 'undisclosed-recipients@', 'Undisclosed-recipients@', 'Undisclosed recipients@,@', 'undisclosed recipients@,@'];
+
+	/** @var array Mail account. */
 	protected $mailAccount = [];
 
-	/**
-	 * Mail folder.
-	 *
-	 * @var string
-	 */
+	/** @var string Mail folder. */
 	protected $mailFolder = '';
 
-	/**
-	 * Mail crm id.
-	 *
-	 * @var bool|int
-	 */
+	/** @var bool|int Mail crm id. */
 	protected $mailCrmId = false;
 
-	/**
-	 * Action result.
-	 *
-	 * @var array
-	 */
+	/** @var array Action result. */
 	protected $actionResult = [];
-	/**
-	 * Mail type.
-	 *
-	 * @var int
-	 */
+
+	/** @var int Mail type. */
 	protected $mailType;
 
 	/**
@@ -281,7 +268,7 @@ class OSSMail_Mail_Model extends \App\Base
 		$return = [];
 		$cacheKey = 'MailSearchByEmails' . $moduleName . '_' . $fieldName;
 		foreach ($emails as $email) {
-			if (empty($email) || \in_array($email, ['@', 'undisclosed-recipients@', 'undisclosed-recipients'])) {
+			if (empty($email) || \in_array($email, self::IGNORED_MAILS)) {
 				continue;
 			}
 			if (App\Cache::staticHas($cacheKey, $email)) {
@@ -314,17 +301,20 @@ class OSSMail_Mail_Model extends \App\Base
 	 * @param string   $fieldName
 	 * @param string[] $emails
 	 *
-	 * @return int[] crmids
+	 * @return int[] CRM ids
 	 */
 	public function searchByDomains(string $moduleName, string $fieldName, array $emails)
 	{
 		$cacheKey = 'MailSearchByDomains' . $moduleName . '_' . $fieldName;
 		$crmids = [];
 		foreach ($emails as $email) {
-			if (empty($email) || \in_array($email, ['@', 'undisclosed-recipients@', 'undisclosed-recipients'])) {
+			if (empty($email) || \in_array($email, self::IGNORED_MAILS)) {
 				continue;
 			}
 			$domain = mb_strtolower(explode('@', $email)[1]);
+			if (!$domain) {
+				continue;
+			}
 			if (App\Cache::staticHas($cacheKey, $domain)) {
 				$cache = App\Cache::staticGet($cacheKey, $domain);
 				if (0 != $cache) {
@@ -347,7 +337,7 @@ class OSSMail_Mail_Model extends \App\Base
 	 *
 	 * @return array|string
 	 */
-	public function findEmailAdress($field, $searchModule = false, $returnArray = true)
+	public function findEmailAddress($field, $searchModule = false, $returnArray = true)
 	{
 		$return = [];
 		$emails = $this->get($field);
@@ -366,7 +356,7 @@ class OSSMail_Mail_Model extends \App\Base
 				$row = explode('=', $field);
 				$moduleName = $row[1];
 				$fieldName = $row[0];
-				$fieldModel = Vtiger_Field_Model::getInstance($row[0], Vtiger_Module_Model::getInstance($moduleName));
+				$fieldModel = Vtiger_Module_Model::getInstance($moduleName)->getField($row[0]);
 				if ($searchModule && $searchModule !== $moduleName) {
 					$enableFind = false;
 				}
@@ -399,20 +389,20 @@ class OSSMail_Mail_Model extends \App\Base
 			'modifiedby' => $userId,
 			'createdtime' => $useTime,
 			'modifiedtime' => $useTime,
-			'folderid' => 'T2'
+			'folderid' => 'T2',
 		];
 		if ($attachments = $this->get('attachments')) {
 			$maxSize = \App\Config::main('upload_maxsize');
 			foreach ($attachments as $attachment) {
 				if ($maxSize < ($size = \strlen($attachment['attachment']))) {
-					\App\Log::error("Error - downloaded the file is too big '{$attachment['filename']}', size: {$size}, in mail: {$this->get('date')} | {$this->get('from_email')} | {$this->get('subject')} | folder: {$this->getFolder()} | message_id:{$this->get('message_id')}", __CLASS__);
+					\App\Log::error("Error - downloaded the file is too big '{$attachment['filename']}', size: {$size}, in mail: {$this->get('date')} | Folder: {$this->getFolder()} | ID: {$this->get('id')}", __CLASS__);
 					continue;
 				}
 				$fileInstance = \App\Fields\File::loadFromContent($attachment['attachment'], $attachment['filename'], ['validateAllCodeInjection' => true]);
 				if ($fileInstance && $fileInstance->validateAndSecure() && ($id = App\Fields\File::saveFromContent($fileInstance, $params))) {
 					$files[] = $id;
 				} else {
-					\App\Log::error("Error downloading the file '{$attachment['filename']}' in mail: {$this->get('date')} | {$this->get('from_email')} | {$this->get('subject')}", __CLASS__);
+					\App\Log::error("Error downloading the file '{$attachment['filename']}' in mail: {$this->get('date')} | Folder: {$this->getFolder()} | ID: {$this->get('id')}", __CLASS__);
 				}
 			}
 		}
@@ -425,6 +415,106 @@ class OSSMail_Mail_Model extends \App\Base
 			])->execute();
 		}
 		return $files;
+	}
+
+	/**
+	 * Treatment mail content with all images and unnecessary trash.
+	 *
+	 * @return string
+	 */
+	public function getContent(): string
+	{
+		if ($this->has('parsedContent')) {
+			return $this->get('parsedContent');
+		}
+		$html = $this->get('body');
+		if (!\App\Utils::isHtml($html) || !$this->get('isHtml')) {
+			$html = nl2br($html);
+		}
+		$attachments = $this->get('attachments');
+		if (\Config\Modules\OSSMailScanner::$attachHtmlAndTxtToMessageBody && \count($attachments) < 2) {
+			foreach ($attachments as $key => $attachment) {
+				if (('.html' === substr($attachment['filename'], -5)) || ('.txt' === substr($attachment['filename'], -4))) {
+					$html .= $attachment['attachment'] . '<hr />';
+					unset($attachments[$key]);
+				}
+			}
+		}
+		$encoding = mb_detect_encoding($html, mb_list_encodings(), true);
+		if ($encoding && 'UTF-8' !== $encoding) {
+			$html = mb_convert_encoding($html, 'UTF-8', $encoding);
+		}
+		$html = preg_replace(
+			[':<(head|style|script).+?</\1>:is', // remove <head>, <styleand <scriptsections
+				':<!\[[^]<]+\]>:', // remove <![if !mso]and friends
+				':<!DOCTYPE[^>]+>:', // remove <!DOCTYPE ... >
+				':<\?[^>]+>:', // remove <?xml version="1.0" ... >
+				'~</?html[^>]*>~', // remove html tags
+				'~</?body[^>]*>~', // remove body tags
+				'~</?o:[^>]*>~', // remove mso tags
+				'~\sclass=[\'|\"][^\'\"]+[\'|\"]~i', // remove class attributes
+			], ['', '', '', '', '', '', '', ''], $html);
+		$doc = new \DOMDocument('1.0', 'UTF-8');
+		$previousValue = libxml_use_internal_errors(true);
+		$doc->loadHTML('<?xml encoding="utf-8"?>' . $html);
+		libxml_clear_errors();
+		libxml_use_internal_errors($previousValue);
+		$params = [
+			'created_user_id' => $this->getAccountOwner(),
+			'assigned_user_id' => $this->getAccountOwner(),
+			'modifiedby' => $this->getAccountOwner(),
+			'createdtime' => $this->get('date'),
+			'modifiedtime' => $this->get('date'),
+			'folderid' => \Config\Modules\OSSMailScanner::$mailBodyGraphicDocumentsFolder ?? 'T2',
+		];
+		$files = [];
+		foreach ($doc->getElementsByTagName('img') as $img) {
+			$src = trim($img->getAttribute('src'), '\'');
+			if ('data:' === substr($src, 0, 5)) {
+				if ((\Config\Modules\OSSMailScanner::$attachMailBodyGraphicBase64 ?? true) && ($fileInstance = \App\Fields\File::saveFromString($src, ['validateAllowedFormat' => 'image'])) && ($ids = \App\Fields\File::saveFromContent($fileInstance, $params))) {
+					$img->setAttribute('src', "file.php?module=Documents&action=DownloadFile&record={$ids['crmid']}&fileid={$ids['attachmentsId']}&show=true");
+					$img->setAttribute('alt', '-');
+					$files[] = $ids;
+					continue;
+				}
+			} elseif (filter_var($src, FILTER_VALIDATE_URL)) {
+				$params['param'] = ['validateAllowedFormat' => 'image'];
+				if ((\Config\Modules\OSSMailScanner::$attachMailBodyGraphicUrl ?? true) && ($ids = App\Fields\File::saveFromUrl($src, $params))) {
+					$img->setAttribute('src', "file.php?module=Documents&action=DownloadFile&record={$ids['crmid']}&fileid={$ids['attachmentsId']}&show=true");
+					$img->setAttribute('alt', '-');
+					$files[] = $ids;
+					continue;
+				}
+			} elseif ('cid:' === substr($src, 0, 4)) {
+				$src = substr($src, 4);
+				if (isset($attachments[$src])) {
+					if (\Config\Modules\OSSMailScanner::$attachMailBodyGraphicCid ?? true) {
+						unset($attachments[$src]);
+						continue;
+					}
+					$fileInstance = App\Fields\File::loadFromContent($attachments[$src]['attachment'], $attachments[$src]['filename'], ['validateAllowedFormat' => 'image']);
+					if ($fileInstance && $fileInstance->validateAndSecure() && ($ids = App\Fields\File::saveFromContent($fileInstance, $params))) {
+						$img->setAttribute('src', "file.php?module=Documents&action=DownloadFile&record={$ids['crmid']}&fileid={$ids['attachmentsId']}&show=true");
+						if (!$img->hasAttribute('alt')) {
+							$img->setAttribute('alt', $attachments[$src]['filename']);
+						}
+						$files[] = $ids;
+						unset($attachments[$src]);
+						continue;
+					}
+				}
+			}
+			$img->removeAttribute('src');
+		}
+		$this->set('files', $files);
+		$this->set('attachments', $attachments);
+		$previousValue = libxml_use_internal_errors(true);
+		$html = $doc->saveHTML();
+		libxml_clear_errors();
+		libxml_use_internal_errors($previousValue);
+		$html = \App\Purifier::purifyHtml(str_replace('<?xml encoding="utf-8"?>', '', $html));
+		$this->set('parsedContent', $html);
+		return $html;
 	}
 
 	/**

@@ -14,7 +14,6 @@
     "QLTQ": "Top Quotes",
     "UA": "Upcoming Activities",
     "LBL_MARK_AS_READ": "Mark as read",
-    "Notifications": "Notifications",
     "LBL_MESSAGES_FROM_USERS": "From users",
     "LBL_WATCHDOG": "Track changes",
     "LBL_SEND_NOTIFICATION_MAIL": "Send via email",
@@ -43,6 +42,7 @@
     "LBL_CHART_STACKED": "Combine graph elements",
     "LBL_CHART_COLORS_FROM_FILTER": "Colors from filter",
     "LBL_WIDGET_DOWNLOAD": "Download graph",
-    "LBL_WIDGET_PRINT": "Print graph"
+    "LBL_WIDGET_PRINT": "Print graph",
+    "LBL_WIDGET_SHOW_SUMMARY": "Show summary"
   }
 }

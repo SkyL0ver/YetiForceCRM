@@ -3,8 +3,8 @@
 /**
  * Companies record model class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -86,9 +86,7 @@ class Settings_Companies_Record_Model extends Settings_Vtiger_Record_Model
 		return new static();
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function get($key)
 	{
 		if ('newsletter' === $key && !empty(parent::get('email'))) {
@@ -128,9 +126,9 @@ class Settings_Companies_Record_Model extends Settings_Vtiger_Record_Model
 		if ('LBL_TYPE_TARGET_USER' === self::TYPES[$params['type']] || 1 === (new \App\Db\Query())->from('s_#__companies')->count()) {
 			$configFile = new \App\ConfigFile('component', 'Branding');
 			$configFile->set('footerName', $params['name']);
-			$configFile->set('urlFacebook', $params['facebook']);
-			$configFile->set('urlTwitter', $params['twitter']);
-			$configFile->set('urlLinkedIn', $params['linkedin']);
+			$configFile->set('urlFacebook', $params['facebook'] ?? '');
+			$configFile->set('urlTwitter', $params['twitter'] ?? '');
+			$configFile->set('urlLinkedIn', $params['linkedin'] ?? '');
 			$configFile->create();
 		}
 		\App\Cache::clear();
@@ -280,6 +278,7 @@ class Settings_Companies_Record_Model extends Settings_Vtiger_Record_Model
 			case 'industry':
 				$params['uitype'] = 16;
 				$params['maximumlength'] = '50';
+				$params['picklistValues'] = [];
 				foreach (Settings_Companies_Module_Model::getIndustryList() as $industry) {
 					$params['picklistValues'][$industry] = \App\Language::translate($industry, $moduleName);
 				}
@@ -291,6 +290,7 @@ class Settings_Companies_Record_Model extends Settings_Vtiger_Record_Model
 			case 'country':
 				$params['uitype'] = 16;
 				$params['maximumlength'] = '100';
+				$params['picklistValues'] = [];
 				foreach (\App\Fields\Country::getAll() as $country) {
 					$params['picklistValues'][$country['name']] = \App\Language::translateSingleMod($country['name'], 'Other.Country');
 				}
@@ -303,6 +303,7 @@ class Settings_Companies_Record_Model extends Settings_Vtiger_Record_Model
 				break;
 			case 'website':
 				$params['uitype'] = 17;
+				$params['typeofdata'] = 'V~O';
 				unset($params['validator']);
 				break;
 			case 'firstname':

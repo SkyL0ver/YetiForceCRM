@@ -10,7 +10,7 @@
  * The Initial Developer of the Original Code is SugarCRM, Inc.
  * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc.;
  * All Rights Reserved.
- * Contributor(s): YetiForce.com.
+ * Contributor(s): YetiForce S.A.
  * ****************************************************************************** */
 /* * *******************************************
  * With modifications by
@@ -22,7 +22,7 @@
  * $Header: /advent/projects/wesat/vtiger_crm/sugarcrm/modules/Users/Users.php,v 1.10 2005/04/19 14:40:48 ray Exp $
  * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com.
+ * Contributor(s): YetiForce S.A.
  * ****************************************************************************** */
 
 require_once 'include/utils/CommonUtils.php';
@@ -55,8 +55,7 @@ class Users extends CRMEntity
 	public $tab_name_index = ['vtiger_users' => 'id', 'vtiger_user2role' => 'userid'];
 	public $table_name = 'vtiger_users';
 	public $table_index = 'id';
-	// This is the list of fields that are in the lists.
-	public $list_link_field = 'last_name';
+
 	public $list_mode;
 	public $popup_type;
 	public $search_fields = [
@@ -74,18 +73,7 @@ class Users extends CRMEntity
 	public $encodeFields = ['first_name', 'last_name', 'description'];
 	// This is used to retrieve related fields from form posts.
 	public $additional_column_fields = ['reports_to_name'];
-	// This is the list of vtiger_fields that are in the lists.
-	public $list_fields = [
-		'First Name' => ['vtiger_users' => 'first_name'],
-		'Last Name' => ['vtiger_users' => 'last_name'],
-		'Role Name' => ['vtiger_user2role' => 'roleid'],
-		'User Name' => ['vtiger_users' => 'user_name'],
-		'Status' => ['vtiger_users' => 'status'],
-		'Admin' => ['vtiger_users' => 'is_admin'],
-		'Login Method' => ['vtiger_users' => 'login_method'],
-		'FL_FORCE_PASSWORD_CHANGE' => ['vtiger_users' => 'force_password_change'],
-		'FL_DATE_PASSWORD_CHANGE' => ['vtiger_users' => 'date_password_change'],
-	];
+
 	public $list_fields_name = [
 		'First Name' => 'first_name',
 		'Last Name' => 'last_name',
@@ -173,7 +161,7 @@ class Users extends CRMEntity
 				throw new \App\Exceptions\NoPermittedToRecord('ERR_RECORD_NOT_FOUND||' . $record);
 			}
 		}
-		$fields = vtlib\Functions::getModuleFieldInfos($module);
+		$fields = \App\Field::getModuleFieldInfos($module);
 		foreach ($fields as $fieldName => &$fieldRow) {
 			if (isset($result[$fieldRow['tablename']][$fieldRow['columnname']])) {
 				$value = $result[$fieldRow['tablename']][$fieldRow['columnname']];
@@ -261,7 +249,7 @@ class Users extends CRMEntity
 			}
 		} else {
 			$adminId = 1;
-			$result = (new \App\Db\Query())->select(['id'])->from('vtiger_users')->where(['is_admin' => 'on', 'status' => 'Active'])->limit(1)->scalar();
+			$result = (new \App\Db\Query())->select(['id'])->from('vtiger_users')->where(['is_admin' => 'on', 'status' => 'Active'])->scalar();
 			if ($result) {
 				$adminId = $result;
 			}

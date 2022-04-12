@@ -5,8 +5,10 @@ namespace App\Conditions\QueryFields;
 /**
  * Date time Query Field Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package UIType
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -38,7 +40,7 @@ class DatetimeField extends DateField
 	 *
 	 * @return array
 	 */
-	public function operatorE()
+	public function operatorE(): array
 	{
 		$value = $this->getValue();
 
@@ -50,7 +52,7 @@ class DatetimeField extends DateField
 	 *
 	 * @return array
 	 */
-	public function operatorN()
+	public function operatorN(): array
 	{
 		$value = $this->getValue();
 
@@ -84,7 +86,7 @@ class DatetimeField extends DateField
 	 *
 	 * @return array
 	 */
-	public function operatorA()
+	public function operatorA(): array
 	{
 		return ['>', $this->getColumnName(), $this->getValue() . ' 23:59:59'];
 	}

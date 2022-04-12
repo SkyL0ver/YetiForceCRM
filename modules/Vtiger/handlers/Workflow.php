@@ -5,8 +5,10 @@ Vtiger_Loader::includeOnce('~modules/com_vtiger_workflow/VTWorkflowManager.php')
 /**
  * Workflow handler.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package		Handler
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 class Vtiger_Workflow_Handler

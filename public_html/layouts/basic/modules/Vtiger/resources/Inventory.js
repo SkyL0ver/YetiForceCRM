@@ -1,4 +1,4 @@
-/* {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
+/* {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
 'use strict';
 
 $.Class(
@@ -27,6 +27,8 @@ $.Class(
 	},
 	{
 		form: false,
+		discount: false,
+		tax: false,
 		inventoryContainer: false,
 		inventoryHeadContainer: false,
 		summaryTaxesContainer: false,
@@ -49,7 +51,14 @@ $.Class(
 		getForm() {
 			return this.form;
 		},
-
+		/**
+		 * Get current form element
+		 * @returns {jQuery}
+		 */
+		loadConfig() {
+			this.discount = JSON.parse(this.form.find('.js-discount-config').val());
+			this.tax = JSON.parse(this.form.find('.js-tax-config').val());
+		},
 		/**
 		 * Function that is used to get the line item container
 		 * @return : jQuery object
@@ -137,19 +146,18 @@ $.Class(
 			}
 		},
 		isIndividualTaxMode: function (row) {
-			let taxModeElement = this.getTaxModeSelectElement(row);
-			let selectedOption = taxModeElement.find('option:selected');
-			return selectedOption.val() == '1';
+			let selectedOption = this.getTaxModeSelectElement(row).find('option:selected');
+			if (selectedOption.length !== 0) {
+				return selectedOption.val() == 1;
+			}
+			return this.tax.default_mode == 1;
 		},
 		isGroupTaxMode: function () {
-			let taxTypeElement = this.getTaxModeSelectElement();
-			if (taxTypeElement) {
-				let selectedOption = taxTypeElement.find('option:selected');
-				if (selectedOption.val() == '0') {
-					return true;
-				}
+			let selectedOption = this.getTaxModeSelectElement();
+			if (selectedOption && (selectedOption = selectedOption.find('option:selected')) && selectedOption.length !== 0) {
+				return selectedOption.val() == 0;
 			}
-			return false;
+			return this.tax.default_mode == 0;
 		},
 		showIndividualTax: function (row) {
 			let thisInstance = this;
@@ -216,9 +224,11 @@ $.Class(
 			return row.find('.js-discountmode');
 		},
 		isIndividualDiscountMode: function (row) {
-			let discountModeElement = this.getDiscountModeSelectElement(row);
-			let selectedOption = discountModeElement.find('option:selected');
-			return selectedOption.val() == '1';
+			let selectedOption = this.getDiscountModeSelectElement(row).find('option:selected');
+			if (selectedOption.length === 0) {
+				return this.discount.default_mode == 1;
+			}
+			return selectedOption.val() == 1;
 		},
 		showIndividualDiscount: function (row) {
 			let thisInstance = this;
@@ -243,10 +253,10 @@ $.Class(
 			return currency.find('option:selected').val();
 		},
 		getTax: function (row) {
+			const self = this;
 			let taxParams = row.find('.taxParam').val();
 			if (taxParams == '' || taxParams == '[]' || taxParams == undefined) return 0;
 			taxParams = JSON.parse(taxParams);
-			let aggregationType = $('.aggregationTypeTax').val();
 			let valuePrices = this.getNetPrice(row);
 			let taxRate = 0;
 			let types = taxParams.aggregationType;
@@ -271,7 +281,7 @@ $.Class(
 							break;
 					}
 					taxRate += valuePrices * (taxValue / 100);
-					if (aggregationType == '2') {
+					if (self.tax.aggregation == 2) {
 						valuePrices = valuePrices + taxRate;
 					}
 				});
@@ -303,7 +313,6 @@ $.Class(
 		},
 		getDiscount: function (row) {
 			let discountParams = row.find('.discountParam').val();
-			let aggregationType = $('.aggregationTypeDiscount').val();
 			if (discountParams == '' || discountParams == 'null' || discountParams == '[]' || discountParams == undefined) {
 				return 0;
 			}
@@ -333,7 +342,7 @@ $.Class(
 						let groupDiscount = discountParams.groupDiscount ? discountParams.groupDiscount : 0;
 						discountRate += valuePrices * (groupDiscount / 100);
 					}
-					if (aggregationType == '2') {
+					if (this.discount.aggregation == 2) {
 						valuePrices = valuePrices - discountRate;
 					}
 				});
@@ -506,6 +515,7 @@ $.Class(
 			this.calculateTaxes(row);
 			this.calculateGrossPrice(row);
 			this.calculateMargin(row);
+			app.event.trigger('Inventory.RowCalculations', this, row);
 		},
 		rowsCalculations: function () {
 			let thisInstance = this;
@@ -572,7 +582,7 @@ $.Class(
 
 			let subtraction = sumPrice - purchase;
 			if (purchase !== 0 && sumPrice !== 0) {
-				marginp = (subtraction / sumPrice) * 100;
+				marginp = (subtraction * 100) / purchase;
 			}
 			sumRow.find('[data-sumfield="marginP"]').text(App.Fields.Double.formatToDisplay(marginp) + '%');
 		},
@@ -705,8 +715,7 @@ $.Class(
 				valuePrices = netPriceBeforeDiscount,
 				globalDiscount = 0,
 				groupDiscount = 0,
-				individualDiscount = 0,
-				valueDiscount = 0;
+				individualDiscount = 0;
 
 			let discountsType = modal.find('.discountsType').val();
 
@@ -973,6 +982,7 @@ $.Class(
 				if (typeof recordData['autoFields']['unit'] !== 'undefined') {
 					unit = recordData['autoFields']['unit'];
 				}
+				app.event.trigger('Inventory.SelectionItem', thisInstance, parentRow, recordData, referenceModule);
 				this.triggerQtyParam(unit, recordData.qtyPerUnit, parentRow);
 			}
 			if (referenceModule === 'Products') {
@@ -1256,18 +1266,15 @@ $.Class(
 			let conversionRate = selected.data('conversionRate');
 			let prevConversionRate = previous.data('conversionRate');
 			conversionRate = parseFloat(conversionRate) / parseFloat(prevConversionRate);
-
 			this.getInventoryItemsContainer()
 				.find(thisInstance.rowClass)
-				.each(function (index) {
+				.each(function (_) {
 					let row = $(this);
 					thisInstance.syncHeaderData(row);
-					thisInstance.setUnitPrice(
-						row,
-						App.Fields.Double.formatToDb(thisInstance.getUnitPriceValue(row) * conversionRate)
-					);
-					thisInstance.setDiscount(row, App.Fields.Double.formatToDb(thisInstance.getDiscount(row) * conversionRate));
-					thisInstance.setTax(row, App.Fields.Double.formatToDb(thisInstance.getTax(row) * conversionRate));
+					thisInstance.setUnitPrice(row, thisInstance.getUnitPriceValue(row) * conversionRate);
+					thisInstance.setDiscount(row, thisInstance.getDiscount(row) * conversionRate);
+					thisInstance.setTax(row, thisInstance.getTax(row) * conversionRate);
+					thisInstance.setPurchase(row, thisInstance.getPurchase(row) * conversionRate);
 					thisInstance.quantityChangeActions(row);
 				});
 		},
@@ -1363,23 +1370,17 @@ $.Class(
 						let row = $(element);
 						thisInstance.hideExpandedRow(row);
 					});
+					let num = $(ui.item).attr('numrow');
+					items.find('[numrowex="' + num + '"] .js-inventory-item-comment').each(function () {
+						App.Fields.Text.destroyEditor($(this));
+					});
 					ui.item.startPos = ui.item.index();
 				},
 				stop: function (event, ui) {
 					let numrow = $(ui.item).attr('numrow');
-					let child = items
-						.find('.numRow' + numrow)
-						.remove()
-						.clone();
+					let child = items.find('.numRow' + numrow);
 					items.find('[numrow="' + numrow + '"]').after(child);
-					if (ui.item.startPos < ui.item.index()) {
-						child = items
-							.find('.numRow' + numrow)
-							.next()
-							.remove()
-							.clone();
-						items.find('[numrow="' + numrow + '"]').before(child);
-					}
+					App.Fields.Text.Editor.register(child);
 					thisInstance.updateRowSequence();
 				}
 			});
@@ -1531,6 +1532,8 @@ $.Class(
 		},
 		registerChangeDiscountModal: function (modal, parentRow, params) {
 			let thisInstance = this;
+			let form = modal.find('form');
+			form.validationEngine(app.validationEngineOptions);
 			modal.on('change', '.individualDiscountType', function (e) {
 				let element = $(e.currentTarget);
 				modal.find('.individualDiscountContainer .input-group-text').text(element.data('symbol'));
@@ -1558,7 +1561,10 @@ $.Class(
 					thisInstance.calculateDiscount(parentRow, modal);
 				}
 			);
-			modal.on('click', '.saveDiscount', function (e) {
+			modal.on('click', '.js-save-discount', function (e) {
+				if (form.validationEngine('validate') === false) {
+					return;
+				}
 				thisInstance.saveDiscountsParameters(parentRow, modal);
 				if (params.discountType == 0) {
 					thisInstance.setDiscount(parentRow, App.Fields.Double.formatToDb(modal.find('.valueDiscount').text()));
@@ -1585,7 +1591,7 @@ $.Class(
 					view: 'Inventory',
 					mode: 'showTaxes',
 					currency: thisInstance.getCurrency(),
-					sourceRecord: app.getRecordId()
+					relatedRecord: thisInstance.getAccountId()
 				};
 				if (element.hasClass('groupTax')) {
 					parentRow = thisInstance.getInventoryItemsContainer();
@@ -1632,13 +1638,14 @@ $.Class(
 		},
 		registerChangeTaxModal: function (modal, parentRow, params) {
 			let thisInstance = this;
+			let form = modal.find('form');
+			form.validationEngine(app.validationEngineOptions);
 			modal.on('change', '.individualTaxType', function (e) {
 				let element = $(e.currentTarget);
 				modal.find('.individualTaxContainer .input-group-text').text(element.data('symbol'));
 			});
 			modal.on('change', '.activeCheckbox[name="aggregationType"]', function (e) {
 				let element = $(e.currentTarget);
-
 				if (element.attr('type') == 'checkbox' && this.checked) {
 					element.closest('.js-panel').find('.js-panel__body').removeClass('d-none');
 					element.closest('.js-panel').addClass('js-active');
@@ -1655,7 +1662,10 @@ $.Class(
 			modal.on('change', '.activeCheckbox, .globalTax, .individualTaxValue, .groupTax, .regionalTax', function (e) {
 				thisInstance.calculateTax(parentRow, modal);
 			});
-			modal.on('click', '.saveTaxs', function (e) {
+			modal.on('click', '.js-save-taxs', function (e) {
+				if (form.validationEngine('validate') === false) {
+					return;
+				}
 				thisInstance.saveTaxsParameters(parentRow, modal);
 				if (params.taxType == '0') {
 					thisInstance.setTax(parentRow, App.Fields.Double.formatToDb(modal.find('.valueTax').text()));
@@ -1841,6 +1851,7 @@ $.Class(
 		 */
 		registerEvents: function (container) {
 			this.form = container;
+			this.loadConfig();
 			this.registerInventorySaveData();
 			this.registerAddItem();
 			this.registerMassAddItem();

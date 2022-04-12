@@ -3,8 +3,10 @@
 /**
  * Vtiger RelatedModule widget class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package Widget
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  */
 class Vtiger_RelatedModule_Widget extends Vtiger_Basic_Widget
 {
@@ -88,10 +90,21 @@ class Vtiger_RelatedModule_Widget extends Vtiger_Basic_Widget
 			if (!empty($whereCondition)) {
 				$this->Config['url'] .= '&search_params=' . \App\Json::encode($whereCondition);
 			}
+			$this->Config['buttonHeader'] = $this->getHeaderButtons();
 			$widget = $this->Config;
 			$widget['instance'] = $this;
 		}
 		return $widget;
+	}
+
+	/**
+	 * Gets buttons.
+	 *
+	 * @return array
+	 */
+	public function getHeaderButtons()
+	{
+		return [];
 	}
 
 	public function getCheckboxLables($model, $type, $prefix)
@@ -113,5 +126,22 @@ class Vtiger_RelatedModule_Widget extends Vtiger_Basic_Widget
 	public function getConfigTplName()
 	{
 		return 'RelatedModuleConfig';
+	}
+
+	/** {@inheritdoc} */
+	public function getApiData(array $row): array
+	{
+		$data = $this->Data;
+		$relModuleName = is_numeric($this->Data['relatedmodule']) ? App\Module::getModuleName($this->Data['relatedmodule']) : $this->Data['relatedmodule'];
+		$data['relatedModuleName'] = $relModuleName;
+		foreach ($data['relatedfields'] as &$fieldName) {
+			$fieldName = explode('::', $fieldName)[1];
+		}
+		$row['name'] = \App\Language::translate($row['label'] ?: $relModuleName, $relModuleName, false, false);
+		$row['data'] = $data;
+		if (!\App\Privilege::isPermitted($row['data']['relatedModuleName'])) {
+			$row = [];
+		}
+		return $row;
 	}
 }

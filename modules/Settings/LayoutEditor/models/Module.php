@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 
 class Settings_LayoutEditor_Module_Model extends Vtiger_Module_Model
@@ -88,7 +88,7 @@ class Settings_LayoutEditor_Module_Model extends Vtiger_Module_Model
 			'Text', 'Decimal', 'Integer', 'AdvPercentage', 'Percent', 'Currency', 'Date', 'Email', 'Phone', 'Picklist', 'Country',
 			'URL', 'Checkbox', 'TextArea', 'MultiSelectCombo', 'Skype', 'Time', 'Related1M', 'Editor', 'Tree',
 			'MultiReferenceValue', 'CategoryMultipicklist', 'DateTime', 'Image', 'MultiImage', 'Twitter', 'MultiEmail',
-			'Smtp', 'ServerAccess', 'MultiDomain', 'RangeTime', 'Token'
+			'Smtp', 'ServerAccess', 'MultiDomain', 'RangeTime', 'Token', 'MultiAttachment'
 		];
 	}
 
@@ -136,6 +136,78 @@ class Settings_LayoutEditor_Module_Model extends Vtiger_Module_Model
 	}
 
 	/**
+	 * Verification of data.
+	 *
+	 * @param array $data
+	 * @param bool  $throw
+	 */
+	public function validate(array $data, bool $throw = true)
+	{
+		$message = null;
+		$code = null;
+		$result = false;
+		foreach ($data as $key => $value) {
+			switch ($key) {
+				case 'fieldLabel':
+					if ($result = $this->checkFieldLabelExists($value)) {
+						$message = \App\Language::translate('LBL_DUPLICATE_FIELD_EXISTS', 'Settings::LayoutEditor');
+						$code = 513;
+					}
+					break;
+				case 'fieldName':
+					$value = strtolower($value);
+					if ($result = $this->checkFieldNameCharacters($value)) {
+						$message = \App\Language::translate('LBL_INVALIDCHARACTER', 'Settings::LayoutEditor');
+						$code = 512;
+					} elseif ($result = $this->checkFieldNameExists($value)) {
+						$message = \App\Language::translate('LBL_DUPLICATE_FIELD_EXISTS', 'Settings::LayoutEditor');
+						$code = 512;
+					} elseif ($result = $this->checkFieldNameIsAnException($value)) {
+						$message = \App\Language::translate('LBL_FIELD_NAME_IS_RESERVED', 'Settings::LayoutEditor');
+						$code = 512;
+					} elseif (\strlen($value) > 30) {
+						$message = \App\Language::translate('LBL_EXCEEDED_MAXIMUM_NUMBER_CHARACTERS_FOR_FIELD_NAME', 'Settings::LayoutEditor');
+						$code = 512;
+					} elseif (isset($data['fieldType']) && \in_array($data['fieldType'], ['Picklist', 'MultiSelectCombo']) && ($result = $this->checkIfPicklistFieldNameReserved($value))) {
+						$message = \App\Language::translate('LBL_FIELD_NAME_IS_RESERVED', 'Settings::LayoutEditor');
+						$code = 512;
+					}
+					break;
+				case 'fieldType':
+					if ($result = !\in_array($value, $this->getAddSupportedFieldTypes())) {
+						$message = \App\Language::translate('LBL_WRONG_FIELD_TYPE', 'Settings::LayoutEditor');
+						$code = 513;
+					}
+					break;
+				case 'pickListValues':
+					foreach ($value as $val) {
+						if (($result = preg_match('/[\<\>\"\#\,]/', $val)) || ($result = preg_match('/[\<\>\"\#\,]/', \App\Purifier::decodeHtml($val)))) {
+							$message = \App\Language::translateArgs('ERR_SPECIAL_CHARACTERS_NOT_ALLOWED', 'Other.Exceptions', '<>"#,');
+							$code = 512;
+						} elseif ($result = \strlen($val) > 200) {
+							$message = \App\Language::translate('ERR_EXCEEDED_NUMBER_CHARACTERS', 'Other.Exceptions');
+							$code = 512;
+						}
+					}
+					if (\count($value) !== \count(array_unique(array_map('strtolower', $value)))) {
+						$message = \App\Language::translate('LBL_DUPLICATES_VALUES_FOUND', 'Other.Exceptions');
+						$code = 512;
+					}
+					break;
+				default:
+					break;
+			}
+			if ($result) {
+				if ($throw) {
+					throw new \App\Exceptions\AppException($message, $code);
+				}
+				return [$key => $message];
+			}
+		}
+		return $result;
+	}
+
+	/**
 	 * Add field.
 	 *
 	 * @param string $fieldType
@@ -150,43 +222,12 @@ class Settings_LayoutEditor_Module_Model extends Vtiger_Module_Model
 	{
 		$label = $params['fieldLabel'];
 		$name = strtolower($params['fieldName']);
+		$pickListValues = [];
+		if (\array_key_exists('pickListValues', $params)) {
+			$pickListValues = $params['pickListValues'] = \is_string($params['pickListValues']) ? [$params['pickListValues']] : $params['pickListValues'];
+		}
 		$fieldParams = '';
-		if ($this->checkFieldLabelExists($label)) {
-			throw new \App\Exceptions\AppException(\App\Language::translate('LBL_DUPLICATE_FIELD_EXISTS', 'Settings::LayoutEditor'), 513);
-		}
-		if ($this->checkFieldNameCharacters($name)) {
-			throw new \App\Exceptions\AppException(\App\Language::translate('LBL_INVALIDCHARACTER', 'Settings::LayoutEditor'), 512);
-		}
-		if ($this->checkFieldNameExists($name)) {
-			throw new \App\Exceptions\AppException(\App\Language::translate('LBL_DUPLICATE_FIELD_EXISTS', 'Settings::LayoutEditor'), 512);
-		}
-		if ($this->checkFieldNameIsAnException($name)) {
-			throw new \App\Exceptions\AppException(\App\Language::translate('LBL_FIELD_NAME_IS_RESERVED', 'Settings::LayoutEditor'), 512);
-		}
-		if (\strlen($name) > 30) {
-			throw new \App\Exceptions\AppException(\App\Language::translate('LBL_EXCEEDED_MAXIMUM_NUMBER_CHARACTERS_FOR_FIELD_NAME', 'Settings::LayoutEditor'), 512);
-		}
-		$supportedFieldTypes = $this->getAddSupportedFieldTypes();
-		if (!\in_array($fieldType, $supportedFieldTypes)) {
-			throw new \App\Exceptions\AppException(\App\Language::translate('LBL_WRONG_FIELD_TYPE', 'Settings::LayoutEditor'), 513);
-		}
-		if ('Picklist' === $fieldType || 'MultiSelectCombo' === $fieldType) {
-			if (!$this->checkIsAvailablePicklistFieldName($name)) {
-				throw new \App\Exceptions\AppException(\App\Language::translate('LBL_FIELD_NAME_IS_RESERVED', 'Settings::LayoutEditor'), 512);
-			}
-			$pickListValues = $params['pickListValues'];
-			if (\is_string($pickListValues)) {
-				$pickListValues = [$pickListValues];
-			}
-			foreach ($pickListValues as $value) {
-				if (preg_match('/[\<\>\"\#\,]/', $value)) {
-					throw new \App\Exceptions\AppException(\App\Language::translateArgs('ERR_SPECIAL_CHARACTERS_NOT_ALLOWED', 'Other.Exceptions', '<>"#,'), 512);
-				}
-				if (\strlen($value) > 200) {
-					throw new \App\Exceptions\AppException(\App\Language::translate('ERR_EXCEEDED_NUMBER_CHARACTERS', 'Other.Exceptions'), 512);
-				}
-			}
-		}
+		$this->validate($params);
 		$moduleName = $this->getName();
 		$tableName = $this->getTableName($params['fieldTypeList']);
 		if ('Tree' === $fieldType || 'CategoryMultipicklist' === $fieldType) {
@@ -449,6 +490,11 @@ class Settings_LayoutEditor_Module_Model extends Vtiger_Module_Model
 				$displayType = 3;
 				$type = $importerType->stringType(Vtiger_Token_UIType::MAX_LENGTH)->defaultValue('');
 				break;
+			case 'MultiAttachment':
+				$uitype = 330;
+				$type = $importerType->text();
+				$uichekdata = 'V~O';
+				break;
 			default:
 				break;
 		}
@@ -486,15 +532,9 @@ class Settings_LayoutEditor_Module_Model extends Vtiger_Module_Model
 	 *
 	 * @return bool
 	 */
-	public function checkFieldNameCharacters($name)
+	public function checkFieldNameCharacters($name): bool
 	{
-		if (preg_match('#[^a-z0-9_]#is', $name) || !preg_match('/[a-z]/i', $name)) {
-			return true;
-		}
-		if (false !== strpos($name, ' ')) {
-			return true;
-		}
-		return false;
+		return preg_match('#[^a-z0-9_]#is', $name) || !preg_match('/[a-z]/i', $name) || false !== strpos($name, ' ');
 	}
 
 	/**
@@ -535,7 +575,7 @@ class Settings_LayoutEditor_Module_Model extends Vtiger_Module_Model
 			'id', 'seq', 'header_type', 'header_class',
 			'module', 'parent', 'action', 'mode', 'view', 'selected_ids',
 			'excluded_ids', 'search_params', 'search_key', 'page', 'operator',
-			'source_module', 'viewname', 'sortorder', 'orderby', 'inventory', 'private', 'src_record', 'relationId', 'relation_id'
+			'source_module', 'viewname', 'sortorder', 'orderby', 'inventory', 'private', 'src_record', 'relationid', 'relation_id', 'picklist', 'overwritten_shownerid', 'relationoperation', 'sourcemodule', 'sourcerecord'
 		]);
 	}
 
@@ -572,7 +612,7 @@ class Settings_LayoutEditor_Module_Model extends Vtiger_Module_Model
 	 */
 	public static function getEntityModulesList()
 	{
-		$restrictedModules = ['SMSNotifier', 'Integration', 'Dashboard', 'ModComments'];
+		$restrictedModules = ['SMSNotifier', 'Integration', 'Dashboard'];
 		return (new \App\Db\Query())->select(['name', 'module' => 'name'])->from('vtiger_tab')->where(['presence' => [0, 2], 'isentitytype' => 1])->andWhere(['not in', 'name', $restrictedModules])->createCommand()->queryAllByGroup();
 	}
 
@@ -593,6 +633,9 @@ class Settings_LayoutEditor_Module_Model extends Vtiger_Module_Model
 	 */
 	public function isBlockSortableAllowed()
 	{
+		if ('ModComments' === $this->getName()) {
+			return false;
+		}
 		return true;
 	}
 
@@ -608,7 +651,7 @@ class Settings_LayoutEditor_Module_Model extends Vtiger_Module_Model
 		$moduleName = $this->getName();
 		$blocksEliminatedArray = ['HelpDesk' => ['LBL_TICKET_RESOLUTION', 'LBL_COMMENTS'],
 			'Faq' => ['LBL_COMMENT_INFORMATION'],
-			'Calendar' => ['LBL_TASK_INFORMATION', 'LBL_DESCRIPTION_INFORMATION', 'LBL_REMINDER_INFORMATION', 'LBL_RECURRENCE_INFORMATION']
+			'Calendar' => ['LBL_TASK_INFORMATION', 'LBL_DESCRIPTION_INFORMATION', 'LBL_REMINDER_INFORMATION', 'LBL_RECURRENCE_INFORMATION'],
 		];
 		if (\in_array($moduleName, ['HelpDesk', 'Faq'])) {
 			if (!empty($blocksEliminatedArray[$moduleName])) {
@@ -704,12 +747,102 @@ class Settings_LayoutEditor_Module_Model extends Vtiger_Module_Model
 	 *
 	 * @return bool
 	 */
-	public function checkIsAvailablePicklistFieldName(string $fieldName): bool
+	public function checkIfPicklistFieldNameReserved(string $fieldName): bool
 	{
-		$result = true;
-		if (\App\Fields\Picklist::isPicklistExist($fieldName)) {
-			$result = (new \App\Db\Query())->from('vtiger_field')->where(['or', ['fieldname' => $fieldName], ['columnname' => $fieldName]])->exists();
+		return (
+			\App\Fields\Picklist::isPicklistExist($fieldName)
+			&& !(new \App\Db\Query())->from('vtiger_field')->where(['or', ['fieldname' => $fieldName], ['columnname' => $fieldName]])->exists()
+		) || \in_array($fieldName, (new \App\Db\Query())->select(['fieldname'])->from('vtiger_field')->where(['tabid' => \App\Module::getModuleId('Users'), 'uitype' => [16, 15, 33, 115]])->column());
+	}
+
+	/**
+	 * Get missing system fields.
+	 *
+	 * @return \Vtiger_Field_Model[]
+	 */
+	public function getMissingSystemFields(): array
+	{
+		$fields = $this->getFields();
+		$systemFields = \App\Field::SYSTEM_FIELDS;
+		$missingFields = [];
+		foreach (Settings_WebserviceApps_Module_Model::getServers() as $id => $field) {
+			$name = 'share_externally_' . $id;
+			$systemFields[$name] = array_merge($systemFields['share_externally'], [
+				'name' => $name,
+				'column' => $name,
+				'label' => $field['name'] . ' (' . \App\Language::translate($field['type'], 'Settings.WebserviceApps') . ')',
+				'fieldparams' => $id,
+			]);
 		}
-		return $result;
+		unset($systemFields['share_externally']);
+		foreach ($systemFields as $name => $field) {
+			$validationConditions = $field['validationConditions'];
+			if ($validationConditions === ['name']) {
+				$exist = isset($fields[$name]);
+			} else {
+				$exist = true;
+				foreach ($validationConditions as $validationCondition) {
+					$status = true;
+					foreach ($fields as $fieldModel) {
+						if ($fieldModel->get($validationCondition) == $field[$validationCondition]) {
+							$status = false;
+							continue 2;
+						}
+					}
+					$exist = !$status;
+				}
+			}
+			if (!$exist) {
+				unset($field['validationConditions']);
+				$missingFields[$name] = \Vtiger_Field_Model::init($this->name, $field, $field['name']);
+			}
+		}
+		return $missingFields;
+	}
+
+	/**
+	 * Create system field.
+	 *
+	 * @param string $sysName
+	 * @param int    $blockId
+	 * @param array  $params
+	 *
+	 * @return void
+	 */
+	public function addSystemField(string $sysName, int $blockId, array $params = []): void
+	{
+		$missingSystemFields = $this->getMissingSystemFields();
+		if (empty($missingSystemFields[$sysName])) {
+			throw new \App\Exceptions\AppException(\App\Language::translate('LBL_DUPLICATE_FIELD_EXISTS', 'Settings::LayoutEditor'), 512);
+		}
+		$fieldModel = $missingSystemFields[$sysName];
+		if ($params) {
+			foreach ($params as $key => $value) {
+				$fieldModel->set($key, $value);
+			}
+		}
+		if ($this->checkFieldLabelExists($fieldModel->get('name'))) {
+			throw new \App\Exceptions\AppException(\App\Language::translate('LBL_DUPLICATE_FIELD_EXISTS', 'Settings::LayoutEditor'), 513);
+		}
+		if ($this->checkFieldNameCharacters($fieldModel->get('name'))) {
+			throw new \App\Exceptions\AppException(\App\Language::translate('LBL_INVALIDCHARACTER', 'Settings::LayoutEditor'), 512);
+		}
+		if ($this->checkFieldNameExists($fieldModel->get('name'))) {
+			throw new \App\Exceptions\AppException(\App\Language::translate('LBL_DUPLICATE_FIELD_EXISTS', 'Settings::LayoutEditor'), 512);
+		}
+		$blockModel = Vtiger_Block_Model::getInstance($blockId, $this->name);
+		$blockModel->addField($fieldModel);
+	}
+
+	/**
+	 * Get fields for webservice apps.
+	 *
+	 * @param int $webserviceApp
+	 *
+	 * @return array
+	 */
+	public function getFieldsForWebserviceApps(int $webserviceApp): array
+	{
+		return (new \App\Db\Query())->from('w_#__fields_server')->where(['serverid' => $webserviceApp])->indexBy('fieldid')->all(\App\Db::getInstance('webservice')) ?: [];
 	}
 }

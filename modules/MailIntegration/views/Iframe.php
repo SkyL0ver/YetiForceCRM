@@ -4,8 +4,8 @@
  *
  * @package   View
  *
- * @copyright YetiForce Sp. z o.o
- * @license YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -14,26 +14,18 @@
  */
 class MailIntegration_Iframe_View extends \App\Controller\Modal
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public $showHeader = false;
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public $showFooter = false;
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function checkPermission(App\Request $request)
 	{
 		return true;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function process(App\Request $request)
 	{
 		$moduleName = $request->getModule();
@@ -55,9 +47,7 @@ class MailIntegration_Iframe_View extends \App\Controller\Modal
 		$viewer->view('Iframe/Container.tpl', $moduleName);
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getModalScripts(App\Request $request)
 	{
 		return $this->checkAndConvertJsScripts([

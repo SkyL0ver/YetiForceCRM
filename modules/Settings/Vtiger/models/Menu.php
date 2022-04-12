@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce Sp. z o.o
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 // Settings Menu Model Class
@@ -67,7 +67,7 @@ class Settings_Vtiger_Menu_Model extends \App\Base
 	 */
 	public function getUrl()
 	{
-		return App\Purifier::decodeHtml($this->get('linkto'));
+		return App\Purifier::decodeHtml((string) $this->get('linkto'));
 	}
 
 	/**
@@ -94,8 +94,8 @@ class Settings_Vtiger_Menu_Model extends \App\Base
 	public function isPermitted(int $userId = 0): bool
 	{
 		$userId = $userId ?: \App\User::getCurrentUserId();
-		return (empty($this->getParam('module')) || \App\Security\AdminAccess::isPermitted($this->getParam('module'), $userId)) &&
-			(empty($this->get('admin_access')) || false !== strpos($this->get('admin_access'), ",{$userId},"));
+		return (empty($this->getParam('module')) || \App\Security\AdminAccess::isPermitted($this->getParam('module'), $userId))
+			&& (empty($this->get('admin_access')) || false !== strpos($this->get('admin_access'), ",{$userId},"));
 	}
 
 	/**
@@ -248,20 +248,24 @@ class Settings_Vtiger_Menu_Model extends \App\Base
 					$children[$fieldId] = [
 						'id' => $menuItem->getId(),
 						'active' => $selectedFieldId === $menuItem->getId(),
-						'name' => $menuItem->get('name'),
+						'name' => \App\Language::translate($menuItem->get('name'), $menuItem->getModuleName()),
 						'type' => 'Shortcut',
-						'sequence' => $menuModel->get('sequence'),
+						'sequence' => $menuItem->get('sequence'),
 						'newwindow' => '0',
 						'icon' => $menuItem->get('iconpath'),
 						'dataurl' => $menuItem->getUrl(),
 						'parent' => 'Settings',
-						'moduleName' => $menuItem->getModuleName()
+						'moduleName' => $menuItem->getModuleName(),
 					];
+					if ($menuItem->get('premium')) {
+						$children[$fieldId]['addonIcon'] = 'yfi-premium color-yellow-600';
+						$children[$fieldId]['addonIconTitle'] = App\Language::translate('LBL_PAID_FUNCTIONALITY');
+					}
 				}
 				$menu[$blockId] = [
 					'id' => $blockId,
 					'active' => $selectedBlockId === $blockId,
-					'name' => $menuModel->getLabel(),
+					'name' => \App\Language::translate($menuModel->getLabel(), 'Settings::Vtiger'),
 					'type' => 'Label',
 					'sequence' => $menuModel->get('sequence'),
 					'childs' => $children,
@@ -275,7 +279,7 @@ class Settings_Vtiger_Menu_Model extends \App\Base
 				$menu[$blockId] = [
 					'id' => $blockId,
 					'active' => $selectedBlockId === $blockId,
-					'name' => $menuModel->getLabel(),
+					'name' => \App\Language::translate($menuModel->getLabel(), 'Settings::Vtiger'),
 					'type' => 'Shortcut',
 					'sequence' => $menuModel->get('sequence'),
 					'newwindow' => '0',
@@ -294,8 +298,10 @@ class Settings_Vtiger_Menu_Model extends \App\Base
 
 	/**
 	 * Clear cache.
+	 *
+	 * @return void
 	 */
-	public static function clearCache()
+	public static function clearCache(): void
 	{
 		\App\Cache::delete('MenuItemAll', \Settings_Vtiger_MenuItem_Model::ACTIVE);
 		\App\Cache::delete('MenuItemAll', \Settings_Vtiger_MenuItem_Model::INACTIVE);

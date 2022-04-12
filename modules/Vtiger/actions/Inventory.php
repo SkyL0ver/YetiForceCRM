@@ -1,20 +1,24 @@
 <?php
 
 /**
- * Basic Inventory Action Class.
+ * Basic inventory action file.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package Action
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
+ */
+
+/**
+ * Basic inventory action class.
  */
 class Vtiger_Inventory_Action extends \App\Controller\Action
 {
 	use \App\Controller\ExposeMethod;
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function __construct()
 	{
 		parent::__construct();
@@ -23,9 +27,7 @@ class Vtiger_Inventory_Action extends \App\Controller\Action
 		$this->exposeMethod('getTableData');
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function checkPermission(App\Request $request)
 	{
 		$currentUserPriviligesModel = Users_Privileges_Model::getCurrentUserPrivilegesModel();
@@ -105,10 +107,10 @@ class Vtiger_Inventory_Action extends \App\Controller\Action
 		$fieldName = $request->getByType('fieldname');
 		$moduleName = $request->getModule();
 		if ($request->isEmpty('idlist')) {
-			$info = $this->getRecordDetail($request->getInteger('record'), $currencyId, $moduleName, $fieldName);
+			$info = self::getRecordDetail($request->getInteger('record'), $currencyId, $moduleName, $fieldName);
 		} else {
 			foreach ($request->getArray('idlist', 'Integer') as $id) {
-				$info[] = $this->getRecordDetail($id, $currencyId, $moduleName, $fieldName);
+				$info[] = self::getRecordDetail($id, $currencyId, $moduleName, $fieldName);
 			}
 		}
 		$response = new Vtiger_Response();
@@ -116,7 +118,19 @@ class Vtiger_Inventory_Action extends \App\Controller\Action
 		$response->emit();
 	}
 
-	public function getRecordDetail($recordId, $currencyId, $moduleName, $fieldName)
+	/**
+	 * Get record detail for inventory table.
+	 *
+	 * @param int      $recordId
+	 * @param int|null $currencyId
+	 * @param string   $moduleName
+	 * @param string   $fieldName
+	 *
+	 * @throws \App\Exceptions\NoPermittedToRecord
+	 *
+	 * @return array
+	 */
+	public static function getRecordDetail(int $recordId, ?int $currencyId, string $moduleName, string $fieldName): array
 	{
 		$recordModel = Vtiger_Record_Model::getInstanceById($recordId);
 		if (!$recordModel->isViewable()) {
@@ -128,25 +142,13 @@ class Vtiger_Inventory_Action extends \App\Controller\Action
 			'name' => App\Purifier::decodeHtml($recordModel->getName()),
 			'description' => $recordModel->get('description'),
 		];
-		if (\in_array($recordModuleName, ['Products', 'Services'])) {
-			$currencyId = empty($currencyId) ? \App\Fields\Currency::getDefault()['id'] : $currencyId;
-			$info['qtyPerUnit'] = $recordModel->getDisplayValue('qty_per_unit');
-			if (($fieldModel = $recordModel->getField('unit_price')) && $fieldModel->isActiveField()) {
-				$info['unitPriceValues'] = $fieldModel->getUITypeModel()->getEditViewFormatData($recordModel->get($fieldModel->getName()))['currencies'] ?? [];
-				$info['price'] = $fieldModel->getUITypeModel()->getValueForCurrency($recordModel->get($fieldModel->getName()), $currencyId);
-			}
-			if (($fieldModel = $recordModel->getField('purchase')) && $fieldModel->isActiveField()) {
-				$info['purchase'] = $fieldModel->getUITypeModel()->getValueForCurrency($recordModel->get($fieldModel->getName()), $currencyId);
-			}
-		}
-
 		$autoFields = [];
 		$inventory = Vtiger_Inventory_Model::getInstance($moduleName);
 		if ($autoCompleteField = ($inventory->getAutoCompleteFields()[$recordModuleName] ?? [])) {
 			foreach ($autoCompleteField as $field) {
 				$fieldModel = $recordModel->getField($field['field']);
 				if ($fieldModel && ($fieldValue = $recordModel->get($field['field']))) {
-					$autoFields[$field['tofield']] = $fieldModel->getEditViewDisplayValue($fieldValue, $recordModel);
+					$autoFields[$field['tofield']] = $fieldModel->isReferenceField() ? $fieldValue : $fieldModel->getEditViewDisplayValue($fieldValue, $recordModel);
 					$autoFields[$field['tofield'] . 'Text'] = $fieldModel->getDisplayValue($fieldValue, $recordId, $recordModel, true);
 				}
 			}
@@ -161,11 +163,21 @@ class Vtiger_Inventory_Action extends \App\Controller\Action
 			}
 			$info['taxes'] = [
 				'type' => 'group',
-				'value' => $taxModel->get('value')
+				'value' => $taxModel->get('value'),
 			];
 		}
-		$autoCustomFields = $inventory->getCustomAutoComplete($fieldName, $recordModel);
-		return [$recordId => array_merge($info, $autoCustomFields)];
+		$eventHandler = new App\EventHandler();
+		$eventHandler->setRecordModel($recordModel);
+		$eventHandler->setModuleName($recordModuleName);
+		$eventHandler->setParams([
+			'currencyId' => $currencyId,
+			'moduleName' => $moduleName,
+			'fieldName' => $fieldName,
+			'info' => $info,
+		]);
+		$eventHandler->trigger('InventoryRecordDetails');
+		$info = $eventHandler->getParam('info');
+		return [$recordId => array_merge($info, $inventory->getCustomAutoComplete($fieldName, $recordModel))];
 	}
 
 	/**

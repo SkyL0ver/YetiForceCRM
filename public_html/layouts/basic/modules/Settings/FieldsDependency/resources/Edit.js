@@ -4,7 +4,7 @@
  * @package     Settings.Edit
  *
  * @description Fields dependency edit view scripts
- * @license     YetiForce Public License 3.0
+ * @license     YetiForce Public License 5.0
  * @author      Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 'use strict';
@@ -32,7 +32,6 @@ $.Class(
 		 * Load condition builder
 		 */
 		loadConditionBuilderView() {
-			console.log(this.sourceModule);
 			this.conditionBuilder = new Vtiger_ConditionBuilder_Js(
 				this.container.find('.js-condition-builder'),
 				this.sourceModule

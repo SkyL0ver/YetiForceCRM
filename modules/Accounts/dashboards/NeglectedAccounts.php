@@ -3,8 +3,8 @@
 /**
  * Wdiget to show neglected accounts.
  *
- * @copyright YetiForce Sp. z o.o
- * @license YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author Tomasz Kur <t.kur@yetiforce.com>
  */
 class Accounts_NeglectedAccounts_Dashboard extends Vtiger_IndexAjax_View
@@ -34,7 +34,7 @@ class Accounts_NeglectedAccounts_Dashboard extends Vtiger_IndexAjax_View
 			->addOrderBy(['vtiger_entity_stats.crmactivity' => SORT_ASC])->createCommand()->query();
 		$accounts = [];
 		while ($row = $dataReader->read()) {
-			$row['userModel'] = Users_Privileges_Model::getInstanceById($row['assigned_user_id']);
+			$row['owner'] = App\Fields\Owner::getLabel($row['assigned_user_id']);
 			$accounts[$row['id']] = $row;
 		}
 		$dataReader->close();

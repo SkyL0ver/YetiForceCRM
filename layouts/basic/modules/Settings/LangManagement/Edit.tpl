@@ -1,8 +1,8 @@
-{*<!-- {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} -->*}
+{*<!-- {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} -->*}
 <div class="">
 	<div class="form-horizontal">
 		<div class="form-group row">
-			<label for="langs_list" class="col-form-label col-md-1" >{\App\Language::translate('Language',$QUALIFIED_MODULE)}:</label>
+			<label for="langs_list" class="col-form-label col-md-1">{\App\Language::translate('Language',$QUALIFIED_MODULE)}:</label>
 			<div class="col-md-3">
 				<select multiple="multiple" class="form-control select2" id="langs_list">
 					{foreach from=$LANGS item=LABEL key=PREFIX}
@@ -39,13 +39,13 @@
 <br />
 {if $DATA}
 	<div class="">
-		<table class="table table-bordered table-sm listViewEntriesTable" >
+		<table class="table table-bordered table-sm listViewEntriesTable">
 			<thead>
 				<tr class="blockHeader">
 					<th><strong>{\App\Language::translate('LBL_variable',$QUALIFIED_MODULE)}</strong></th>
-							{foreach from=$DATA['langs'] item=item}
+					{foreach from=$DATA['langs'] item=item}
 						<th><strong>{$item}</strong></th>
-							{/foreach}
+					{/foreach}
 					<th></th>
 				</tr>
 			</thead>
@@ -65,14 +65,14 @@
 							<tr data-langkey="{$LANG_KEY}" data-type="php">
 								<td>{$LANG_KEY}</td>
 								{foreach from=$langs item=item key=lang}
-									<td><input 
+									<td><input
 											data-lang="{$lang}"
 											data-type="php"
-											name="{$LANG_KEY}" 
-											class="translation form-control {if $item == NULL}empty_value{/if}" 
-											{if $item == NULL} placeholder="{\App\Language::translate('LBL_NoTranslation',$QUALIFIED_MODULE)}" {/if} 
-											type="text" 
-											value ="{$item}" />
+											name="{$LANG_KEY}"
+											class="translation form-control {if $item == NULL}empty_value{/if}"
+											{if $item == NULL} placeholder="{\App\Language::translate('LBL_NoTranslation',$QUALIFIED_MODULE)}" {/if}
+											type="text"
+											value="{$item}" />
 									</td>
 								{/foreach}
 								<td>
@@ -101,14 +101,14 @@
 							<tr data-langkey="{$LANG_KEY}" data-type="js">
 								<td>{$LANG_KEY}</td>
 								{foreach from=$langs item=item key=lang}
-									<td><input 
+									<td><input
 											data-lang="{$lang}"
 											data-type="js"
-											name="{$LANG_KEY}" 
-											class="translation form-control {if $item == NULL}empty_value{/if}" 
-											{if $item == NULL} placeholder="{\App\Language::translate('LBL_NoTranslation',$QUALIFIED_MODULE)}" {/if} 
-											type="text" 
-											value ="{$item}" />
+											name="{$LANG_KEY}"
+											class="translation form-control {if $item == NULL}empty_value{/if}"
+											{if $item == NULL} placeholder="{\App\Language::translate('LBL_NoTranslation',$QUALIFIED_MODULE)}" {/if}
+											type="text"
+											value="{$item}" />
 									</td>
 								{/foreach}
 								<td>

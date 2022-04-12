@@ -2,10 +2,10 @@
 /**
  * Records list table.
  *
- * @package App
+ * @package TextParser
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 
@@ -52,7 +52,7 @@ class RecordsList extends Base
 				$roles[] = [
 					'fieldname' => $fieldModel->getCustomViewSelectColumnName((string) $fieldModel->get('source_field_name')),
 					'operator' => $operator,
-					'value' => $value
+					'value' => $value,
 				];
 			}
 			if ($searchParams = $pdf->getVariable('search_params')) {
@@ -61,7 +61,7 @@ class RecordsList extends Base
 			$roles[] = \App\CustomView::getConditions($cvId);
 			$conditions = [
 				'condition' => 'AND',
-				'rules' => array_filter($roles)
+				'rules' => array_filter($roles),
 			];
 			$html .= $this->parseConditions($conditions, $listView->getQueryGenerator());
 		}
@@ -130,7 +130,7 @@ class RecordsList extends Base
 					$queryField = $queryGenerator->getQueryRelatedField([
 						'relatedModule' => $moduleName,
 						'relatedField' => $fieldName,
-						'sourceField' => $sourceFieldName
+						'sourceField' => $sourceFieldName,
 					]);
 				} else {
 					$queryField = $queryGenerator->getQueryField($fieldName);

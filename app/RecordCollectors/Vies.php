@@ -1,13 +1,12 @@
 <?php
 /**
  * Vies record collector file.
+ * https://ec.europa.eu/taxation_customs/vies/checkVatTestService.wsdl.
  *
- * @package   App
+ * @package App
  *
- * http://ec.europa.eu/taxation_customs/vies/checkVatTestService.wsdl
- *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -67,12 +66,12 @@ class Vies extends Base
 				'SI' => 'Slovenia',
 				'SK' => 'Slovakia',
 			],
-			'typeofdata' => 'V~M'
+			'typeofdata' => 'V~M',
 		],
 		'vatNumber' => [
 			'labelModule' => '_Base',
 			'label' => 'Vat ID',
-			'typeofdata' => 'V~M'
+			'typeofdata' => 'V~M',
 		],
 	];
 
@@ -89,7 +88,7 @@ class Vies extends Base
 		],
 		'Competition' => [
 			'vatNumber' => 'vat_id',
-		]
+		],
 	];
 
 	/**
@@ -97,7 +96,7 @@ class Vies extends Base
 	 *
 	 * @var string
 	 */
-	protected $url = 'http://ec.europa.eu/taxation_customs/vies/checkVatService.wsdl';
+	protected $url = 'https://ec.europa.eu/taxation_customs/vies/checkVatService.wsdl';
 
 	/** {@inheritdoc} */
 	public function getFields(): array

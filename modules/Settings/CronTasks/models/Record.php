@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce Sp. z o.o.
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Settings_CronTasks_Record_Model extends Settings_Vtiger_Record_Model
@@ -195,6 +195,7 @@ class Settings_CronTasks_Record_Model extends Settings_Vtiger_Record_Model
 				$fieldValue = \App\Language::translate($fieldLabel, $moduleModel->getName(true));
 				break;
 			case 'laststart':
+			case 'last_update':
 			case 'lastend':
 				$fieldValue = (int) $fieldValue;
 				if ($fieldValue) {

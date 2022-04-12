@@ -2,10 +2,10 @@
 /**
  * Nominatim driver file to get coordinates.
  *
- * @package   App
+ * @package App
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  *
  * @see      https://wiki.openstreetmap.org/wiki/Nominatim
@@ -18,9 +18,7 @@ namespace App\Map\Coordinates;
  */
 class Nominatim extends Base
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getCoordinates(array $addressInfo)
 	{
 		$coordinates = false;
@@ -47,9 +45,7 @@ class Nominatim extends Base
 		return $coordinates;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getCoordinatesByValue(string $value)
 	{
 		$coordinatesDetails = $this->getCoordinates(['q' => $value]);

@@ -1,13 +1,11 @@
-/* {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
+/* {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
 'use strict';
 
 /**
  * Class representing a standard calendar.
  * @extends Calendar_Js
  */
-window.Vtiger_Calendar_Js = class Vtiger_Calendar_Js extends (
-	Calendar_Js
-) {
+window.Vtiger_Calendar_Js = class Vtiger_Calendar_Js extends Calendar_Js {
 	constructor(container, readonly) {
 		super(container, readonly, false);
 		this.browserHistory = false;
@@ -315,17 +313,33 @@ window.Vtiger_Calendar_Js = class Vtiger_Calendar_Js extends (
 	getSelectedUsersCalendar() {
 		const sidebar = this.getSidebarView();
 		let selectedUsers = sidebar.find('.js-input-user-owner-id:checked'),
+			notSelectedUsers = sidebar.find('.js-input-user-owner-id:not(:checked)'),
 			selectedUsersAjax = sidebar.find('.js-input-user-owner-id-ajax'),
 			selectedRolesAjax = sidebar.find('.js-input-role-owner-id-ajax'),
-			users = [];
-		if (selectedUsers.length > 0) {
+			checkboxSelectAll = sidebar.find('.js-select-all'),
+			selectedIds = [],
+			excludedIds = [];
+
+		let ifSelectAllIsChecked = checkboxSelectAll.length > 0 && checkboxSelectAll.is(':checked');
+		if (ifSelectAllIsChecked) {
+			selectedIds.push('all');
+		} else if (selectedUsers.length > 0) {
 			selectedUsers.each(function () {
-				users.push($(this).val());
+				selectedIds.push($(this).val());
 			});
-		} else if (selectedUsersAjax.length > 0) {
-			users = selectedUsersAjax.val().concat(selectedRolesAjax.val());
 		}
-		return users;
+		if (selectedUsersAjax.length > 0) {
+			selectedIds = selectedUsersAjax.val().concat(selectedRolesAjax.val());
+		}
+		if (ifSelectAllIsChecked && notSelectedUsers) {
+			notSelectedUsers.each(function () {
+				excludedIds.push($(this).val());
+			});
+		}
+		if (0 === selectedIds.length && CONFIG.userId) {
+			selectedIds.push(CONFIG.userId);
+		}
+		return { selectedIds: selectedIds, excludedIds: excludedIds };
 	}
 
 	clearFilterButton(user, cvid) {
@@ -535,7 +549,7 @@ window.Vtiger_Calendar_Js = class Vtiger_Calendar_Js extends (
 	 * @returns {{allDaySlot: boolean, dayClick: object, selectable: boolean}}
 	 */
 	setCalendarModuleOptions() {
-		let self = this;
+		const self = this;
 		return {
 			allDaySlot: false,
 			dayClick: this.eventCreate
@@ -559,7 +573,12 @@ window.Vtiger_Calendar_Js = class Vtiger_Calendar_Js extends (
 	 * @param {string} date
 	 */
 	registerDayClickEvent(date) {
-		let self = this;
+		if (!CONFIG.isQuickCreateSupported) {
+			let userFormat = moment(date).format(CONFIG.dateFormat.toUpperCase());
+			app.openUrl('index.php?module=Reservations&view=Edit&date_start=' + userFormat + '&due_date=' + userFormat);
+			return;
+		}
+		const self = this;
 		self.getCalendarCreateView().done(function (data) {
 			if (data.length <= 0) {
 				return;

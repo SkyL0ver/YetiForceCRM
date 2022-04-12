@@ -5,15 +5,15 @@
  *
  * @package UIType
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Adrian Kon <a.kon@yetiforce.com>
  */
 
 /**
  * Class OSSPasswords_Password_UIType.
  */
-class OSSPasswords_Password_UIType extends Vtiger_Password_UIType
+class OSSPasswords_Password_UIType extends Vtiger_Base_UIType
 {
 	/** {@inheritdoc} */
 	public function isActiveSearchView()
@@ -56,5 +56,24 @@ class OSSPasswords_Password_UIType extends Vtiger_Password_UIType
 		$value = $request->getRaw($requestFieldName);
 		$this->validate($value, true);
 		$recordModel->set($fieldName, $this->getDBValue($value, $recordModel));
+	}
+
+	/** {@inheritdoc} */
+	public function getValueToExport($value, int $recordId)
+	{
+		return Vtiger_Record_Model::getCleanInstance('OSSPasswords')->getPassword($recordId);
+	}
+
+	/** {@inheritdoc} */
+	public function getValueFromImport($value, $defaultValue = null)
+	{
+		$config = false;
+		if (file_exists('modules/OSSPasswords/config.ini.php')) {
+			$config = parse_ini_file('modules/OSSPasswords/config.ini.php');
+		}
+		if ($config) {
+			$value = $value = (new \App\Db\Query())->select(['pwd' => new \yii\db\Expression('AES_ENCRYPT(:value, :configKey)', [':value' => $value, ':configKey' => $config['key']])])->scalar();
+		}
+		return $value;
 	}
 }

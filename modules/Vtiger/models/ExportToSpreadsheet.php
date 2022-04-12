@@ -3,14 +3,17 @@
 /**
  * Export to spreadsheet model file.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package Model
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 /**
  * Export to spreadsheet model class.
  */
-class Vtiger_ExportToSpreadsheet_Model extends Vtiger_Export_Model
+class Vtiger_ExportToSpreadsheet_Model extends \App\Export\ExportRecords
 {
 	protected $headers;
 	protected $workBook;
@@ -20,9 +23,7 @@ class Vtiger_ExportToSpreadsheet_Model extends Vtiger_Export_Model
 	protected $rowNo = 1;
 	protected $invNo = 0;
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function initializeFromRequest(App\Request $request)
 	{
 		parent::initializeFromRequest($request);
@@ -35,9 +36,7 @@ class Vtiger_ExportToSpreadsheet_Model extends Vtiger_Export_Model
 		];
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getHeaders(): array
 	{
 		$headers = parent::getHeaders();
@@ -49,9 +48,7 @@ class Vtiger_ExportToSpreadsheet_Model extends Vtiger_Export_Model
 		return $headers;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function output($headers, $entries)
 	{
 		//having written out all the data lets have a go at getting the columns to auto-size
@@ -71,41 +68,94 @@ class Vtiger_ExportToSpreadsheet_Model extends Vtiger_Export_Model
 		unlink($tempFileName);
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function exportData()
 	{
-		$query = $this->getExportQuery();
 		$headers = $this->getHeaders();
-		$isInventory = $this->moduleInstance->isInventory();
-		if ($isInventory) {
-			$inventoryModel = Vtiger_Inventory_Model::getInstance($this->moduleName);
-			$inventoryFields = $inventoryModel->getFields();
-			$inventoryTable = $inventoryModel->getDataTableName();
-		}
-		$dataReader = $query->createCommand()->query();
-		while ($row = $dataReader->read()) {
-			if ($isInventory) {
-				$invRows = (new \App\Db\Query())->from($inventoryTable)->where(['crmid' => $row['id']])->orderBy('seq')->all();
-				if ($invRows) {
-					foreach ($invRows as $invRow) {
-						$this->sanitizeValues($row);
-						$this->sanitizeInventoryValues($invRow, $inventoryFields);
-					}
+		if (!$this->exportColumns && $this->quickExport && $this->queryOptions['viewname']) {
+			$listViewModel = Vtiger_ListView_Model::getInstance($this->moduleName, $this->queryOptions['viewname']);
+			$pagingModel = (new \Vtiger_Paging_Model())->set('limit', Vtiger_Paging_Model::PAGE_MAX_LIMIT);
+			$listViewModel->set('query_generator', $this->queryGeneratorForList);
+			foreach ($listViewModel->getListViewEntries($pagingModel) as $record) {
+				++$this->rowNo;
+				$this->colNo = 1;
+				foreach ($this->listViewHeaders as $fieldModel) {
+					$value = $this->listValueForExport($fieldModel, true, $record);
+					$value = strip_tags($value);
+					$this->putDataIntoSpreadsheetForQuickExport($fieldModel, $value);
 				}
-			} else {
-				$this->sanitizeValues($row);
 			}
+		} else {
+			$query = $this->getExportQuery();
+			if ($isInventory = $this->moduleInstance->isInventory()) {
+				$inventoryModel = Vtiger_Inventory_Model::getInstance($this->moduleName);
+				$inventoryFields = $inventoryModel->getFields();
+				$inventoryTable = $inventoryModel->getDataTableName();
+			}
+			$dataReader = $query->createCommand()->query();
+			while ($row = $dataReader->read()) {
+				if ($isInventory && !$this->quickExport) {
+					$invRows = (new \App\Db\Query())->from($inventoryTable)->where(['crmid' => $row['id']])->orderBy('seq')->all();
+					if ($invRows) {
+						foreach ($invRows as $invRow) {
+							$this->sanitizeValues($row);
+							$this->sanitizeInventoryValues($invRow, $inventoryFields);
+						}
+					}
+				} else {
+					$this->sanitizeValues($row);
+				}
+			}
+			$dataReader->close();
 		}
-		$dataReader->close();
 		$this->output($headers, []);
 	}
 
 	/**
-	 * {@inheritdoc}
+	 * Put data into spread sheet for quick export.
+	 *
+	 * @param Vtiger_Field_Model $fieldModel
+	 * @param mixed              $value
+	 *
+	 * @return void
 	 */
-	public function sanitizeValues($row)
+	public function putDataIntoSpreadsheetForQuickExport(Vtiger_Field_Model $fieldModel, $value): void
+	{
+		switch ($fieldModel->getFieldDataType()) {
+			case 'integer':
+			case 'double':
+			case 'currency':
+				$type = is_numeric($value) ? \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC : \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING;
+				$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, $value, $type);
+				break;
+			case 'date':
+				if ($value) {
+					$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($value), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
+					$this->workSheet->getStyleByColumnAndRow($this->colNo, $this->rowNo)->getNumberFormat()->setFormatCode('DD/MM/YYYY');
+				} else {
+					$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+				}
+				break;
+			case 'datetime':
+				if ($value) {
+					$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($value), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
+					$this->workSheet->getStyleByColumnAndRow($this->colNo, $this->rowNo)->getNumberFormat()->setFormatCode('DD/MM/YYYY HH:MM:SS');
+				} else {
+					$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+				}
+				break;
+			default:
+				if ($value) {
+					$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, $value, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+				} else {
+					$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+				}
+		}
+		++$this->colNo;
+	}
+
+	/** {@inheritdoc} */
+	public function sanitizeValues(array $row): array
 	{
 		++$this->rowNo;
 		$this->colNo = 1;
@@ -113,49 +163,60 @@ class Vtiger_ExportToSpreadsheet_Model extends Vtiger_Export_Model
 		foreach ($row as $fieldName => $value) {
 			if (isset($this->moduleFieldInstances[$fieldName])) {
 				$fieldModel = $this->moduleFieldInstances[$fieldName];
+			} elseif (isset($this->relatedModuleFields[$fieldName])) {
+				$fieldModel = $this->relatedModuleFields[$fieldName];
 			} else {
 				unset($row[$fieldName]);
 				continue;
 			}
-			switch ($fieldModel->getFieldDataType()) {
-					case 'integer':
-					case 'double':
-					case 'currency':
-						$type = is_numeric($value) ? \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC : \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING;
-						$this->workSheet->setCellvalueExplicitByColumnAndRow($this->colNo, $this->rowNo, $value, $type);
-						break;
-					case 'date':
-						if ($value) {
-							$this->workSheet->setCellvalueExplicitByColumnAndRow($this->colNo, $this->rowNo, \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($value), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
-							$this->workSheet->getStyleByColumnAndRow($this->colNo, $this->rowNo)->getNumberFormat()->setFormatCode('DD/MM/YYYY');
-						} else {
-							$this->workSheet->setCellvalueExplicitByColumnAndRow($this->colNo, $this->rowNo, '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-						}
-						break;
-					case 'datetime':
-						if ($value) {
-							$this->workSheet->setCellvalueExplicitByColumnAndRow($this->colNo, $this->rowNo, \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($value), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
-							$this->workSheet->getStyleByColumnAndRow($this->colNo, $this->rowNo)->getNumberFormat()->setFormatCode('DD/MM/YYYY HH:MM:SS');
-						} else {
-							$this->workSheet->setCellvalueExplicitByColumnAndRow($this->colNo, $this->rowNo, '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-						}
-						break;
-					default:
-						$displayValue = $fieldModel->getDisplayValue($value, $id, false, true, null);
-						$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, $displayValue, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-				}
-			++$this->colNo;
+			if ($fieldModel->isExportTable()) {
+				$this->putDataIntoSpreadsheet($fieldModel, $value, $id);
+			}
 		}
 		return [];
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	public function putDataIntoSpreadsheet(Vtiger_Field_Model $fieldModel, $value, int $id)
+	{
+		switch ($fieldModel->getFieldDataType()) {
+			case 'integer':
+			case 'double':
+			case 'currency':
+				$type = is_numeric($value) ? \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC : \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING;
+				$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, $value, $type);
+				break;
+			case 'date':
+				if ($value) {
+					$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($value), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
+					$this->workSheet->getStyleByColumnAndRow($this->colNo, $this->rowNo)->getNumberFormat()->setFormatCode('DD/MM/YYYY');
+				} else {
+					$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+				}
+				break;
+			case 'datetime':
+				if ($value) {
+					$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($value), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
+					$this->workSheet->getStyleByColumnAndRow($this->colNo, $this->rowNo)->getNumberFormat()->setFormatCode('DD/MM/YYYY HH:MM:SS');
+				} else {
+					$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+				}
+				break;
+			case 'text':
+				$displayValue = \App\Purifier::decodeHtml($fieldModel->getDisplayValue($value, $id, false, true, null));
+				$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, $displayValue, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+				break;
+			default:
+				$displayValue = $fieldModel->getDisplayValue($value, $id, false, true, null);
+				$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, $displayValue, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+		}
+		++$this->colNo;
+	}
+
+	/** {@inheritdoc} */
 	public function sanitizeInventoryValues(array $inventoryRow, array $inventoryFields): array
 	{
 		++$this->invNo;
-		$this->workSheet->setCellvalueExplicitByColumnAndRow($this->colNo, $this->rowNo, $this->invNo, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
+		$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, $this->invNo, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
 		++$this->colNo;
 		foreach ($inventoryFields as $columnName => $field) {
 			$value = $inventoryRow[$columnName] ?? '';
@@ -163,14 +224,14 @@ class Vtiger_ExportToSpreadsheet_Model extends Vtiger_Export_Model
 				$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, $field->getDisplayValue($value, $inventoryRow, true), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
 			} elseif ('Date' === $field->getType()) {
 				if ($value) {
-					$this->workSheet->setCellvalueExplicitByColumnAndRow($this->colNo, $this->rowNo, \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($value), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
+					$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($value), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
 					$this->workSheet->getStyleByColumnAndRow($this->colNo, $this->rowNo)->getNumberFormat()->setFormatCode('DD/MM/YYYY');
 				} else {
-					$this->workSheet->setCellvalueExplicitByColumnAndRow($this->colNo, $this->rowNo, '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+					$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
 				}
 			} else {
 				$type = is_numeric($value) ? \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC : \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING;
-				$this->workSheet->setCellvalueExplicitByColumnAndRow($this->colNo, $this->rowNo, $value, $type);
+				$this->workSheet->setCellValueExplicitByColumnAndRow($this->colNo, $this->rowNo, $value, $type);
 			}
 			++$this->colNo;
 			foreach ($field->getCustomColumn() as $customColumnName => $dbType) {

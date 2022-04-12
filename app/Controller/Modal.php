@@ -1,16 +1,20 @@
 <?php
 
+/**
+ * Abstract modal controller file.
+ *
+ * @package   Controller
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
+ */
+
 namespace App\Controller;
 
 /**
  * Abstract modal controller class.
- *
- * @package   Controller
- *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
- * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
- * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 abstract class Modal extends View\Base
 {
@@ -46,41 +50,54 @@ abstract class Modal extends View\Base
 	 */
 	public $modalData = [];
 	/**
+	 * Modal ID.
+	 *
+	 * @var string
+	 */
+	public $modalId = '';
+
+	/**
 	 * The name of the success button.
 	 *
 	 * @var string
 	 */
 	public $successBtn = 'LBL_SAVE';
+
 	/**
 	 * The name of the success button icon.
 	 *
 	 * @var string
 	 */
 	public $successBtnIcon = 'fas fa-check';
+
 	/**
 	 * The name of the danger button.
 	 *
 	 * @var string
 	 */
 	public $dangerBtn = 'LBL_CANCEL';
+
 	/**
 	 * The name of the footerClass.
 	 *
 	 * @var string
 	 */
 	public $footerClass = '';
+
 	/**
 	 * Block the window closing.
 	 *
 	 * @var bool
 	 */
 	public $lockExit = false;
+
 	/**
 	 * Show modal header.
 	 *
 	 * @var bool
 	 */
 	public $showHeader = true;
+
 	/**
 	 * Show modal footer.
 	 *
@@ -93,13 +110,14 @@ abstract class Modal extends View\Base
 	 */
 	public $autoRegisterEvents = true;
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function preProcessAjax(\App\Request $request)
 	{
 		$moduleName = $request->getModule(false);
 		$view = $request->getByType('view', 2);
+		if ($this->modalId) {
+			$this->modalData['modalid'] = $this->modalId;
+		}
 		$this->modalData['view'] = $view;
 		$this->modalData['module'] = $moduleName;
 		if ($request->has('mode')) {
@@ -107,6 +125,7 @@ abstract class Modal extends View\Base
 		}
 		$viewer = $this->getViewer($request);
 		$viewer->assign('MODAL_TITLE', $this->getPageTitle($request));
+		$viewer->assign('MODAL_ID', $this->modalId);
 		$viewer->assign('MODULE', $moduleName);
 		$viewer->assign('VIEW', $view);
 		$viewer->assign('MODULE_NAME', $moduleName);
@@ -137,9 +156,7 @@ abstract class Modal extends View\Base
 		return 'Modals/Header.tpl';
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function postProcessAjax(\App\Request $request)
 	{
 		if ($this->showFooter()) {
@@ -152,9 +169,7 @@ abstract class Modal extends View\Base
 		}
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	protected function showFooter()
 	{
 		return $this->showFooter;
@@ -172,7 +187,7 @@ abstract class Modal extends View\Base
 		$viewName = $request->getByType('view', 2);
 		return $this->checkAndConvertJsScripts([
 			"modules.Vtiger.resources.$viewName",
-			"modules.{$request->getModule()}.resources.$viewName"
+			"modules.{$request->getModule()}.resources.$viewName",
 		]);
 	}
 
@@ -188,13 +203,11 @@ abstract class Modal extends View\Base
 		$viewName = $request->getByType('view', 2);
 		return $this->checkAndConvertCssStyles([
 			"modules.Vtiger.$viewName",
-			"modules.{$request->getModule()}.$viewName"
+			"modules.{$request->getModule()}.$viewName",
 		]);
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getPageTitle(\App\Request $request)
 	{
 		$moduleName = $request->getModule();

@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Settings_Workflows_TaskAjax_Action extends Settings_Vtiger_Basic_Action
@@ -52,15 +52,21 @@ class Settings_Workflows_TaskAjax_Action extends Settings_Vtiger_Basic_Action
 		}
 	}
 
+	/**
+	 * Change status for all workflow tasks.
+	 *
+	 * @param App\Request $request
+	 *
+	 * @return void
+	 */
 	public function changeStatusAllTasks(App\Request $request)
 	{
-		$record = $request->get('record');
+		$record = $request->getInteger('record');
 		$status = $request->get('status');
 		if (!empty($record)) {
 			$workflowModel = Settings_Workflows_Record_Model::getInstance($record);
-			$taskList = $workflowModel->getTasks();
-			foreach ($taskList as $task) {
-				$taskRecordModel = Settings_Workflows_TaskRecord_Model::getInstance($task->getId());
+			$taskList = $workflowModel->getTasks(false);
+			foreach ($taskList as $taskRecordModel) {
 				$taskObject = $taskRecordModel->getTaskObject();
 				if ('true' == $status) {
 					$taskObject->active = true;
@@ -69,8 +75,14 @@ class Settings_Workflows_TaskAjax_Action extends Settings_Vtiger_Basic_Action
 				}
 				$taskRecordModel->save();
 			}
+			$activeCount = 0;
+			foreach ($taskList as $taskRecord) {
+				if ($taskRecord->isActive() && $taskRecord->isEditable()) {
+					++$activeCount;
+				}
+			}
 			$response = new Vtiger_Response();
-			$response->setResult(['success' => true, 'count' => \count($taskList)]);
+			$response->setResult(['success' => true, 'count' => $activeCount]);
 			$response->emit();
 		}
 	}
@@ -108,7 +120,7 @@ class Settings_Workflows_TaskAjax_Action extends Settings_Vtiger_Basic_Action
 			}
 
 			$fieldNames = $taskObject->getFieldNames();
-
+			$fieldNamesRequestMethods = method_exists($taskObject, 'getFieldsNamesRequestMethod') ? $taskObject->getFieldsNamesRequestMethod() : [];
 			foreach ($fieldNames as $fieldName) {
 				if ('field_value_mapping' == $fieldName || 'content' == $fieldName) {
 					$values = \App\Json::decode($request->getRaw($fieldName));
@@ -121,6 +133,8 @@ class Settings_Workflows_TaskAjax_Action extends Settings_Vtiger_Basic_Action
 					} else {
 						$taskObject->{$fieldName} = $request->getRaw($fieldName);
 					}
+				} elseif (isset($fieldNamesRequestMethods[$fieldName])) {
+					$taskObject->{$fieldName} = $request->{$fieldNamesRequestMethods[$fieldName]}($fieldName);
 				} else {
 					$taskObject->{$fieldName} = $request->get($fieldName);
 				}

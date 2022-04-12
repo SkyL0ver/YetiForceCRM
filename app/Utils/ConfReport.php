@@ -3,11 +3,12 @@
 /**
  * Conf report class.
  *
- * @package   App
+ * @package App
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 
 namespace App\Utils;
@@ -17,17 +18,13 @@ namespace App\Utils;
  */
 class ConfReport
 {
-	/**
-	 * System URL.
-	 *
-	 * @var string
-	 */
+	/** @var string System URL. */
 	private static $crmUrl;
-	/**
-	 * Optional database configuration for offline use.
-	 *
-	 * @var array
-	 */
+
+	/** @var string System URL. */
+	public static $testCli = false;
+
+	/** @var array Optional database configuration for offline use. */
 	public static $dbConfig = [
 		'dsn' => 'mysql:host=127.0.0.1;port=3306;dbname=yetiforce;',
 		'user' => '',
@@ -35,12 +32,8 @@ class ConfReport
 		'options' => [],
 	];
 
-	/**
-	 * Urls to check in request.
-	 *
-	 * @var array
-	 */
-	public static $urlsToCheck = ['root' => 'shorturl.php', 'js' => 'layouts/resources/Tools.js', 'css' => 'layouts/resources/fonts/fonts.css'];
+	/** @var array Urls to check in request. */
+	public static $urlsToCheck = ['root' => 'token.php', 'js' => 'layouts/resources/Tools.js', 'css' => 'layouts/resources/fonts/fonts.css'];
 
 	/**
 	 * List all variables.
@@ -62,7 +55,7 @@ class ConfReport
 	 * @var array
 	 */
 	public static $stability = [
-		'phpVersion' => ['recommended' => '7.3.x, 7.4.x', 'type' => 'Version', 'container' => 'env', 'testCli' => true, 'label' => 'PHP'],
+		'phpVersion' => ['recommended' => '7.4.x, 7.4.x, 8.0.x, 8.1.x (dev)', 'type' => 'Version', 'container' => 'env', 'testCli' => true, 'label' => 'PHP'],
 		'protocolVersion' => ['recommended' => '2.0, 1.x', 'type' => 'Version', 'container' => 'env', 'testCli' => false, 'label' => 'PROTOCOL_VERSION'],
 		'error_reporting' => ['recommended' => 'E_ALL & ~E_NOTICE', 'type' => 'ErrorReporting', 'container' => 'php', 'testCli' => true],
 		'output_buffering' => ['recommended' => 'On', 'type' => 'OnOffInt', 'container' => 'php', 'testCli' => true],
@@ -88,6 +81,10 @@ class ConfReport
 		'httpMethods' => ['recommended' => 'GET, POST, PUT, OPTIONS, PATCH, PROPFIND, REPORT, LOCK, DELETE, COPY, MOVE', 'type' => 'HttpMethods', 'container' => 'request', 'testCli' => true, 'label' => 'HTTP_METHODS'],
 		'request_order' => ['recommended' => 'GP', 'type' => 'Equal', 'container' => 'php', 'testCli' => true],
 		'variables_order' => ['recommended' => 'GPCS', 'type' => 'Equal', 'container' => 'php', 'testCli' => true],
+		'opcache.jit' => ['container' => 'php', 'testCli' => true],
+		'opcache.jit_buffer_size' => ['container' => 'php', 'testCli' => true],
+		'mysqli.allow_persistent' => ['container' => 'php', 'testCli' => true],
+		'mysqli.max_persistent' => ['container' => 'php', 'testCli' => true],
 	];
 	/**
 	 * Security variables map.
@@ -108,7 +105,7 @@ class ConfReport
 		'expose_php' => ['recommended' => 'Off', 'type' => 'OnOff', 'container' => 'php', 'testCli' => true],
 		'session_regenerate_id' => ['recommended' => 'On', 'type' => 'SessionRegenerate', 'testCli' => true],
 		'disable_functions' => ['recommended' => 'shell_exec, exec, system, passthru, popen', 'type' => 'In', 'container' => 'php', 'testCli' => false],
-		'allow_url_include' => ['recommended' => 'Off', 'type' => 'OnOff', 'container' => 'php', 'testCli' => true]
+		'allow_url_include' => ['recommended' => 'Off', 'type' => 'OnOff', 'container' => 'php', 'testCli' => true],
 	];
 
 	/**
@@ -163,9 +160,9 @@ class ConfReport
 		'filter' => ['mandatory' => true, 'type' => 'ExtExist', 'extName' => 'filter', 'container' => 'ext', 'testCli' => true],
 		'ctype' => ['mandatory' => true, 'type' => 'ExtExist', 'extName' => 'ctype', 'container' => 'ext', 'testCli' => true],
 		'hash' => ['mandatory' => true, 'type' => 'ExtExist', 'extName' => 'hash', 'container' => 'ext', 'testCli' => true],
-		'exif' => ['mandatory' => false, 'type' => 'ExtExist', 'extName' => 'exif', 'container' => 'ext', 'testCli' => true],
-		'ldap' => ['mandatory' => false, 'type' => 'ExtExist', 'extName' => 'ldap', 'container' => 'ext', 'testCli' => true],
-		'OPcache' => ['mandatory' => false, 'type' => 'ExtExist', 'extName' => 'Zend OPcache', 'container' => 'ext', 'testCli' => true],
+		'exif' => ['mandatory' => false, 'type' => 'ExtExist', 'extName' => 'exif', 'container' => 'ext', 'testCli' => true, 'mode' => 'showWarnings'],
+		'ldap' => ['mandatory' => false, 'type' => 'ExtExist', 'extName' => 'ldap', 'container' => 'ext', 'testCli' => true, 'mode' => 'showWarnings'],
+		'OPcache' => ['mandatory' => false, 'type' => 'ExtExist', 'extName' => 'Zend OPcache', 'container' => 'ext', 'testCli' => true, 'mode' => 'showWarnings'],
 		'apcu' => ['mandatory' => false, 'type' => 'ExtExist', 'extName' => 'apcu', 'container' => 'ext', 'testCli' => true, 'mode' => 'showWarnings'],
 		'imagick' => ['mandatory' => false, 'type' => 'ExtExist', 'extName' => 'imagick', 'container' => 'ext', 'testCli' => true, 'mode' => 'showWarnings'],
 		'allExt' => ['container' => 'ext', 'type' => 'AllExt', 'testCli' => true, 'label' => 'EXTENSIONS'],
@@ -186,12 +183,13 @@ class ConfReport
 		'serverInfo' => ['container' => 'db', 'testCli' => true, 'label' => 'DB_SERVER_INFO'],
 		'maximumMemorySize' => ['container' => 'db', 'type' => 'ShowBytes', 'testCli' => true, 'label' => 'DB_MAXIMUM_MEMORY_SIZE', 'showHelp' => true],
 		'key_buffer_size' => ['container' => 'db', 'type' => 'ShowBytes', 'testCli' => true],
+		'have_query_cache' => ['container' => 'db', 'testCli' => true],
 		'query_cache_size' => ['container' => 'db', 'type' => 'ShowBytes', 'testCli' => true],
 		'query_cache_type' => ['container' => 'db', 'testCli' => true],
 		'table_cache' => ['container' => 'db', 'testCli' => true],
 		'table_open_cache_instances' => ['container' => 'db', 'testCli' => true],
-		'table_open_cache' => ['recommended' => 1000, 'type' => 'Greater', 'container' => 'db', 'testCli' => true],
-		'table_definition_cache' => ['type' => 'DbTableDefinitionCache', 'container' => 'db', 'testCli' => true],
+		'table_open_cache' => ['recommended' => 1000, 'type' => 'Greater', 'container' => 'db', 'testCli' => true, 'mode' => 'showWarnings'],
+		'table_definition_cache' => ['type' => 'DbTableDefinitionCache', 'container' => 'db', 'testCli' => true, 'mode' => 'showWarnings'],
 		'open_files_limit' => ['container' => 'db', 'testCli' => true],
 		'tmp_table_size' => ['container' => 'db', 'type' => 'ShowBytes', 'testCli' => true],
 		'innodb_buffer_pool_size' => ['container' => 'db', 'type' => 'ShowBytes', 'testCli' => true],
@@ -211,29 +209,30 @@ class ConfReport
 		'innodb_lock_wait_timeout' => ['recommended' => 600, 'type' => 'Greater', 'container' => 'db', 'testCli' => true],
 		'wait_timeout' => ['recommended' => 600, 'type' => 'Greater', 'container' => 'db', 'testCli' => true],
 		'interactive_timeout' => ['recommended' => 600, 'type' => 'Greater', 'container' => 'db', 'testCli' => true],
-		'sql_mode' => ['recommended' => '', 'type' => 'NotIn', 'container' => 'db', 'testCli' => true, 'values' => ['STRICT_ALL_TABLES', 'STRICT_TRANS_TABLE']],
+		'sql_mode' => ['recommended' => '', 'type' => 'NotIn', 'container' => 'db', 'testCli' => true, 'exclusions' => ['STRICT_ALL_TABLES', 'STRICT_TRANS_TABLE']],
 		'max_allowed_packet' => ['recommended' => '10 MB', 'type' => 'GreaterMb', 'container' => 'db', 'testCli' => true],
 		'thread_cache_size' => ['container' => 'db', 'testCli' => true],
-		'innodb_file_per_table' => ['recommended' => 'On', 'type' => 'OnOff', 'container' => 'db', 'testCli' => true],
-		'innodb_stats_on_metadata' => ['recommended' => 'Off', 'type' => 'OnOff', 'container' => 'db', 'testCli' => true],
-		'innodb_buffer_pool_instances' => ['container' => 'db', 'testCli' => true],
-		'innodb_buffer_pool_load_at_startup' => ['container' => 'db', 'testCli' => true],
-		'innodb_io_capacity' => ['container' => 'db', 'testCli' => true],
-		'innodb_io_capacity_max' => ['container' => 'db', 'testCli' => true],
 		'tx_isolation' => ['container' => 'db', 'testCli' => true],
 		'transaction_isolation' => ['container' => 'db', 'testCli' => true],
 		'ft_min_word_len' => ['container' => 'db', 'testCli' => true],
 		'innodb_ft_min_token_size' => ['container' => 'db', 'testCli' => true],
 		'innodb_default_row_format' => ['recommended' => 'dynamic', 'type' => 'Equal', 'container' => 'db', 'testCli' => true],
 		'innodb_strict_mode' => ['container' => 'db', 'testCli' => true],
+		'innodb_large_prefix' => ['recommended' => 'On', 'type' => 'OnOff', 'container' => 'db', 'testCli' => true],
+		'innodb_file_per_table' => ['recommended' => 'On', 'type' => 'OnOff', 'container' => 'db', 'testCli' => true],
+		'innodb_stats_on_metadata' => ['recommended' => 'Off', 'type' => 'OnOff', 'container' => 'db', 'testCli' => true],
+		'innodb_buffer_pool_instances' => ['container' => 'db', 'testCli' => true],
+		'innodb_buffer_pool_load_at_startup' => ['container' => 'db', 'testCli' => true],
+		'innodb_io_capacity' => ['container' => 'db', 'testCli' => true],
+		'innodb_io_capacity_max' => ['container' => 'db', 'testCli' => true],
 		'innodb_file_format' => ['container' => 'db', 'testCli' => true],
 		'innodb_file_format_check' => ['container' => 'db', 'testCli' => true],
 		'innodb_file_format_max' => ['container' => 'db', 'testCli' => true],
-		'character_set_server' => ['recommended' => 'utf8', 'type' => 'Equal', 'container' => 'db', 'testCli' => true],
-		'character_set_database' => ['recommended' => 'utf8', 'type' => 'Equal', 'container' => 'db', 'testCli' => true],
-		'character_set_client' => ['recommended' => 'utf8', 'type' => 'Equal', 'container' => 'db', 'testCli' => true],
-		'character_set_connection' => ['recommended' => 'utf8', 'type' => 'Equal', 'container' => 'db', 'testCli' => true],
-		'character_set_results' => ['recommended' => 'utf8', 'type' => 'Equal', 'container' => 'db', 'testCli' => true],
+		'character_set_server' => ['recommended' => 'utf8', 'values' => ['utf8', 'utf8mb3', 'utf8mb4'], 'type' => 'OneOf', 'container' => 'db', 'testCli' => true],
+		'character_set_database' => ['recommended' => 'utf8', 'values' => ['utf8', 'utf8mb3', 'utf8mb4'], 'type' => 'OneOf', 'container' => 'db', 'testCli' => true],
+		'character_set_client' => ['recommended' => 'utf8', 'values' => ['utf8', 'utf8mb3', 'utf8mb4'], 'type' => 'OneOf', 'container' => 'db', 'testCli' => true],
+		'character_set_connection' => ['recommended' => 'utf8', 'values' => ['utf8', 'utf8mb3', 'utf8mb4'], 'type' => 'OneOf', 'container' => 'db', 'testCli' => true],
+		'character_set_results' => ['recommended' => 'utf8', 'values' => ['utf8', 'utf8mb3', 'utf8mb4'], 'type' => 'OneOf', 'container' => 'db', 'testCli' => true],
 		'character_set_system' => ['container' => 'db', 'testCli' => true],
 		'character_set_filesystem' => ['container' => 'db', 'testCli' => true],
 		'datadir' => ['container' => 'db', 'testCli' => true],
@@ -266,6 +265,9 @@ class ConfReport
 		'version_compile_os' => ['container' => 'db', 'testCli' => true],
 		'socket' => ['container' => 'db', 'testCli' => true],
 		'back_log' => ['container' => 'db', 'testCli' => true],
+		'log_bin' => ['container' => 'db', 'testCli' => true],
+		'log_bin_basename' => ['container' => 'db', 'testCli' => true],
+		'log_slave_updates' => ['container' => 'db', 'testCli' => true],
 		'binlog_format' => ['container' => 'db', 'testCli' => true],
 		'max_binlog_size' => ['container' => 'db', 'type' => 'ShowBytes', 'testCli' => true],
 		'slow_query_log' => ['container' => 'db', 'testCli' => true],
@@ -319,6 +321,7 @@ class ConfReport
 	public static $environment = [
 		'crmVersion' => ['container' => 'env', 'testCli' => false, 'label' => 'CRM_VERSION'],
 		'crmDate' => ['container' => 'env', 'testCli' => false, 'label' => 'CRM_DATE'],
+		'companySize' => ['container' => 'env', 'testCli' => false, 'label' => 'COMPANY_SIZE'],
 		'operatingSystem' => ['container' => 'env', 'testCli' => true, 'label' => 'OPERATING_SYSTEM'],
 		'serverSoftware' => ['container' => 'env', 'testCli' => false, 'label' => 'SERVER_SOFTWARE'],
 		'currentUser' => ['container' => 'env', 'type' => 'CronEqual', 'testCli' => true, 'label' => 'SCRIPT_USER'],
@@ -336,6 +339,7 @@ class ConfReport
 		'spaceBackup' => ['container' => 'env', 'type' => 'Space', 'testCli' => false, 'label' => 'SPACE_BACKUP'],
 		'lastCronStart' => ['container' => 'env', 'testCli' => false, 'label' => 'LAST_CRON_START', 'isHtml' => true],
 		'crmProvider' => ['container' => 'env', 'testCli' => true, 'label' => 'CRM_PROVIDER'],
+		'appId' => ['container' => 'env', 'testCli' => true, 'label' => 'APP_ID'],
 		'open_basedir' => ['container' => 'php',  'type' => 'OpenBasedir', 'testCli' => true, 'mode' => 'showWarnings'],
 		'caCertBundle' => ['recommended' => 'On', 'container' => 'env', 'type' => 'OnOff', 'testCli' => true, 'label' => 'CACERTBUNDLE'],
 		'caCertBundlePath' => ['recommended' => 'On', 'container' => 'env', 'testCli' => true, 'label' => 'CACERTBUNDLE_PATH'],
@@ -363,7 +367,7 @@ class ConfReport
 	 * @var array
 	 */
 	public static $pathVerification = [
-		'webservice/' => ['type' => 'ExistsUrl', 'container' => 'request', 'testCli' => false],
+		'webservice/WebserviceStandard/' => ['type' => 'Webservice', 'container' => 'request', 'testCli' => false],
 		'.well-known/carddav' => ['type' => 'ExistsUrl', 'container' => 'request', 'testCli' => false],
 		'.well-known/caldav' => ['type' => 'ExistsUrl', 'container' => 'request', 'testCli' => false],
 		'robots.txt' => ['type' => 'ExistsUrl', 'container' => 'request', 'testCli' => false],
@@ -427,8 +431,10 @@ class ConfReport
 	 */
 	public static $functionalVerification = [
 		'branding' => ['type' => 'Branding',  'testCli' => false, 'label' => 'FOOTER', 'mode' => 'onlyText'],
-		'premiumModules' => ['type' => 'PremiumModules',  'testCli' => false, 'label' => 'PREMIUM_MODULES', 'mode' => 'onlyText'],
-		'magento' => ['type' => 'Magento',  'testCli' => false, 'label' => 'MAGENTO', 'mode' => 'onlyText'],
+		'shop' => ['type' => 'ShopProducts',  'testCli' => false, 'label' => 'PREMIUM_MODULES', 'mode' => 'onlyText'],
+		'watchdog' => ['type' => 'Watchdog',  'testCli' => true, 'label' => 'WATCHDOG', 'mode' => 'onlyText'],
+		'register' => ['type' => 'Register',  'testCli' => true, 'label' => 'REGISTER', 'mode' => 'onlyText'],
+		'shopCache' => ['type' => 'ShopCache',  'testCli' => true, 'label' => 'SHOP_CACHE', 'mode' => 'onlyText'],
 	];
 	/**
 	 * Php variables.
@@ -606,6 +612,7 @@ class ConfReport
 				'public_html' => IS_PUBLIC_DIR ? 'On' : 'Off',
 				'crmVersion' => \App\Version::get(),
 				'crmDate' => \App\Version::get('patchVersion'),
+				'companySize' => \App\Company::getSize(),
 				'crmDir' => ROOT_DIRECTORY,
 				'operatingSystem' => 'demo' === \App\Config::main('systemMode') ? php_uname('s') : php_uname(),
 				'serverSoftware' => $_SERVER['SERVER_SOFTWARE'] ?? '-',
@@ -616,12 +623,13 @@ class ConfReport
 				'spaceTemp' => '',
 				'spaceBackup' => '',
 				'crmProvider' => \App\YetiForce\Register::getProvider(),
+				'appId' => substr(\App\YetiForce\Register::getInstanceKey(), -15),
 				'lastCronStart' => $lastCronStartText,
 				'lastCronStartDateTime' => $lastCronStart,
 				'protocolVersion' => isset($_SERVER['SERVER_PROTOCOL']) ? substr($_SERVER['SERVER_PROTOCOL'], strpos($_SERVER['SERVER_PROTOCOL'], '/') + 1) : '-',
 				'SSL_CERT_FILE' => getenv('SSL_CERT_FILE') ?? '',
-				'SSL_CERT_DIR' => getenv('SSL_CERT_DIR') ?? ''
-			]
+				'SSL_CERT_DIR' => getenv('SSL_CERT_DIR') ?? '',
+			],
 		];
 	}
 
@@ -630,7 +638,7 @@ class ConfReport
 	 *
 	 * @param string $type
 	 *
-	 * @return array
+	 * @return mixed
 	 */
 	public static function getCronVariables(string $type)
 	{
@@ -693,10 +701,8 @@ class ConfReport
 				if (isset($main[$key])) {
 					$item[static::$sapi] = $main[$key];
 				}
-				if ($item['testCli'] && 'www' === static::$sapi) {
-					if (isset($cron[$key]['cron'])) {
-						$item['cron'] = $cron[$key]['cron'];
-					}
+				if (isset($cron[$key]['cron']) && (self::$testCli || ($item['testCli'] && 'www' === static::$sapi))) {
+					$item['cron'] = $cron[$key]['cron'];
 				}
 				if (isset($item['type'])) {
 					$methodName = 'validate' . $item['type'];
@@ -704,7 +710,7 @@ class ConfReport
 						if ('www' === static::$sapi) {
 							$item = static::$methodName($key, $item, 'www');
 						}
-						if ($item['testCli'] && !empty($cron)) {
+						if (self::$testCli || ($item['testCli'] && !empty($cron))) {
 							$item = static::$methodName($key, $item, 'cron');
 						}
 					}
@@ -868,8 +874,12 @@ class ConfReport
 	private static function validateGreater(string $name, array $row, string $sapi)
 	{
 		unset($name);
-		if (isset($row[$sapi]) && (int) $row[$sapi] > 0 && (int) $row[$sapi] < (int) $row['recommended']) {
-			$row['status'] = false;
+		if (isset($row[$sapi])) {
+			if ((int) $row[$sapi] > 0 && (int) $row[$sapi] < (int) $row['recommended']) {
+				$row['status'] = false;
+			}
+		} else {
+			$row['noParameter'] = true;
 		}
 		return $row;
 	}
@@ -891,6 +901,9 @@ class ConfReport
 		if (isset($row[$sapi]) && (int) $row[$sapi] < $row['recommended']) {
 			$row['status'] = false;
 		}
+		if (!isset($row[$sapi])) {
+			$row['noParameter'] = true;
+		}
 		return $row;
 	}
 
@@ -911,6 +924,8 @@ class ConfReport
 				$row['status'] = false;
 			}
 			$row[$sapi] = \vtlib\Functions::showBytes($row[$sapi]);
+		} else {
+			$row['noParameter'] = true;
 		}
 		return $row;
 	}
@@ -927,7 +942,11 @@ class ConfReport
 	private static function validateShowBytes(string $name, array $row, string $sapi)
 	{
 		unset($name);
-		$row[$sapi] = \vtlib\Functions::showBytes($row[$sapi] ?? 0);
+		if (isset($row[$sapi])) {
+			$row[$sapi] = \vtlib\Functions::showBytes($row[$sapi]);
+		} else {
+			$row['noParameter'] = true;
+		}
 		return $row;
 	}
 
@@ -943,8 +962,12 @@ class ConfReport
 	private static function validateEqual(string $name, array $row, string $sapi)
 	{
 		unset($name);
-		if (isset($row[$sapi]) && strtolower((string) $row[$sapi]) !== strtolower((string) $row['recommended'])) {
-			$row['status'] = false;
+		if (isset($row[$sapi])) {
+			if (strtolower((string) $row[$sapi]) !== strtolower((string) $row['recommended'])) {
+				$row['status'] = false;
+			}
+		} else {
+			$row['noParameter'] = true;
 		}
 		return $row;
 	}
@@ -1006,9 +1029,14 @@ class ConfReport
 	private static function validateOnOff(string $name, array $row, string $sapi)
 	{
 		unset($name);
-		if (isset($row[$sapi]) && $row[$sapi] !== $row['recommended'] && !(isset($row['demoMode']) && 'prod' !== \App\Config::main('systemMode'))) {
-			$row['status'] = false;
+		if (isset($row[$sapi])) {
+			if ($row[$sapi] !== $row['recommended'] && !(isset($row['demoMode']) && 'prod' !== \App\Config::main('systemMode'))) {
+				$row['status'] = false;
+			}
+		} else {
+			$row['noParameter'] = true;
 		}
+
 		return $row;
 	}
 
@@ -1191,7 +1219,7 @@ class ConfReport
 	{
 		unset($sapi);
 		$header = strtolower(\str_replace('Header: ', '', $name));
-		$row['recommended'] = trim(\App\Headers::getInstance()->getCspHeader());
+		$row['recommended'] = trim(\App\Controller\Headers::getInstance()->getCspHeader());
 		if (isset(static::$request[$header])) {
 			$row['www'] = static::$request[$header]['root'] ?? '-';
 			$row['status'] = strtolower($row['www']) === strtolower($row['recommended']);
@@ -1236,13 +1264,15 @@ class ConfReport
 			if (!\is_array($row[$sapi])) {
 				$value = \explode(',', $row[$sapi]);
 			}
-			$recommended = (array) $row['values'];
+			$recommended = (array) $row['exclusions'];
 			foreach ($recommended as $item) {
 				if (\in_array($item, $value)) {
 					$row['status'] = false;
 					break;
 				}
 			}
+		} else {
+			$row['noParameter'] = true;
 		}
 		return $row;
 	}
@@ -1259,9 +1289,12 @@ class ConfReport
 	private static function validateIn(string $name, array $row, string $sapi)
 	{
 		unset($name);
-		$value = $row[$sapi];
-		if (!\is_array($row[$sapi])) {
-			$value = \explode(',', $row[$sapi]);
+		$value = $row[$sapi] ?? '';
+		if (!isset($row[$sapi])) {
+			$row['noParameter'] = true;
+		}
+		if (!\is_array($value)) {
+			$value = \explode(',', $value);
 		}
 		$value = \array_map('trim', $value);
 		$recommended = \array_map('trim', \explode(',', $row['recommended']));
@@ -1273,6 +1306,33 @@ class ConfReport
 			}
 		}
 		$row['recommended'] = \implode(', ', $recommended);
+		return $row;
+	}
+
+	/**
+	 * Validate one of array.
+	 *
+	 * @param string $name
+	 * @param array  $row
+	 * @param string $sapi
+	 *
+	 * @return array
+	 */
+	private static function validateOneOf(string $name, array $row, string $sapi)
+	{
+		unset($name);
+		if (isset($row['values'])) {
+			$recommended = $row['values'];
+		} else {
+			$recommended = \array_map('trim', \explode(',', strtolower($row['recommended'])));
+		}
+		if (isset($row[$sapi])) {
+			if (!\in_array((string) $row[$sapi], $recommended)) {
+				$row['status'] = false;
+			}
+		} else {
+			$row['noParameter'] = true;
+		}
 		return $row;
 	}
 
@@ -1359,7 +1419,7 @@ class ConfReport
 	{
 		$dir = ROOT_DIRECTORY . \DIRECTORY_SEPARATOR;
 		switch ($name) {
-			case 'spaceRoot':
+			case 'spaceStorage':
 				$dir .= 'storage';
 				break;
 			case 'spaceTemp':
@@ -1401,11 +1461,11 @@ class ConfReport
 	{
 		unset($name);
 		$supported = [];
-		$requestUrl = static::$crmUrl . 'shorturl.php';
+		$requestUrl = static::$crmUrl . 'token.php';
 		foreach (\explode(', ', $row['recommended']) as $type) {
 			try {
 				$response = (new \GuzzleHttp\Client(\App\RequestHttp::getOptions()))->request($type, $requestUrl, ['timeout' => 1, 'verify' => false]);
-				if (200 === $response->getStatusCode() && 'No uid' === (string) $response->getBody()) {
+				if (200 === $response->getStatusCode()) {
 					$supported[] = $type;
 				}
 			} catch (\Throwable $e) {
@@ -1491,7 +1551,7 @@ class ConfReport
 	}
 
 	/**
-	 * Validate premium modules value.
+	 * Validate shop products.
 	 *
 	 * @param string $name
 	 * @param array  $row
@@ -1499,28 +1559,19 @@ class ConfReport
 	 *
 	 * @return array
 	 */
-	private static function validatePremiumModules(string $name, array $row, string $sapi)
+	public static function validateShopProducts(string $name, array $row, string $sapi)
 	{
 		unset($name);
 		$row['status'] = true;
-		$row[$sapi] = \App\Language::translate($row['status'] ? 'LBL_YES' : 'LBL_NO');
-		return $row;
-	}
-
-	/**
-	 * Validate magento value.
-	 *
-	 * @param string $name
-	 * @param array  $row
-	 * @param string $sapi
-	 *
-	 * @return array
-	 */
-	private static function validateMagento(string $name, array $row, string $sapi)
-	{
-		unset($name);
-		$row['status'] = !(\Settings_Magento_Module_Model::isActive() && !\App\YetiForce\Shop::check('YetiForceMagento'));
-		$row[$sapi] = \App\Language::translate($row['status'] ? 'LBL_YES' : 'LBL_NO');
+		$status = '';
+		foreach (\App\YetiForce\Shop::getProducts() as $name => $product) {
+			$verify = $product->verify();
+			if (!$verify['status']) {
+				$status .= $name . '(' . \strlen($verify['message']) . '), ';
+				$row['status'] = false;
+			}
+		}
+		$row[$sapi] = $status ? trim($status, ', ') : ('shop' === $sapi ? '' : \App\Language::translate('LBL_YES'));
 		return $row;
 	}
 
@@ -1580,7 +1631,97 @@ class ConfReport
 	{
 		$row = self::validateNotEmpty($name, $row, $sapi);
 		if ($row['status']) {
-			$row['status'] = is_dir(\dirname($row[$sapi]));
+			$dir = \dirname($row[$sapi]);
+			if (!is_dir($dir) && !is_readable($dir)) {
+				$row['status'] = true;
+			}
+		}
+		return $row;
+	}
+
+	/**
+	 * Validate watchdog.
+	 *
+	 * @param string $name
+	 * @param array  $row
+	 * @param string $sapi
+	 *
+	 * @return array
+	 */
+	public static function validateWatchdog(string $name, array $row, string $sapi)
+	{
+		unset($name);
+		$row['status'] = true;
+		$row[$sapi] = \App\Language::translate('LBL_YES');
+		if (!\App\Cron::$watchdogIsActive) {
+			$row['status'] = false;
+			$row[$sapi] = \App\Language::translate('LBL_NO');
+		}
+		return $row;
+	}
+
+	/**
+	 * Validate register.
+	 *
+	 * @param string $name
+	 * @param array  $row
+	 * @param string $sapi
+	 *
+	 * @return array
+	 */
+	public static function validateRegister(string $name, array $row, string $sapi)
+	{
+		unset($name);
+		$row['status'] = true;
+		$row[$sapi] = \App\Language::translate('LBL_YES');
+		if (!\App\Cron::$registerIsActive) {
+			$row['status'] = false;
+			$row[$sapi] = \App\Language::translate('LBL_NO');
+		}
+		return $row;
+	}
+
+	/**
+	 * Validate shop cache.
+	 *
+	 * @param string $name
+	 * @param array  $row
+	 * @param string $sapi
+	 *
+	 * @return array
+	 */
+	public static function validateShopCache(string $name, array $row, string $sapi)
+	{
+		unset($name);
+		$row['status'] = true;
+		$row[$sapi] = \App\Language::translate('LBL_YES');
+		if (!\App\Cron::$shopIsActive) {
+			$row['status'] = false;
+			$row[$sapi] = \App\Language::translate('LBL_NO');
+		}
+		return $row;
+	}
+
+	/**
+	 * Validate webservice.
+	 *
+	 * @param string $name
+	 * @param array  $row
+	 * @param string $sapi
+	 *
+	 * @return array
+	 */
+	private static function validateWebservice(string $name, array $row, string $sapi)
+	{
+		unset($sapi);
+		try {
+			$response = (new \GuzzleHttp\Client(\App\RequestHttp::getOptions()))->request('HEAD', static::$crmUrl . $name, ['timeout' => 1, 'connect_timeout' => 1, 'verify' => false, 'http_errors' => false, 'allow_redirects' => false]);
+			$row['status'] = 401 === $response->getStatusCode();
+		} catch (\Throwable $th) {
+			$row['status'] = false;
+		}
+		if (!\in_array('webservice', \Config\Api::$enabledServices)) {
+			$row['mode'] = 'showWarnings';
 		}
 		return $row;
 	}
@@ -1595,7 +1736,7 @@ class ConfReport
 	public static function getAllErrors(bool $cache = false)
 	{
 		$fileCache = ROOT_DIRECTORY . '/app_data/ConfReport_AllErrors.php';
-		if ($cache && file_exists($fileCache) && filemtime($fileCache) > strtotime('-5 minute')) {
+		if ($cache && file_exists($fileCache) && filemtime($fileCache) > strtotime('-15 minute')) {
 			return require $fileCache;
 		}
 		$result = [];
@@ -1676,5 +1817,52 @@ class ConfReport
 			}
 		}
 		return $ver;
+	}
+
+	/**
+	 * Save environment variables.
+	 *
+	 * @return void
+	 */
+	public static function saveEnv(): void
+	{
+		$data = self::getEnv();
+		$key = \PHP_SAPI !== 'cli' ? 'www' : 'cli';
+		$data[$key]['sapi'] = \PHP_SAPI;
+		$data[$key]['operatingSystem'] = [
+			'machineType' => php_uname('m'),
+			'hostName' => php_uname('n'),
+			'release' => php_uname('r'),
+			'operatingSystem' => php_uname('s'),
+			'version' => php_uname('v'),
+		];
+		if (($db = \App\Db::getInstance()) && $db->getMasterPdo() && ($dbInfo = $db->getInfo())) {
+			$data[$key]['sql'] = [
+				'clientVersion' => $dbInfo['clientVersion'],
+				'serverVersion' => $dbInfo['serverVersion'],
+				'typeDb' => $dbInfo['typeDb'],
+				'version' => $dbInfo['version'] ?? '',
+				'versionComment' => $dbInfo['version_comment'] ?? '',
+				'versionSslLibrary' => $dbInfo['version_ssl_library'] ?? '',
+			];
+		}
+		if (isset($_SERVER['SERVER_SOFTWARE'])) {
+			$data[$key]['serverSoftware'] = $_SERVER['SERVER_SOFTWARE'];
+		}
+		if (isset($_SERVER['GATEWAY_INTERFACE'])) {
+			$data[$key]['gatewayInterface'] = $_SERVER['GATEWAY_INTERFACE'];
+		}
+		\App\Utils::saveToFile(ROOT_DIRECTORY . '/app_data/ConfReport_Env.php', $data, '', 0, true);
+	}
+
+	/**
+	 * Get environment variables.
+	 *
+	 * @return array
+	 */
+	public static function getEnv(): array
+	{
+		$path = ROOT_DIRECTORY . '/app_data/ConfReport_Env.php';
+		return file_exists($path) ? (require $path) : [];
 	}
 }

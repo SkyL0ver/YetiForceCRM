@@ -5,7 +5,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  *************************************************************************************/
 'use strict';
 
@@ -32,6 +32,14 @@ var Vtiger_Index_Js = {
 					uploadContainer.find('[name="nameFile[]"]:last').val(files[i].name);
 				}
 			});
+			let moduleName = app.getModuleName();
+			let recordId = app.getRecordId();
+			if (container.find('[name="sourceModule"]').length > 0) {
+				moduleName = container.find('[name="sourceModule"]').val();
+			}
+			if (container.find('[name="sourceRecord"]').length > 0) {
+				recordId = container.find('[name="sourceRecord"]').val();
+			}
 			form.on('submit', function (e) {
 				e.preventDefault();
 				app.removeEmptyFilesInput(form[0]);
@@ -39,8 +47,8 @@ var Vtiger_Index_Js = {
 				url = 'index.php';
 				if (app.getViewName() === 'Detail') {
 					formData.append('createmode', 'link');
-					formData.append('return_module', app.getModuleName());
-					formData.append('return_id', app.getRecordId());
+					formData.append('return_module', moduleName);
+					formData.append('return_id', recordId);
 				}
 				let params = {
 					url: url,
@@ -171,74 +179,10 @@ var Vtiger_Index_Js = {
 				form.append($('<input>', { name: i, value: JSON.stringify(postData[i]) }));
 			}
 			$('body').append(form);
-			form.submit();
+			form.trigger('submit');
 		} else {
 			window.location.href = url;
 		}
-	},
-	registerWidgetsEvents: function () {
-		let widgets = $('div.widgetContainer');
-		widgets.on('shown.bs.collapse', function (e) {
-			let widgetContainer = $(e.currentTarget);
-			Vtiger_Index_Js.loadWidgets(widgetContainer);
-			let key = widgetContainer.attr('id');
-			app.cacheSet(key, 1);
-		});
-		widgets.on('hidden.bs.collapse', function (e) {
-			let widgetContainer = $(e.currentTarget);
-			let imageEle = widgetContainer.parent().find('.imageElement');
-			let imagePath = imageEle.data('rightimage');
-			imageEle.attr('src', imagePath);
-			let key = widgetContainer.attr('id');
-			app.cacheSet(key, 0);
-		});
-	},
-	/**
-	 * Function is used to load the sidebar widgets
-	 * @param widgetContainer - widget container
-	 * @param open - widget should be open or closed
-	 */
-	loadWidgets: function (widgetContainer, open) {
-		let message = $('.loadingWidgetMsg').html();
-		if (widgetContainer.find('.card-body').html().trim()) {
-			let imageEle = widgetContainer.parent().find('.imageElement');
-			let imagePath = imageEle.data('downimage');
-			imageEle.attr('src', imagePath);
-			widgetContainer.css('height', 'auto');
-			return;
-		}
-
-		widgetContainer.progressIndicator({ message: message });
-		let url = widgetContainer.data('url');
-		let listViewWidgetParams = {
-			type: 'GET',
-			url: 'index.php',
-			dataType: 'html',
-			data: url
-		};
-		AppConnector.request(listViewWidgetParams).done(function (data) {
-			if (typeof open === 'undefined') open = true;
-			if (open) {
-				widgetContainer.progressIndicator({ mode: 'hide' });
-				let imageEle = widgetContainer.parent().find('.imageElement');
-				let imagePath = imageEle.data('downimage');
-				imageEle.attr('src', imagePath);
-				widgetContainer.css('height', 'auto');
-			}
-			widgetContainer.html(data);
-			if (data == '') {
-				widgetContainer.closest('.quickWidget').addClass('d-none');
-			} else {
-				let label = widgetContainer.closest('.quickWidget').find('.quickWidgetHeader').data('label');
-			}
-			$('.bodyContents').trigger('Vtiger.Widget.Load.' + label, $(widgetContainer));
-		});
-	},
-	loadWidgetsOnLoad: function () {
-		let widgets = $('div.widgetContainer');
-		widgets.each(function (index, element) {
-			Vtiger_Index_Js.loadWidgets($(element));
-		});
 	},
 	/**
 	 * Function to change user theme(colour)
@@ -276,7 +220,7 @@ var Vtiger_Index_Js = {
 			module: 'Notification',
 			action: 'Notification',
 			mode: 'setMark',
-			ids: id
+			record: id
 		};
 		AppConnector.request(params)
 			.done(function (data) {
@@ -306,33 +250,6 @@ var Vtiger_Index_Js = {
 				aDeferred.reject(textStatus, errorThrown);
 			});
 		return aDeferred.promise();
-	},
-	markAllNotifications: function (element) {
-		let ids = [];
-		let li = $(element).closest('.notificationContainer');
-		li.find('.notificationEntries .noticeRow').each(function (index) {
-			ids.push($(this).data('id'));
-		});
-		if (ids.length == 0) {
-			element.remove();
-			return false;
-		}
-		let params = {
-			module: 'Notification',
-			action: 'Notification',
-			mode: 'setMark',
-			ids: ids
-		};
-		li.progressIndicator({ position: 'html' });
-		AppConnector.request(params).done(function (data) {
-			li.progressIndicator({ mode: 'hide' });
-			app.showNotify({
-				title: app.vtranslate('JS_MESSAGE'),
-				text: app.vtranslate('JS_MARKED_AS_READ'),
-				type: 'info'
-			});
-			Vtiger_Index_Js.getNotificationsForReminder();
-		});
 	},
 	/**
 	 * Function registers event for Reminder popups
@@ -450,37 +367,29 @@ var Vtiger_Index_Js = {
 				record = instance.data('record');
 			}
 		}
-		bootbox.dialog({
-			message: app.vtranslate('JS_WATCHING_MESSAGE' + value),
-			title: '<span class="fas fa-eye mr-1"></span>' + app.vtranslate('JS_WATCHING_TITLE'),
-			buttons: {
-				success: {
-					label: '<span class="fas fa-check mr-1"></span>' + app.vtranslate('LBL_YES'),
-					className: 'btn-success',
-					callback: function () {
-						Vtiger_Index_Js.updateWatching(module, value, user, record).done(function (data) {
-							if (instance != undefined) {
-								let buttonIcon = instance.find('.fas');
-								state = data.result == 1 ? 0 : 1;
-								instance.data('value', state);
-								if (state == 1) {
-									instance.toggleClass(instance.data('off') + ' ' + instance.data('on'));
-									buttonIcon.removeClass('fas fa-eye');
-									buttonIcon.addClass('fas fa-eye-slash');
-								} else {
-									instance.toggleClass(instance.data('on') + ' ' + instance.data('off'));
-									buttonIcon.removeClass('fas fa-eye-slash');
-									buttonIcon.addClass('fas fa-eye');
-								}
-							}
-						});
+		app.showConfirmModal({
+			title: app.vtranslate('JS_WATCHING_TITLE'),
+			text: app.vtranslate('JS_WATCHING_MESSAGE' + value),
+			icon: 'fas fa-eye',
+			confirmButtonLabel: 'LBL_YES',
+			rejectedButtonLabel: 'LBL_NO',
+			confirmedCallback: () => {
+				Vtiger_Index_Js.updateWatching(module, value, user, record).done(function (data) {
+					if (instance != undefined) {
+						let buttonIcon = instance.find('.fas');
+						state = data.result == 1 ? 0 : 1;
+						instance.data('value', state);
+						if (state == 1) {
+							instance.toggleClass(instance.data('off') + ' ' + instance.data('on'));
+							buttonIcon.removeClass('fas fa-eye');
+							buttonIcon.addClass('fas fa-eye-slash');
+						} else {
+							instance.toggleClass(instance.data('on') + ' ' + instance.data('off'));
+							buttonIcon.removeClass('fas fa-eye-slash');
+							buttonIcon.addClass('fas fa-eye');
+						}
 					}
-				},
-				danger: {
-					label: '<span class="fas fa-times mr-1"></span>' + app.vtranslate('LBL_NO'),
-					className: 'btn-danger',
-					callback: function () {}
-				}
+				});
 			}
 		});
 	},
@@ -523,6 +432,8 @@ var Vtiger_Index_Js = {
 			if (app.getViewName() === 'List') {
 				let listinstance = new Vtiger_List_Js();
 				listinstance.getListViewRecords();
+			} else if (app.getViewName() === 'Detail') {
+				document.location.reload();
 			}
 		});
 	},
@@ -541,60 +452,13 @@ var Vtiger_Index_Js = {
 			Vtiger_Helper_Js.showMessage({ text: response.result });
 		});
 	},
-	registerAfterLoginEvents: function () {
-		const thisInstance = this;
-		let modalContainer = false;
-		if (typeof CONFIG.ShowAuthy2faModal !== 'undefined') {
-			modalContainer = app.showModalWindow(
-				null,
-				'index.php?module=Users&view=TwoFactorAuthenticationModal&record=' + CONFIG.userId,
-				() => {
-					delete CONFIG.ShowAuthy2faModal;
-				}
-			);
-		} else if (typeof CONFIG.showVisitPurpose !== 'undefined') {
-			modalContainer = app.showModalWindow(null, 'index.php?module=Users&view=VisitPurpose', () => {
-				delete CONFIG.showVisitPurpose;
-			});
-		} else if (typeof CONFIG.ShowUserPwnedPasswordChange !== 'undefined') {
-			modalContainer = app.showModalWindow(
-				null,
-				'index.php?module=Users&view=PasswordModal&mode=change&type=pwned&record=' + CONFIG.userId,
-				() => {
-					delete CONFIG.ShowUserPwnedPasswordChange;
-				}
-			);
-		} else if (typeof CONFIG.ShowUserPasswordChange !== 'undefined') {
-			modalContainer = app.showModalWindow(
-				null,
-				'index.php?module=Users&view=PasswordModal&mode=change&record=' + CONFIG.userId,
-				() => {
-					delete CONFIG.ShowUserPasswordChange;
-				}
-			);
-		} else {
-			$('.js-system-modal[data-url]').each((_, e) => {
-				modalContainer = app.showModalWindow(null, e.dataset.url, () => {
-					e.remove();
-				});
-			});
-		}
-		if (modalContainer) {
-			modalContainer.one('hidden.bs.modal', function () {
-				thisInstance.registerAfterLoginEvents();
-			});
-		}
-	},
 	registerEvents: function () {
-		Vtiger_Index_Js.registerWidgetsEvents();
-		Vtiger_Index_Js.loadWidgetsOnLoad();
 		Vtiger_Index_Js.registerReminders();
 		Vtiger_Index_Js.changeSkin();
 		Vtiger_Index_Js.registerResizeEvent();
-		Vtiger_Index_Js.registerAfterLoginEvents();
 	}
 };
 //On Page Load
-$(document).ready(function () {
+jQuery(function () {
 	Vtiger_Index_Js.registerEvents();
 });

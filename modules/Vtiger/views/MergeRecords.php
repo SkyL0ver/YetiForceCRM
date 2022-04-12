@@ -2,8 +2,10 @@
 /**
  * Merge records view.
  *
- * @copyright YetiForce Sp. z o.o.
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package View
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 
@@ -12,9 +14,7 @@
  */
 class Vtiger_MergeRecords_View extends \App\Controller\Modal
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function checkPermission(App\Request $request)
 	{
 		if (!\App\Privilege::isPermitted($request->getModule(), 'Merge')) {
@@ -22,14 +22,10 @@ class Vtiger_MergeRecords_View extends \App\Controller\Modal
 		}
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public $modalSize = 'modal-fullscreen';
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function preProcessAjax(App\Request $request)
 	{
 		$this->modalIcon = 'fa fa-code';
@@ -37,18 +33,14 @@ class Vtiger_MergeRecords_View extends \App\Controller\Modal
 		parent::preProcessAjax($request);
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function process(App\Request $request)
 	{
 		$viewer = $this->getViewer($request);
 		$viewer->view('MergeRecords.tpl', $request->getModule());
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function initializeContent(App\Request $request)
 	{
 		$count = 0;
@@ -77,9 +69,7 @@ class Vtiger_MergeRecords_View extends \App\Controller\Modal
 		$viewer->assign('FIELDS', $fields);
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function postProcessAjax(App\Request $request)
 	{
 		$viewer = $this->getViewer($request);
@@ -90,9 +80,7 @@ class Vtiger_MergeRecords_View extends \App\Controller\Modal
 		$viewer->view('Modals/Footer.tpl', $request->getModule());
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getPageTitle(App\Request $request)
 	{
 		$moduleName = $request->getModule();

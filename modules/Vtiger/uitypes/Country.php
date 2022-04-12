@@ -3,8 +3,10 @@
 /**
  * UIType country field class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package   UIType
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 class Vtiger_Country_UIType extends Vtiger_Base_UIType
@@ -31,7 +33,7 @@ class Vtiger_Country_UIType extends Vtiger_Base_UIType
 	/** {@inheritdoc} */
 	public function getDisplayValue($value, $record = false, $recordModel = false, $rawText = false, $length = false)
 	{
-		$value = \App\Language::translateSingleMod($value, 'Other.Country');
+		$value = \App\Language::translateSingleMod($value, 'Other.Country', false, false);
 		if (\is_int($length)) {
 			$value = \App\TextParser::textTruncate($value, $length);
 		}
@@ -42,6 +44,12 @@ class Vtiger_Country_UIType extends Vtiger_Base_UIType
 	public function getEditViewDisplayValue($value, $recordModel = false)
 	{
 		return $value;
+	}
+
+	/** {@inheritdoc} */
+	public function getValueFromImport($value, $defaultValue = null)
+	{
+		return ('' === $value && null !== $defaultValue) ? $defaultValue : \App\Fields\Country::findCountryName($value);
 	}
 
 	/** {@inheritdoc} */
@@ -64,8 +72,8 @@ class Vtiger_Country_UIType extends Vtiger_Base_UIType
 	public function getPicklistValues()
 	{
 		$values = [];
-		foreach(\App\Fields\Country::getAll('uitype') as $key=>$data){
-			$values[$key] = \App\Language::translateSingleMod($key, 'Other.Country');
+		foreach (\App\Fields\Country::getAll('uitype') as $key => $data) {
+			$values[$key] = \App\Language::translateSingleMod($key, 'Other.Country', false, false);
 		}
 		return $values;
 	}
@@ -73,7 +81,7 @@ class Vtiger_Country_UIType extends Vtiger_Base_UIType
 	/** {@inheritdoc} */
 	public function getQueryOperators()
 	{
-		return ['e', 'n', 'y', 'ny'];
+		return ['e', 'n', 'y', 'ny', 'ef', 'nf'];
 	}
 
 	/**

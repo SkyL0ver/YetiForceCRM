@@ -5,8 +5,10 @@ namespace App\TextParser;
 /**
  * Table discount summary class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package TextParser
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 class TableDiscountSummary extends Base
@@ -39,7 +41,9 @@ class TableDiscountSummary extends Base
 			} else {
 				$currency = $baseCurrency['id'];
 			}
-			$currencyData = \App\Fields\Currency::getById($currency);
+			$currencySymbol = \App\Fields\Currency::getById($currency)['currency_symbol'];
+		} else {
+			$currencySymbol = \App\Fields\Currency::getDefault()['currency_symbol'];
 		}
 		if (!empty($fields[0])) {
 			$discount = 0;
@@ -50,12 +54,12 @@ class TableDiscountSummary extends Base
 				$html .= '<table class="table-discount-summary" style="width:100%;vertical-align:top;border-collapse:collapse;">
 				<thead>
 					<tr>
-						<th style="padding:0px 4px;font-weight:bold;">' . \App\Language::translate('LBL_DISCOUNTS_SUMMARY', $this->textParser->moduleName) . '</th>
+						<th style="padding:0px 4px;font-weight:bold;background-color:#ddd;">' . \App\Language::translate('LBL_DISCOUNTS_SUMMARY', $this->textParser->moduleName) . '</th>
 					</tr>
 				</thead>
 					<tbody>
 						<tr>
-							<td style="padding:0px 4px;text-align:right;font-weight:bold;border:1px solid #ddd;">' . \CurrencyField::convertToUserFormat($discount, null, true) . ' ' . $currencyData['currency_symbol'] . '</td>
+							<td style="padding:0px 4px;text-align:right;font-weight:bold;border:1px solid #ddd;">' . \CurrencyField::convertToUserFormat($discount, null, true) . ' ' . $currencySymbol . '</td>
 						</tr>
 					</tbody>
 				</table>';

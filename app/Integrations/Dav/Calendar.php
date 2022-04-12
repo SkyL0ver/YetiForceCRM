@@ -2,10 +2,14 @@
 /**
  * CalDav calendar file.
  *
- * @package   Integrations
+ * @package Integration
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @see   https://tools.ietf.org/html/rfc5545
+ *
+ * @package Integration
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -52,7 +56,7 @@ class Calendar
 	 * @var string[]
 	 */
 	protected static $customValues = [
-		'X-MICROSOFT-SKYPETEAMSMEETINGURL' => 'meeting_url'
+		'X-MICROSOFT-SKYPETEAMSMEETINGURL' => 'meeting_url',
 	];
 	/**
 	 * Max date.
@@ -109,10 +113,10 @@ class Calendar
 			'uri' => $uri,
 			'synctoken' => (int) $calendar['synctoken'],
 			'calendarid' => $calendarId,
-			'operation' => $operation
+			'operation' => $operation,
 		])->execute();
 		$dbCommand->update('dav_calendars', [
-			'synctoken' => ((int) $calendar['synctoken']) + 1
+			'synctoken' => ((int) $calendar['synctoken']) + 1,
 		], ['id' => $calendarId])
 			->execute();
 	}
@@ -239,14 +243,15 @@ class Calendar
 				$this->parseComponent();
 			}
 		}
-
 		return $this->records;
 	}
 
 	/**
 	 * Parse component.
+	 *
+	 * @return void
 	 */
-	private function parseComponent()
+	private function parseComponent(): void
 	{
 		$uid = (string) $this->vcomponent->UID;
 		if (isset($this->records[$uid])) {
@@ -272,12 +277,20 @@ class Calendar
 	 * @param string               $fieldName
 	 * @param string               $davName
 	 * @param \Vtiger_Record_Model $recordModel
+	 *
+	 * @return void
 	 */
-	private function parseText(string $fieldName, string $davName)
+	private function parseText(string $fieldName, string $davName): void
 	{
-		$value = \str_replace([
-			'-::~:~::~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~::~:~::-'
-		], '', \App\Purifier::purify((string) $this->vcomponent->{$davName}));
+		$separator = '-::~:~::~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~::~:~::-';
+		$value = (string) $this->vcomponent->{$davName};
+		if (false !== strpos($value, $separator)) {
+			[$html,$text] = explode($separator, $value, 2);
+			$value = trim(strip_tags($html)) . "\n" . \trim(\str_replace($separator, '', $text));
+		}else{
+			$value = trim(\str_replace('\n', PHP_EOL, $value));
+		}
+		$value = \App\Purifier::decodeHtml(\App\Purifier::purify($value));
 		if ($length = $this->record->getField($fieldName)->get('maximumlength')) {
 			$value = \App\TextParser::textTruncate($value, $length, false);
 		}
@@ -286,8 +299,10 @@ class Calendar
 
 	/**
 	 * Parse status.
+	 *
+	 * @return void
 	 */
-	private function parseStatus()
+	private function parseStatus(): void
 	{
 		$davValue = null;
 		if (isset($this->vcomponent->STATUS)) {
@@ -316,8 +331,10 @@ class Calendar
 
 	/**
 	 * Parse visibility.
+	 *
+	 * @return void
 	 */
-	private function parseVisibility()
+	private function parseVisibility(): void
 	{
 		$davValue = null;
 		$value = 'Private';
@@ -325,7 +342,7 @@ class Calendar
 			$davValue = strtoupper($this->vcomponent->CLASS->getValue());
 			$values = [
 				'PUBLIC' => 'Public',
-				'PRIVATE' => 'Private'
+				'PRIVATE' => 'Private',
 			];
 			if ($davValue && isset($values[$davValue])) {
 				$value = $values[$davValue];
@@ -336,8 +353,10 @@ class Calendar
 
 	/**
 	 * Parse state.
+	 *
+	 * @return void
 	 */
-	private function parseState()
+	private function parseState(): void
 	{
 		$davValue = null;
 		$value = '';
@@ -345,7 +364,7 @@ class Calendar
 			$davValue = strtoupper($this->vcomponent->TRANSP->getValue());
 			$values = [
 				'OPAQUE' => 'PLL_OPAQUE',
-				'TRANSPARENT' => 'PLL_TRANSPARENT'
+				'TRANSPARENT' => 'PLL_TRANSPARENT',
 			];
 			if ($davValue && isset($values[$davValue])) {
 				$value = $values[$davValue];
@@ -356,8 +375,10 @@ class Calendar
 
 	/**
 	 * Parse priority.
+	 *
+	 * @return void
 	 */
-	private function parsePriority()
+	private function parsePriority(): void
 	{
 		$davValue = null;
 		$value = 'Medium';
@@ -377,8 +398,10 @@ class Calendar
 
 	/**
 	 * Parse type.
+	 *
+	 * @return void
 	 */
-	private function parseType()
+	private function parseType(): void
 	{
 		if ($this->record->isEmpty('activitytype')) {
 			$this->record->set('activitytype', 'VTODO' === (string) $this->vcomponent->name ? 'Task' : 'Meeting');
@@ -387,8 +410,10 @@ class Calendar
 
 	/**
 	 * Parse date time.
+	 *
+	 * @return void
 	 */
-	private function parseDateTime()
+	private function parseDateTime(): void
 	{
 		$allDay = 0;
 		$endHasTime = $startHasTime = false;
@@ -564,7 +589,7 @@ class Calendar
 		$visibility = $this->record->get('visibility');
 		$values = [
 			'Public' => 'PUBLIC',
-			'Private' => 'PRIVATE'
+			'Private' => 'PRIVATE',
 		];
 		$value = 'Private';
 		if ($visibility && isset($values[$visibility])) {
@@ -588,7 +613,7 @@ class Calendar
 		$state = $this->record->get('state');
 		$values = [
 			'PLL_OPAQUE' => 'OPAQUE',
-			'PLL_TRANSPARENT' => 'TRANSPARENT'
+			'PLL_TRANSPARENT' => 'TRANSPARENT',
 		];
 		if ($state && isset($values[$state])) {
 			$value = $values[$state];
@@ -611,7 +636,7 @@ class Calendar
 		$values = [
 			'High' => 1,
 			'Medium' => 5,
-			'Low' => 9
+			'Low' => 9,
 		];
 		$value = 5;
 		if ($priority && isset($values[$priority])) {
@@ -841,7 +866,11 @@ class Calendar
 				$value = ltrim($attendee->getValue(), 'mailto:');
 				if (isset($invities[$value])) {
 					$row = $invities[$value];
-					$attendee['PARTSTAT']->setValue($this->getAttendeeStatus($row['status'], false));
+					if (isset($attendee['PARTSTAT'])) {
+						$attendee['PARTSTAT']->setValue($this->getAttendeeStatus($row['status'], false));
+					} else {
+						$attendee->add('PARTSTAT', $this->getAttendeeStatus($row['status']));
+					}
 					unset($invities[$value]);
 				} else {
 					$this->vcomponent->remove($attendee);

@@ -6,32 +6,29 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 
 class Settings_Vtiger_Index_View extends \App\Controller\View\Page
 {
-	use \App\Controller\ExposeMethod, \App\Controller\Traits\SettingsPermission;
+	use \App\Controller\ExposeMethod;
+	use \App\Controller\Traits\SettingsPermission;
 
-	/**
-	 * Page title.
-	 *
-	 * @var type
-	 */
-	protected $pageTitle = 'LBL_SYSTEM_SETTINGS';
-
+	/** {@inheritdoc} */
 	public function __construct()
 	{
 		Settings_Vtiger_Tracker_Model::addBasic('view');
 		parent::__construct();
 	}
 
+	/** {@inheritdoc} */
 	public function preProcess(App\Request $request, $display = true)
 	{
 		parent::preProcess($request, false);
 		$this->preProcessSettings($request);
 	}
 
+	/** {@inheritdoc} */
 	public function postProcess(App\Request $request, $display = true)
 	{
 		$this->postProcessSettings($request);
@@ -46,20 +43,16 @@ class Settings_Vtiger_Index_View extends \App\Controller\View\Page
 	public function preProcessSettings(App\Request $request)
 	{
 		$viewer = $this->getViewer($request);
-		$userModel = \App\User::getCurrentUserModel();
 		$moduleName = $request->getModule();
 		$view = $request->getByType('view', \App\Purifier::STANDARD, '');
 		$qualifiedModuleName = $request->getModule(false);
 		$selected = null;
 		$viewer->assign('MENUS', Settings_Vtiger_Menu_Model::getMenu($moduleName, $view, $request->getMode(), $selected));
 		$viewer->assign('SELECTED_PAGE', $selected);
-		$viewer->assign('SHOW_MODAL_VISIT_PURPOSE', !$userModel->isAdmin() && !(\App\Session::get('showedModalVisitPurpose')[$userModel->getId()] ?? null));
 		$viewer->view('SettingsMenuStart.tpl', $qualifiedModuleName);
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function process(App\Request $request)
 	{
 		$viewer = $this->getViewer($request);
@@ -72,7 +65,7 @@ class Settings_Vtiger_Index_View extends \App\Controller\View\Page
 				'LABEL' => 'PLU_SYSTEM_WARNINGS',
 				'VALUE' => \count($warnings),
 				'HREF' => 'index.php?module=Logs&parent=Settings&view=SystemWarnings',
-				'ICON' => 'yfi yfi-system-warnings-2'
+				'ICON' => 'yfi yfi-system-warnings-2',
 			];
 		}
 		if (\App\Security\AdminAccess::isPermitted('Log')) {
@@ -80,7 +73,7 @@ class Settings_Vtiger_Index_View extends \App\Controller\View\Page
 				'LABEL' => 'PLU_SECURITY',
 				'VALUE' => $this->getSecurityCount(),
 				'HREF' => 'index.php?module=Log&parent=Settings&view=Index',
-				'ICON' => 'yfi yfi-security-errors-2'
+				'ICON' => 'yfi yfi-security-errors-2',
 			];
 		}
 		if (\App\Security\AdminAccess::isPermitted('Users')) {
@@ -88,7 +81,7 @@ class Settings_Vtiger_Index_View extends \App\Controller\View\Page
 				'LABEL' => 'PLU_USERS',
 				'VALUE' => Users_Record_Model::getCount(true),
 				'HREF' => 'index.php?module=Users&parent=Settings&view=List',
-				'ICON' => 'yfi yfi-users-2'
+				'ICON' => 'yfi yfi-users-2',
 			];
 		}
 		if (\App\Security\AdminAccess::isPermitted('ModuleManager')) {
@@ -96,7 +89,7 @@ class Settings_Vtiger_Index_View extends \App\Controller\View\Page
 				'LABEL' => 'PLU_MODULES',
 				'VALUE' => Settings_ModuleManager_Module_Model::getModulesCount(true),
 				'HREF' => 'index.php?module=ModuleManager&parent=Settings&view=List',
-				'ICON' => 'yfi yfi-modules-2'
+				'ICON' => 'yfi yfi-modules-2',
 			];
 		}
 		if (\App\Security\AdminAccess::isPermitted('Workflows')) {
@@ -104,7 +97,7 @@ class Settings_Vtiger_Index_View extends \App\Controller\View\Page
 				'LABEL' => 'PLU_WORKFLOWS_ACTIVE',
 				'VALUE' => Settings_Workflows_Record_Model::getAllAmountWorkflowsAmount(),
 				'HREF' => 'index.php?module=Workflows&parent=Settings&view=List',
-				'ICON' => 'yfi yfi-workflows-2'
+				'ICON' => 'yfi yfi-workflows-2',
 			];
 		}
 		$viewer->assign('SYSTEM_MONITORING', $monitoringData);
@@ -142,9 +135,7 @@ class Settings_Vtiger_Index_View extends \App\Controller\View\Page
 		return [];
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getFooterScripts(App\Request $request)
 	{
 		$moduleName = $request->getModule();
@@ -168,25 +159,18 @@ class Settings_Vtiger_Index_View extends \App\Controller\View\Page
 				'modules.Settings.YetiForce.resources.Shop',
 				"modules.Settings.$moduleName.resources.Index",
 				"modules.Settings.$moduleName.resources.$type",
-				"modules.Settings.$moduleName.resources.$moduleName"
+				"modules.Settings.$moduleName.resources.$moduleName",
 			])
 		);
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getHeaderCss(App\Request $request)
 	{
 		return array_merge($this->checkAndConvertCssStyles([
 			'~libraries/jstree-bootstrap-theme/dist/themes/proton/style.css',
 			'~libraries/datatables.net-bs4/css/dataTables.bootstrap4.css',
-			'~libraries/datatables.net-responsive-bs4/css/responsive.bootstrap4.css'
+			'~libraries/datatables.net-responsive-bs4/css/responsive.bootstrap4.css',
 		]), parent::getHeaderCss($request));
-	}
-
-	public function validateRequest(App\Request $request)
-	{
-		$request->validateReadAccess();
 	}
 }

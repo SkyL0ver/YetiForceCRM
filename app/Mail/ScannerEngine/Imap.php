@@ -2,10 +2,10 @@
 /**
  * Mail imap message file.
  *
- * @package   App
+ * @package App
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -80,7 +80,7 @@ class Imap extends Base
 		}
 		$mailCrmId = $query->scalar();
 		$this->set('mailCrmId', $mailCrmId);
-		return  $mailCrmId;
+		return $mailCrmId;
 	}
 
 	/** {@inheritdoc} */
@@ -94,7 +94,7 @@ class Imap extends Base
 		foreach (\OSSMailScanner_Record_Model::getEmailSearchList() as $field) {
 			$field = explode('=', $field);
 			if (empty($field[2])) {
-				$fieldModel = \Vtiger_Field_Model::getInstance($field[0], \Vtiger_Module_Model::getInstance($field[1]));
+				$fieldModel = \Vtiger_Module_Model::getInstance($field[1])->getField($field[0]);
 				$field[2] = $fieldModel->getUIType();
 			}
 			if ($searchModuleName && $searchModuleName !== $field[1]) {

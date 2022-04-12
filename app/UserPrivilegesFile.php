@@ -5,8 +5,10 @@ namespace App;
 /**
  * Create user privileges file class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  */
 class UserPrivilegesFile
 {
@@ -46,7 +48,7 @@ class UserPrivilegesFile
 			$userFocus->id = $userid;
 			foreach ($userFocus->column_fields as $field => $value) {
 				if (isset($userFocus->{$field})) {
-					if ('currency_symbol' === $field) {
+					if ('currency_symbol' === $field || $field === 'imagename'|| $field === 'othereventduration') {
 						$userInfo[$field] = $userFocus->{$field};
 					} else {
 						$userInfo[$field] = is_numeric($userFocus->{$field}) ? $userFocus->{$field} : \App\Purifier::encodeHtml($userFocus->{$field});

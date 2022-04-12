@@ -4,10 +4,10 @@
  *
  * The file is part of the paid functionality. Using the file is allowed only after purchasing a subscription. File modification allowed only with the consent of the system producer.
  *
- * @package   App
+ * @package App
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -21,7 +21,7 @@ class YetiForce extends Base
 	/** @var string[] Supported languages. */
 	protected $languages = ['de-DE', 'en-US', 'es-ES', 'fr-FR', 'gr-GR', 'hu-HU', 'id-ID', 'it-IT', 'ne-NP', 'nl-NL', 'pt-PT', 'ru-RU', 'zh-CN'];
 
-	/**  {@inheritdoc} */
+	/** {@inheritdoc} */
 	public function calculate()
 	{
 		$product = \App\YetiForce\Register::getProducts('YetiForceMap');
@@ -42,8 +42,8 @@ class YetiForce extends Base
 			'http_errors' => false,
 			'headers' => [
 				'Accept' => 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
-				'InsKey' => \App\YetiForce\Register::getInstanceKey()
-			]
+				'InsKey' => \App\YetiForce\Register::getInstanceKey(),
+			],
 		];
 		if (isset($product['params']['token'])) {
 			$params['yf_token'] = $product['params']['token'];
@@ -84,11 +84,11 @@ class YetiForce extends Base
 		$this->description = $description;
 	}
 
-	/**  {@inheritdoc} */
+	/** {@inheritdoc} */
 	public function parsePoints(): array
 	{
 		$tracks = [
-			$this->start['lon'] . ',' . $this->start['lat']
+			$this->start['lon'] . ',' . $this->start['lat'],
 		];
 		if (!empty($this->indirectPoints)) {
 			foreach ($this->indirectPoints as $tempLon) {

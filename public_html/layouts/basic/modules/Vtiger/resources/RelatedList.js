@@ -5,7 +5,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  *************************************************************************************/
 'use strict';
 
@@ -86,7 +86,7 @@ jQuery.Class(
 					data: postData
 				};
 				if (type === 'sendByForm') {
-					app.openUrlMethodPost(massActionUrl, postData);
+					AppConnector.requestForm(massActionUrl, postData);
 					progressIndicatorElement.progressIndicator({ mode: 'hide' });
 				} else {
 					AppConnector.request(actionParams)
@@ -99,7 +99,7 @@ jQuery.Class(
 								if (responseData.result.reloadList) {
 									Vtiger_Detail_Js.reloadRelatedList();
 								}
-								if (responseData.result.procesStop) {
+								if (responseData.result.processStop) {
 									progressIndicatorElement.progressIndicator({ mode: 'hide' });
 									return false;
 								}
@@ -214,6 +214,9 @@ jQuery.Class(
 		 * Function to trigger mass send email modal by row
 		 */
 		triggerSendEmailByRow: function (row) {
+			if (!(row instanceof jQuery)) {
+				row = $(row);
+			}
 			let params = Vtiger_RelatedList_Js.relatedListInstance.getDefaultParams();
 			Vtiger_List_Js.triggerSendEmail(
 				$.extend(params, {
@@ -225,7 +228,8 @@ jQuery.Class(
 				}),
 				function () {
 					Vtiger_Detail_Js.reloadRelatedList();
-				}
+				},
+				row
 			);
 		}
 	},
@@ -292,13 +296,15 @@ jQuery.Class(
 				params['entityState'] = container.find('.entityState').val();
 			}
 			if (this.listSearchInstance) {
-				params.search_params = JSON.stringify(this.listSearchInstance.getListSearchParams());
+				params.search_params = this.listSearchInstance.getListSearchParams();
 				let searchValue = this.listSearchInstance.getAlphabetSearchValue();
 				if (typeof searchValue !== 'undefined' && searchValue.length > 0) {
 					params['search_key'] = this.listSearchInstance.getAlphabetSearchField();
 					params['search_value'] = searchValue;
 					params['operator'] = 's';
 				}
+				this.listSearchInstance.parseConditions(params);
+				params.search_params = JSON.stringify(params.search_params);
 			}
 			if (this.moduleName == 'Calendar') {
 				let switchBtn = container.find('.js-switch--calendar');
@@ -375,13 +381,6 @@ jQuery.Class(
 					progressInstance.progressIndicator({ mode: 'hide' });
 				});
 			return aDeferred.promise();
-		},
-		triggerDisplayTypeEvent: function () {
-			let widthType = app.cacheGet('widthType', 'narrowWidthType');
-			if (widthType) {
-				let elements = this.content.find('.listViewEntriesTable').find('td,th');
-				elements.attr('class', widthType);
-			}
 		},
 		showSelectRelation: function (extendParams) {
 			let params = $.extend(this.getRecordsListParams(), extendParams);
@@ -811,11 +810,13 @@ jQuery.Class(
 			const self = this;
 			if (this.relatedView === 'List' || this.relatedView === 'Detail') {
 				this.content.find('.listViewEntries').on('click', function (e) {
+					if ($(e.target).hasClass('js-no-link')) return;
 					if ($(e.target).closest('div').hasClass('actions')) return;
 					if ($(e.target).is('button') || $(e.target).parent().is('button') || $(e.target).is('a')) return;
 					if ($(e.target).closest('a').hasClass('noLinkBtn')) return;
+					if ($(e.target).is('a')) return;
 					if ($(e.target, $(e.currentTarget)).is('td:first-child')) return;
-					if ($(e.target).is('input[type="checkbox"]')) return;
+					if ($(e.target).is('input')) return;
 					if ($.contains($(e.currentTarget).find('td:last-child').get(0), e.target)) return;
 					if ($.contains($(e.currentTarget).find('td:first-child').get(0), e.target)) return;
 					let recordUrl = $(e.target).closest('tr').data('recordurl');
@@ -1019,18 +1020,21 @@ jQuery.Class(
 			this.content.find('button.relationDelete').on('click', function (e) {
 				e.stopImmediatePropagation();
 				let target = $(e.currentTarget);
-				let params = {};
+				let params = {
+					icon: false,
+					confirmedCallback: () => {
+						thisInstance.deleteRelation(target);
+					}
+				};
 				if (target.data('confirm')) {
-					params.message = target.data('confirm');
+					params.text = target.data('confirm');
 					params.title = target.html() + ' ' + target.data('content');
 				} else if (target.data('content')) {
-					params.message = target.data('content');
+					params.text = target.data('content');
 				} else {
-					params.message = app.vtranslate('JS_DELETE_CONFIRMATION');
+					params.text = app.vtranslate('JS_DELETE_CONFIRMATION');
 				}
-				Vtiger_Helper_Js.showConfirmationBox(params).done(function () {
-					thisInstance.deleteRelation(target);
-				});
+				app.showConfirmModal(params);
 			});
 			this.content.find('.js-switch--calendar,select.js-relation-cv-id').on('change', function (e) {
 				thisInstance.loadRelatedList();
@@ -1056,22 +1060,17 @@ jQuery.Class(
 			}
 			app.event.trigger('RelatedList.AfterLoad', thisInstance);
 		},
-		getSecondColMinWidth: function (container) {
-			let maxWidth = 0,
-				thisWidth;
-			container.find('.js-list__row').each(function (i) {
-				thisWidth = $(this).find('.js-list__field').first().width();
-				if (i === 0) {
-					maxWidth = thisWidth;
-				} else {
-					thisWidth > maxWidth ? (maxWidth = thisWidth) : maxWidth;
-				}
-			});
-			return maxWidth;
+		getListColumnWidth: function () {
+			let width = 300;
+			let column = this.container.find('.listViewEntriesDiv .listViewHeaders th:eq(1)');
+			if (column.length) {
+				width = column.offset().left + column.width();
+			}
+			return width;
 		},
 		setDomParams: function (container) {
-			this.listColumnFirstWidth = container.find('.listViewEntriesDiv .listViewHeaders th').first().width();
-			this.listColumnSecondWidth = this.getSecondColMinWidth(container);
+			this.container = container;
+			this.listColumnWidth = this.getListColumnWidth();
 			this.windowW = $(window).width();
 			this.mainBody = container.closest('.mainBody');
 			this.windowMinWidth = (15 / this.windowW) * 100;
@@ -1086,7 +1085,7 @@ jQuery.Class(
 			this.headerH = $('.js-header').outerHeight();
 		},
 		getDefaultSplitSizes: function () {
-			let thWidth = ((this.listColumnFirstWidth + this.listColumnSecondWidth + 82) / this.windowW) * 100;
+			let thWidth = (this.listColumnWidth / this.windowW) * 100;
 			return [thWidth, 100 - thWidth];
 		},
 		getSplitSizes() {
@@ -1256,7 +1255,6 @@ jQuery.Class(
 					app.moduleCacheSet('userRelatedSplitSet', split.getSizes());
 				}
 			});
-			this.gutter = container.find('.gutter');
 			if (splitSizes[0] < 10) {
 				this.gutter.addClass('js-gutter-corr-left');
 				this.sideBlockLeft.addClass('d-block');
@@ -1266,6 +1264,7 @@ jQuery.Class(
 				this.sideBlockRight.addClass('d-block');
 				this.preview.hide();
 			}
+			this.gutter = container.find('.gutter');
 			let mainWindowHeightCss = {
 				height: $(window).height() - this.list.offset().top - this.footerH
 			};
@@ -1294,7 +1293,7 @@ jQuery.Class(
 			this.split = this.registerSplit(container);
 			splitsArray.push(this.split);
 			$(window).on('resize', () => {
-				if ($(window).width() < 993) {
+				if (this.windowW < 993) {
 					if (container.find('.gutter').length) {
 						splitsArray[splitsArray.length - 1].destroy();
 						this.sideBlockRight.removeClass('d-block');
@@ -1316,7 +1315,7 @@ jQuery.Class(
 						splitsArray.push(this.split);
 					}
 					let currentSplit = splitsArray[splitsArray.length - 1];
-					let minWidth = (15 / $(window).width()) * 100;
+					let minWidth = (15 / this.windowW) * 100;
 					let maxWidth = 100 - minWidth;
 					if (typeof currentSplit === 'undefined') return;
 					if (currentSplit.getSizes()[0] < minWidth + 5) {
@@ -1543,6 +1542,63 @@ jQuery.Class(
 			});
 		},
 		/**
+		 * Register mass records events.
+		 */
+		registerMassRecordsEvents: function () {
+			const self = this;
+			self.getRelatedContainer().on('click', '.js-mass-record-event', function () {
+				let target = $(this);
+				if (self.checkListRecordSelected() != true) {
+					if (target.data('type') === 'modal') {
+						let params = self.getSelectedParams();
+						target.data('url').replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
+							params[key] = value;
+						});
+						AppConnector.request({
+							type: 'POST',
+							url: target.data('url'),
+							data: params
+						}).done(function (modal) {
+							app.showModalWindow(modal);
+						});
+					} else {
+						let params = {
+							icon: false,
+							confirmedCallback: () => {
+								let progressIndicatorElement = $.progressIndicator(),
+									dataParams = self.getSearchParams();
+								delete dataParams.view;
+								AppConnector.request({
+									type: 'POST',
+									url: target.data('url'),
+									data: dataParams
+								})
+									.done(function (data) {
+										progressIndicatorElement.progressIndicator({ mode: 'hide' });
+										if (data && data.result && data.result.notify) {
+											Vtiger_Helper_Js.showMessage(data.result.notify);
+										}
+										self.getListViewRecords();
+									})
+									.fail(function (error, err) {
+										progressIndicatorElement.progressIndicator({ mode: 'hide' });
+									});
+							}
+						};
+						if (target.data('confirm')) {
+							params.text = target.data('confirm');
+							params.title = target.html();
+						} else {
+							params.text = target.html();
+						}
+						app.showConfirmModal(params);
+					}
+				} else {
+					self.noRecordSelectedAlert();
+				}
+			});
+		},
+		/**
 		 * Register related events
 		 */
 		registerRelatedEvents: function () {
@@ -1558,6 +1614,7 @@ jQuery.Class(
 			this.registerDeselectAllClickEvent();
 			this.registerQuickEditSaveEvent();
 			this.registerChangeViewEvent();
+			this.registerMassRecordsEvents();
 			YetiForce_ListSearch_Js.registerSearch(this.content, (data) => {
 				this.loadRelatedList(data);
 			});

@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Vtiger_RelatedList_View extends Vtiger_Index_View
@@ -36,8 +36,6 @@ class Vtiger_RelatedList_View extends Vtiger_Index_View
 	 * Process.
 	 *
 	 * @param \App\Request $request
-	 *
-	 * @return type
 	 */
 	public function process(App\Request $request)
 	{
@@ -57,23 +55,25 @@ class Vtiger_RelatedList_View extends Vtiger_Index_View
 		if ($request->has('limit')) {
 			$pagingModel->set('limit', $request->getInteger('limit'));
 		}
-		$parentRecordModel = Vtiger_Record_Model::getInstanceById($parentId, $moduleName);
 		$cvId = $request->isEmpty('cvId', true) ? 0 : $request->getByType('cvId', 'Alnum');
+		$parentRecordModel = Vtiger_Record_Model::getInstanceById($parentId, $moduleName);
 		$relationListView = Vtiger_RelationListView_Model::getInstance($parentRecordModel, $relatedModuleName, $request->getInteger('relationId'), $cvId);
 
 		$orderBy = $request->getArray('orderby', \App\Purifier::STANDARD, [], \App\Purifier::SQL);
 		if (empty($orderBy)) {
 			$moduleInstance = $relationListView->getRelatedModuleModel()->getEntityInstance();
-			$orderBy = $moduleInstance->default_order_by ? [$moduleInstance->default_order_by => $moduleInstance->default_sort_order] : [];
+			if ($moduleInstance->default_order_by && $moduleInstance->default_sort_order) {
+				$orderBy = [];
+				foreach ((array) $moduleInstance->default_order_by as $value) {
+					$orderBy[$value] = $moduleInstance->default_sort_order;
+				}
+			}
 		}
 		if (!empty($orderBy)) {
 			$relationListView->set('orderby', $orderBy);
 		}
 		if ($request->has('entityState')) {
 			$relationListView->set('entityState', $request->getByType('entityState'));
-		}
-		if ($request->has('cvId')) {
-			$relationListView->set('cvId', $request->getByType('cvId', 'Alnum'));
 		}
 		$viewer = $this->getViewer($request);
 		$operator = 's';
@@ -96,6 +96,7 @@ class Vtiger_RelatedList_View extends Vtiger_Index_View
 		$queryGenerator = $relationListView->getQueryGenerator();
 		$transformedSearchParams = $queryGenerator->parseBaseSearchParamsToCondition($searchParams);
 		$relationListView->set('search_params', $transformedSearchParams);
+		$relationListView->loadSearchLockedFields($request);
 		//To make smarty to get the details easily accesible
 		foreach ($request->getArray('search_params') as $fieldListGroup) {
 			$searchParamsRaw[] = $fieldListGroup;
@@ -123,6 +124,9 @@ class Vtiger_RelatedList_View extends Vtiger_Index_View
 		}
 		if ('ListPreview' === $relatedView) {
 			$relationListView->setFields(array_merge(['id'], $relationListView->getRelatedModuleModel()->getNameFields()));
+		}
+		if ($request->has('fields')) {
+			$relationListView->setFields(array_merge(['id'], $request->getArray('fields', 'Alnum')));
 		}
 		if ($request->has('quickSearchEnabled')) {
 			$relationListView->set('quickSearchEnabled', $request->getBoolean('quickSearchEnabled'));
@@ -168,19 +172,35 @@ class Vtiger_RelatedList_View extends Vtiger_Index_View
 		}
 		$viewer->assign('IS_FAVORITES', $isFavorites);
 		$viewer->assign('IS_EDITABLE', $relationModel->isEditable());
-		$viewer->assign('IS_DELETABLE', $relationModel->privilegeToDelete());
 		$viewer->assign('USER_MODEL', Users_Record_Model::getCurrentUserModel());
 		$viewer->assign('SEARCH_DETAILS', $searchParams);
 		$viewer->assign('SEARCH_PARAMS', $searchParamsRaw);
 		$viewer->assign('VIEW', $request->getByType('view'));
 		$viewer->assign('SHOW_RELATED_WIDGETS', \in_array($relationModel->getId(), App\Config::module($moduleName, 'showRelatedWidgetsByDefault', [])));
+		$viewer->assign('LOCKED_EMPTY_FIELDS', $request->isEmpty('lockedEmptyFields', true) ? [] : $request->getArray('lockedEmptyFields'));
 		if ($relationListView->isWidgetsList()) {
 			$viewer->assign('IS_WIDGETS', true);
-			$viewer->assign('HIERARCHY_VALUE', App\Config::module('ModComments', 'DEFAULT_SOURCE'));
+			$viewer->assign('HIERARCHY_VALUE', \Config\Modules\ModComments::$defaultSource);
 			$viewer->assign('HIERARCHY', \App\ModuleHierarchy::getModuleLevel($relatedModuleName));
 		} else {
 			$viewer->assign('IS_WIDGETS', false);
 		}
-		return $viewer->view('RelatedList.tpl', $moduleName, true);
+		return $this->loadView();
+	}
+
+	/**
+	 * Load template.
+	 */
+	public function loadView()
+	{
+		return $this->viewer->view($this->getTemplateName(), $this->viewer->getTemplateVars('MODULE_NAME'), true);
+	}
+
+	/**
+	 * Template name.
+	 */
+	public function getTemplateName()
+	{
+		return 'RelatedList.tpl';
 	}
 }

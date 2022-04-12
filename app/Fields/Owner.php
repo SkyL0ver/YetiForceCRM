@@ -5,8 +5,10 @@ namespace App\Fields;
 /**
  * Owner class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -121,12 +123,12 @@ class Owner
 			} elseif (2 === $assignTypeValue) {
 				$currentUserRoleModel = \Settings_Roles_Record_Model::getInstanceById($this->currentUser->getRole());
 				$sameLevelRoles = array_keys($currentUserRoleModel->getSameLevelRoles());
-				$childernRoles = \App\PrivilegeUtil::getRoleSubordinates($this->currentUser->getRole());
-				$roles = array_merge($sameLevelRoles, $childernRoles);
+				$childrenRoles = \App\PrivilegeUtil::getRoleSubordinates($this->currentUser->getRole());
+				$roles = array_merge($sameLevelRoles, $childrenRoles);
 				$accessibleUser = $this->getUsers(false, 'Active', '', '', false, array_unique($roles));
 			} elseif (3 === $assignTypeValue) {
-				$childernRoles = \App\PrivilegeUtil::getRoleSubordinates($this->currentUser->getRole());
-				$accessibleUser = $this->getUsers(false, 'Active', '', '', false, array_unique($childernRoles));
+				$childrenRoles = \App\PrivilegeUtil::getRoleSubordinates($this->currentUser->getRole());
+				$accessibleUser = $this->getUsers(false, 'Active', '', '', false, array_unique($childrenRoles));
 				$accessibleUser[$this->currentUser->getId()] = $this->currentUser->getName();
 			} elseif (!empty($fieldType) && 5 === $assignTypeValue) {
 				$accessibleUser = $this->getAllocation('users', '', $fieldType);
@@ -172,14 +174,14 @@ class Owner
 		}
 		$result = [];
 		$usersGroups = \Settings_RecordAllocation_Module_Model::getRecordAllocationByModule($fieldType, $moduleName);
-		$usersGroups = ($usersGroups && $usersGroups[$this->currentUser->getId()]) ? $usersGroups[$this->currentUser->getId()] : [];
+		$usersGroups = $usersGroups[$this->currentUser->getId()] ?? [];
 		if ('users' == $mode) {
-			$users = $usersGroups ? $usersGroups['users'] : [];
+			$users = $usersGroups['users'] ?? [];
 			if (!empty($users)) {
 				$result = $this->getUsers(false, 'Active', $users);
 			}
 		} else {
-			$groups = $usersGroups ? $usersGroups['groups'] : [];
+			$groups = $usersGroups['groups'] ?? [];
 			if (!empty($groups)) {
 				$groupsAll = $this->getGroups(false, $private);
 				foreach ($groupsAll as $ID => $name) {
@@ -222,14 +224,16 @@ class Owner
 			while ($row = $dataReader->read()) {
 				$fullName = '';
 				foreach ($entityData['fieldnameArr'] as &$field) {
+					$row[$field] = \App\Purifier::encodeHtml($row[$field]);
 					$fullName .= ' ' . $row[$field];
 				}
 				if ($this->showRoleName && isset($row['rolename'])) {
-					$roleName = \App\Language::translate($row['rolename'], '_Base', false, false);
+					$roleName = \App\Language::translate($row['rolename'], '_Base', false, true);
 					$fullName .= " ({$roleName})";
+					$row['rolename'] = \App\Purifier::encodeHtml($row['rolename']);
 				}
 				$row['fullName'] = trim($fullName);
-				$tempResult[$row['id']] = array_map('\App\Purifier::encodeHtml', $row);
+				$tempResult[$row['id']] = $row;
 			}
 			\App\Cache::save('getUsers', $cacheKey, $tempResult);
 		}
@@ -261,15 +265,15 @@ class Owner
 					->select(['vtiger_user2role.userid'])
 					->from('vtiger_user2role')
 					->innerJoin('vtiger_role', 'vtiger_user2role.roleid = vtiger_role.roleid')
-					->where(['like', 'parentrole', $userPrivileges['_privileges']['parent_role_seq'] . '::%', false])
-				]
+					->where(['like', 'parentrole', $userPrivileges['_privileges']['parent_role_seq'] . '::%', false]),
+				],
 			];
 			if ($this->moduleName) {
 				$whereSection[] = [
 					'id' => (new \App\Db\Query())
 						->select(['vtiger_tmp_write_user_sharing_per.shareduserid'])
 						->from('vtiger_tmp_write_user_sharing_per')
-						->where(['vtiger_tmp_write_user_sharing_per.userid' => $this->currentUser->getId(), 'vtiger_tmp_write_user_sharing_per.tabid' => \App\Module::getModuleId($this->moduleName)])
+						->where(['vtiger_tmp_write_user_sharing_per.userid' => $this->currentUser->getId(), 'vtiger_tmp_write_user_sharing_per.tabid' => \App\Module::getModuleId($this->moduleName)]),
 				];
 			}
 			$query = (new \App\Db\Query())->select($selectFields)->from('vtiger_users')->where($whereSection);
@@ -308,21 +312,20 @@ class Owner
 	/**
 	 * Function returns the user key in user array.
 	 *
-	 * @param bool   $addBlank
-	 * @param string $status       User status
-	 * @param string $assignedUser User id
-	 * @param string $private      Sharing type
-	 * @param bool   $onlyAdmin    Show only admin users
-	 * @param bool   $roles
+	 * @param bool             $addBlank
+	 * @param string           $status       User status
+	 * @param string|array|int $assignedUser User id
+	 * @param string           $private      Sharing type
+	 * @param bool             $onlyAdmin    Show only admin users
+	 * @param bool             $roles
 	 *
 	 * @return array
 	 */
 	public function getUsers($addBlank = false, $status = 'Active', $assignedUser = '', $private = '', $onlyAdmin = false, $roles = false)
 	{
-		\App\Log::trace("Entering getUsers($addBlank,$status,$assignedUser,$private) method ...");
+		\App\Log::trace("Entering getUsers($addBlank,$status,$private) method ...");
 
 		$tempResult = $this->initUsers($status, $assignedUser, $private, $roles);
-
 		if (!\is_array($tempResult)) {
 			return [];
 		}
@@ -371,6 +374,7 @@ class Owner
 			$subQuery = (new \App\Db\Query())->select(['groupid'])->from('vtiger_group2modules')->where(['tabid' => $tabId]);
 			$query->where(['groupid' => $subQuery]);
 		}
+
 		if ('private' === $private) {
 			$query->andWhere(['groupid' => $this->currentUser->getId()]);
 			if ($this->currentUser->getGroups()) {
@@ -644,7 +648,7 @@ class Owner
 		$userLabel = false;
 		if (\App\Config::performance('ENABLE_CACHING_USERS')) {
 			$users = \App\PrivilegeFile::getUser('id');
-			foreach ($users as $uid => &$user) {
+			foreach ($users as $uid => $user) {
 				self::$userLabelCache[$uid] = $user['fullName'];
 				self::$ownerLabelCache[$uid] = $user['fullName'];
 			}

@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 /**
@@ -19,14 +19,19 @@ class Users_Privileges_Model extends Users_Record_Model
 	 *
 	 * @return string - Entity Display Name for the record
 	 */
-	public function getName()
+	public function getName(): string
 	{
-		$entityData = \App\Module::getEntityInfo('Users');
-		$colums = [];
-		foreach ($entityData['fieldnameArr'] as $fieldname) {
-			$colums[] = $this->get($fieldname);
+		if (!isset($this->label)) {
+			$entityData = \App\Module::getEntityInfo('Users');
+			$separator = $entityData['separator'] ?? ' ';
+			$labelName = [];
+			foreach ($entityData['fieldnameArr'] as $columnName) {
+				$fieldModel = $this->getModule()->getFieldByColumn($columnName);
+				$labelName[] = $fieldModel->getDisplayValue($this->get($fieldModel->getName()), $this->getId(), $this, true);
+			}
+			$this->label = \App\Purifier::encodeHtml(implode($separator, $labelName));
 		}
-		return implode(' ', $colums);
+		return $this->label;
 	}
 
 	/**
@@ -60,9 +65,9 @@ class Users_Privileges_Model extends Users_Record_Model
 	 */
 	public function hasGlobalReadPermission()
 	{
-		return $this->isAdminUser() ||
-			Settings_Profiles_Module_Model::IS_PERMITTED_VALUE === $this->getGlobalReadPermission() ||
-			Settings_Profiles_Module_Model::IS_PERMITTED_VALUE === $this->getGlobalWritePermission();
+		return $this->isAdminUser()
+			|| Settings_Profiles_Module_Model::IS_PERMITTED_VALUE === $this->getGlobalReadPermission()
+			|| Settings_Profiles_Module_Model::IS_PERMITTED_VALUE === $this->getGlobalWritePermission();
 	}
 
 	/**
@@ -120,7 +125,7 @@ class Users_Privileges_Model extends Users_Record_Model
 			$mixed = 1;
 		}
 		$moduleModel = Vtiger_Module_Model::getInstance($mixed);
-		return $moduleModel->isActive() && (($this->isAdminUser() || (isset($profileTabsPermissions[$moduleModel->getId()][$actionId]) && Settings_Profiles_Module_Model::IS_PERMITTED_VALUE === $profileTabsPermissions[$moduleModel->getId()][$actionId])));
+		return $moduleModel->isActive() && $this->hasModulePermission($mixed) && (($this->isAdminUser() || (isset($profileTabsPermissions[$moduleModel->getId()][$actionId]) && Settings_Profiles_Module_Model::IS_PERMITTED_VALUE === $profileTabsPermissions[$moduleModel->getId()][$actionId])));
 	}
 
 	/**
@@ -137,7 +142,7 @@ class Users_Privileges_Model extends Users_Record_Model
 			$instance->{$key} = $value;
 		}
 		$instance->setData($valueMap);
-
+		$instance->setModule('Users');
 		return $instance;
 	}
 
@@ -156,7 +161,6 @@ class Users_Privileges_Model extends Users_Record_Model
 		if (empty($userId)) {
 			return null;
 		}
-
 		if (isset(self::$userPrivilegesModelCache[$userId])) {
 			return self::$userPrivilegesModelCache[$userId];
 		}
@@ -165,8 +169,8 @@ class Users_Privileges_Model extends Users_Record_Model
 			$valueMap = array_merge($valueMap, $valueMap['user_info']);
 		}
 		$instance = self::getInstance($valueMap);
+		$instance->setId($userId);
 		self::$userPrivilegesModelCache[$userId] = $instance;
-
 		return $instance;
 	}
 
@@ -270,56 +274,6 @@ class Users_Privileges_Model extends Users_Record_Model
 	public static function isPermittedByUserId($userId, $moduleName, $actionName = '', $record = false)
 	{
 		return \App\Privilege::isPermitted($moduleName, $actionName, $record, $userId);
-	}
-
-	/**
-	 * Function to get set Shared Owner Recursively.
-	 *
-	 * @param mixed $recordId
-	 * @param mixed $moduleName
-	 */
-	public static function getSharedRecordsRecursively($recordId, $moduleName)
-	{
-		\App\Log::trace('Entering Into getSharedRecordsRecursively( ' . $recordId . ', ' . $moduleName . ')');
-		$db = \App\Db::getInstance();
-		$modulesSchema = [];
-		$modulesSchema[$moduleName] = [];
-		$modulesSchema['Accounts'] = [
-			'Contacts' => ['key' => 'contactid', 'table' => 'vtiger_contactdetails', 'relfield' => 'parentid'],
-			'Campaigns' => ['key' => 'campaignid', 'table' => 'vtiger_campaign_records', 'relfield' => 'crmid'],
-			'Project' => ['key' => 'projectid', 'table' => 'vtiger_project', 'relfield' => 'linktoaccountscontacts'],
-			'HelpDesk' => ['key' => 'ticketid', 'table' => 'vtiger_troubletickets', 'relfield' => 'parent_id'],
-		];
-		$modulesSchema['Project'] = [
-			'ProjectMilestone' => ['key' => 'projectmilestoneid', 'table' => 'vtiger_projectmilestone', 'relfield' => 'projectid'],
-			'ProjectTask' => ['key' => 'projecttaskid', 'table' => 'vtiger_projecttask', 'relfield' => 'projectid'],
-		];
-		$modulesSchema['HelpDesk'] = [
-			'OSSTimeControl' => ['key' => 'osstimecontrolid', 'table' => 'vtiger_osstimecontrol', 'relfield' => 'link'],
-		];
-		$data = [];
-		$query = null;
-		foreach ($modulesSchema[$moduleName] as $key => $module) {
-			$subQuery = (new \App\Db\Query())->select(['id' => $module['key'], 'module' => new yii\db\Expression($db->quoteValue($key))])
-				->from($module['table'])
-				->where([$module['relfield'] => $recordId]);
-			if ($query) {
-				$query->union($subQuery);
-			} else {
-				$query = $subQuery;
-			}
-		}
-		if ($query) {
-			$dataReader = $query->createCommand()->query();
-			while ($row = $dataReader->read()) {
-				$data = array_merge($data, self::getSharedRecordsRecursively($row['id'], $row['module']));
-				$data[$row['module']][] = $row['id'];
-			}
-			$dataReader->close();
-		}
-		\App\Log::trace('Exiting getSharedRecordsRecursively()');
-
-		return $data;
 	}
 
 	/**

@@ -4,32 +4,26 @@
  *
  * @package   Model
  *
- * @copyright YetiForce Sp. z o.o.
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Rafal Pospiech <r.pospiech@yetiforce.com>
  */
 class Settings_SlaPolicy_Record_Model extends Settings_Vtiger_Record_Model
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getId()
 	{
 		return $this->get('id');
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	protected function setId($id)
 	{
 		$this->set('id', $id);
 		return $this;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getName()
 	{
 		return $this->get('name');
@@ -109,6 +103,7 @@ class Settings_SlaPolicy_Record_Model extends Settings_Vtiger_Record_Model
 		$data['reaction_time'] = \App\Purifier::purifyByType($data['reaction_time'], 'TimePeriod');
 		$data['idle_time'] = \App\Purifier::purifyByType($data['idle_time'], 'TimePeriod');
 		$data['resolve_time'] = \App\Purifier::purifyByType($data['resolve_time'], 'TimePeriod');
+		$data['available_for_record_time_count'] = \App\Purifier::purifyByType($data['available_for_record_time_count'], 'Bool');
 		if ($data['business_hours']) {
 			$data['business_hours'] = explode(',', $data['business_hours']);
 			foreach ($data['business_hours'] as $index => $businessHoursId) {
@@ -126,8 +121,7 @@ class Settings_SlaPolicy_Record_Model extends Settings_Vtiger_Record_Model
 	{
 		$data = static::validate($this->getData());
 		$db = \App\Db::getInstance('admin');
-		$recordId = $this->getId();
-		if ($recordId) {
+		if ($recordId = $this->getId()) {
 			$db->createCommand()->update('s_#__sla_policy', $data, ['id' => $recordId])->execute();
 		} else {
 			$db->createCommand()->insert('s_#__sla_policy', $data)->execute();
@@ -142,10 +136,11 @@ class Settings_SlaPolicy_Record_Model extends Settings_Vtiger_Record_Model
 	 */
 	public function delete()
 	{
-		return \App\Db::getInstance('admin')->createCommand()
+		$result = \App\Db::getInstance('admin')->createCommand()
 			->delete('s_#__sla_policy', ['id' => $this->getId()])
 			->execute();
 		\App\Cache::clear();
+		return $result;
 	}
 
 	/**

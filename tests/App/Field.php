@@ -1,14 +1,20 @@
 <?php
 /**
- * Field test class.
+ * Field test file.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package   Tests
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Sławomir Kłos <s.klos@yetiforce.com>
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
 namespace Tests\App;
 
+/**
+ * Field test class.
+ */
 class Field extends \Tests\Base
 {
 	/**
@@ -50,8 +56,6 @@ class Field extends \Tests\Base
 	/**
 	 * Relations modules ids provider.
 	 *
-	 * @codeCoverageIgnore
-	 *
 	 * @return array
 	 */
 	public function relationsProvider()
@@ -92,7 +96,7 @@ class Field extends \Tests\Base
 			['DataSetRegister', 'IncidentRegister'],
 			['DataSetRegister', 'AuditRegister'],
 			['LocationRegister', 'IncidentRegister'],
-			['LocationRegister', 'AuditRegister']
+			['LocationRegister', 'AuditRegister'],
 		];
 	}
 

@@ -5,9 +5,10 @@
  *
  * @package   Controller
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
 namespace App\Controller\Traits;
@@ -28,6 +29,13 @@ trait SettingsPermission
 	{
 		if (!\App\Security\AdminAccess::isPermitted($request->getModule())) {
 			throw new \App\Exceptions\NoPermittedForAdmin('LBL_PERMISSION_DENIED');
+		}
+		if (!empty(\Config\Security::$askSuperUserAboutVisitPurpose) && !\App\Session::has('showedModalVisitPurpose') && !\App\User::getCurrentUserModel()->isAdmin()) {
+			\App\Process::addEvent([
+				'name' => 'showSuperUserVisitPurpose',
+				'type' => 'modal',
+				'url' => 'index.php?module=Users&view=VisitPurpose',
+			]);
 		}
 	}
 }

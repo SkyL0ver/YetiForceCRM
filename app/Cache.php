@@ -2,10 +2,10 @@
 /**
  * Cache main file.
  *
- * @package   App
+ * @package App
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -17,8 +17,13 @@ namespace App;
  */
 class Cache
 {
+	/** @var int Long time data storage */
 	const LONG = 3600;
+
+	/** @var int Medium time data storage */
 	const MEDIUM = 300;
+
+	/** @var int Short time data storage */
 	const SHORT = 60;
 	public static $pool;
 	public static $staticPool;
@@ -107,9 +112,9 @@ class Cache
 	 *
 	 * @return bool
 	 */
-	public static function clear()
+	public static function clear(): bool
 	{
-		static::$pool->clear();
+		return static::$pool->clear();
 	}
 
 	/**
@@ -187,7 +192,11 @@ class Cache
 			return false;
 		}
 		register_shutdown_function(function () {
-			static::resetOpcache();
+			try {
+				static::resetOpcache();
+			} catch (\Throwable $e) {
+				\App\Log::error($e->getMessage() . PHP_EOL . $e->__toString());
+			}
 		});
 		return static::$clearOpcache = true;
 	}
@@ -253,7 +262,7 @@ class Cache
 		}
 		foreach ([ROOT_DIRECTORY . '/cache', \App\Fields\File::getTmpPath()] as $dir) {
 			foreach ((new \DirectoryIterator($dir)) as $item) {
-				if ($item->isFile() && 'index.html' !== $item->getBasename()) {
+				if ($item->isFile() && 'index.html' !== $item->getBasename() && $item->getMTime() < $time && $item->getATime() < $time) {
 					$s += $item->getSize();
 					unlink($item->getPathname());
 					++$i;

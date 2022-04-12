@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Vtiger_Url_UIType extends Vtiger_Base_UIType
@@ -59,6 +59,9 @@ class Vtiger_Url_UIType extends Vtiger_Base_UIType
 	/** {@inheritdoc} */
 	public function getDisplayValue($value, $record = false, $recordModel = false, $rawText = false, $length = false)
 	{
+		if (empty($value)) {
+			return '';
+		}
 		$rawValue = $value;
 		$value = \App\Purifier::encodeHtml($value);
 		preg_match('^[\\w]+:\\/\\/^', $value, $matches);

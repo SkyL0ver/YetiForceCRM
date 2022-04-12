@@ -3,8 +3,10 @@
 /**
  * UIType MultiReferenceValue Field Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package   UIType
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -132,13 +134,15 @@ class Vtiger_MultiReferenceValue_UIType extends Vtiger_Base_UIType
 	 */
 	public static function setRecordToCron($moduleName, $destModule, $recordId, $type = 1)
 	{
-		\App\Db::getInstance()->createCommand()->insert('s_#__multireference', ['source_module' => $moduleName, 'dest_module' => $destModule, 'lastid' => $recordId, 'type' => $type])->execute();
+		$data = ['source_module' => $moduleName, 'dest_module' => $destModule, 'lastid' => $recordId, 'type' => $type];
+		if(!(new \App\Db\Query())->from('s_#__multireference')->where($data)->exists()){
+			\App\Db::getInstance()->createCommand()->insert('s_#__multireference', $data)->execute();
+		}
 	}
 
 	/**
 	 * Update the value for relation.
 	 *
-	 * @param string $sourceModule Source module name
 	 * @param int    $sourceRecord Source record
 	 */
 	public function reloadValue($sourceRecord)
@@ -203,5 +207,33 @@ class Vtiger_MultiReferenceValue_UIType extends Vtiger_Base_UIType
 	public function getQueryOperators()
 	{
 		return ['e', 'n', 'y', 'ny'];
+	}
+
+	/** {@inheritdoc} */
+	public function delete()
+	{
+		$db = \App\Db::getInstance();
+		$fieldModel = $this->getFieldModel();
+		$moduleName = $fieldModel->getModuleName();
+		$destModule = $fieldModel->getFieldParams()['module'] ?? '';
+
+		$db->createCommand()->delete('s_#__multireference', ['source_module' => $moduleName, 'dest_module' => $destModule])->execute();
+
+		\App\Cache::delete('mrvfbm', "{$moduleName},{$destModule}");
+		\App\Cache::delete('getMultiReferenceModules', $destModule);
+
+		$tabIds = (new \App\Db\Query())
+			->select(['fieldid', 'tabid'])
+			->from('vtiger_field')
+			->where(['and',	['<>', 'presence', 1], ['uitype' => $fieldModel->getUIType()],	['and', ['like', 'fieldparams', '"field":"' . $fieldModel->getId() . '"']]
+			])->createCommand()->queryAllByGroup();
+		foreach ($tabIds as $fieldId => $tabId) {
+			$sourceModule = \App\Module::getModuleName($tabId);
+			$db->createCommand()->update('vtiger_field', ['presence' => 1], ['fieldid' => $fieldId])->execute();
+			\App\Cache::delete('mrvfbm', "{$sourceModule},{$moduleName}");
+			\App\Cache::delete('getMultiReferenceModules', $moduleName);
+		}
+
+		parent::delete();
 	}
 }

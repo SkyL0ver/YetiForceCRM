@@ -6,11 +6,21 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 
 class Vtiger_DashBoard_Model extends \App\Base
 {
+	/**
+	 * Get widget special.
+	 *
+	 * @return string[]
+	 */
+	public static function getWidgetSpecial(): array
+	{
+		return ['ChartFilter', 'MiniList', 'Notebook', 'Rss', 'Multifilter', 'Multifilter', 'UpcomingEvents'];
+	}
+
 	/**
 	 * Function to get Module instance.
 	 *
@@ -221,7 +231,7 @@ class Vtiger_DashBoard_Model extends \App\Base
 		$dataReader = $query->createCommand()->query();
 		$modules = [];
 		while ($row = $dataReader->read()) {
-			$tabId = $row['module'] ? $row['module'] : $row['tabid'];
+			$tabId = $row['module'] ?: $row['tabid'];
 			if (!isset($modules[$tabId])) {
 				$modules[$tabId] = \App\Module::getModuleName($tabId);
 			}

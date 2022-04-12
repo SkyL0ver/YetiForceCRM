@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 /**
@@ -59,8 +59,6 @@ class Vtiger_Paging_Model extends \App\Base
 			if (empty($pageLimit)) {
 				$pageLimit = self::PAGE_LIMIT;
 			}
-		} elseif (0 === $pageLimit) {
-			$pageLimit = self::PAGE_MAX_LIMIT;
 		}
 		return (int) $pageLimit;
 	}

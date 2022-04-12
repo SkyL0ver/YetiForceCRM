@@ -5,8 +5,10 @@ namespace App;
 /**
  * Privilege basic class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -72,12 +74,6 @@ class Privilege
 		$permission = false;
 		$tabId = Module::getModuleId($moduleName);
 		if ('Settings' !== Request::_get('parent')) {
-			if ('Home' === $moduleName) {
-				//These modules dont have security right now
-				static::$isPermittedLevel = 'SEC_MODULE_DONT_HAVE_SECURITY_RIGHT';
-				\App\Log::trace('Exiting isPermitted method ... - yes');
-				return true;
-			}
 			if ('Users' === $moduleName && $record == \App\User::getCurrentUserId()) {
 				static::$isPermittedLevel = 'SEC_IS_CURRENT_USER';
 				\App\Log::trace('Exiting isPermitted method ... - yes');
@@ -131,7 +127,7 @@ class Privilege
 			} else {
 				$permission = false;
 			}
-			static::$isPermittedLevel = 'SEC_USER_IS_ADMIN' . ($permission ? 'YES' : 'NO');
+			static::$isPermittedLevel = 'SEC_NO_ACTION_MODULE_PERMISSIONS' . ($permission ? 'YES' : 'NO');
 			\App\Log::trace('Exiting isPermitted method ... - ' . static::$isPermittedLevel);
 			return $permission;
 		}
@@ -176,8 +172,8 @@ class Privilege
 		}
 		//Checking and returning true if recorid is null
 		if (empty($record)) {
-			static::$isPermittedLevel = 'SEC_RECORID_IS_NULL';
-			\App\Log::trace('Exiting isPermitted method ... - SEC_RECORID_IS_NULL');
+			static::$isPermittedLevel = 'SEC_RECORD_ID_IS_NULL';
+			\App\Log::trace('Exiting isPermitted method ... - SEC_RECORD_ID_IS_NULL');
 			return true;
 		}
 		//If modules is Products,Vendors,Faq,PriceBook then no sharing
@@ -208,8 +204,8 @@ class Privilege
 			}
 			return false;
 		}
-		if (\App\Config::security('PERMITTED_BY_PRIVATE_FIELD') && $recordMetaData['private'] &&
-			($fieldInfo = \App\Field::getFieldInfo('private', $recordMetaData['setype'])) && \in_array($fieldInfo['presence'], [0, 2])) {
+		if (\App\Config::security('PERMITTED_BY_PRIVATE_FIELD') && $recordMetaData['private']
+			&& ($fieldInfo = \App\Field::getFieldInfo('private', $recordMetaData['setype'])) && \in_array($fieldInfo['presence'], [0, 2])) {
 			$level = 'SEC_PRIVATE_RECORD_NO';
 			$isPermittedPrivateRecord = false;
 			$recOwnId = $recordMetaData['smownerid'];

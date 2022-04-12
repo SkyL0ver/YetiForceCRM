@@ -7,8 +7,8 @@
  *
  * @package Integration
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Arkadiusz Dudek <a.dudek@yetiforce.com>
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
@@ -125,7 +125,7 @@ abstract class Base
 		'1' => 'Mr.',
 		'2' => 'Mrs.',
 	];
-	
+
 	/**
 	 * Contacts_gender map.
 	 *
@@ -267,7 +267,7 @@ abstract class Base
 						if (isset(static::${$parsedFieldName}[$fieldParsed])) {
 							$fieldParsed = static::${$parsedFieldName}[$fieldParsed] ?? $fieldParsed;
 						} else {
-							$fieldInstance = \Vtiger_Field_Model::getInstance($parsedFieldName, \Vtiger_Module_Model::getInstance($this->moduleName));
+							$fieldInstance = \Vtiger_Module_Model::getInstance($this->moduleName)->getFieldByName($parsedFieldName);
 							$fieldInstance->setNoRolePicklistValues([trim($fieldParsedValue)]);
 						}
 						break;

@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce Sp. z o.o.
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 
 class Settings_Picklist_Field_Model extends Vtiger_Field_Model
@@ -16,7 +16,7 @@ class Settings_Picklist_Field_Model extends Vtiger_Field_Model
 	 *
 	 * @return bool
 	 */
-	public function isEditable()
+	public function isEditable(): bool
 	{
 		$nonEditablePickListValues = ['duration_minutes', 'payment_duration', 'recurring_frequency', 'visibility'];
 		if (!\in_array($this->get('displaytype'), [1, 10]) || !\in_array($this->get('presence'), [0, 2]) || \in_array($this->getName(), $nonEditablePickListValues) || ('picklist' !== $this->getFieldDataType() && 'multipicklist' !== $this->getFieldDataType()) || 'Users' === $this->getModuleName()) {
@@ -37,7 +37,6 @@ class Settings_Picklist_Field_Model extends Vtiger_Field_Model
 	{
 		if (!$this->isRoleBased()) {
 			$fieldModel = new Vtiger_Field_Model();
-
 			return $fieldModel->getPicklistValues();
 		}
 		$intersectionMode = false;
@@ -67,17 +66,16 @@ class Settings_Picklist_Field_Model extends Vtiger_Field_Model
 			$pickListValues[] = \App\Purifier::decodeHtml(\App\Purifier::decodeHtml($row[$fieldName]));
 		}
 		$dataReader->close();
-
 		return $pickListValues;
 	}
 
 	/**
 	 * Function to get instance.
 	 *
-	 * @param string $value  - fieldname or fieldid
-	 * @param <type> $module - optional - module instance
+	 * @param string|int                                              $value  fieldname or fieldid
+	 * @param Settings_Picklist_Module_Model|Vtiger_Module_Model|bool $module module instance
 	 *
-	 * @return <Vtiger_Field_Model>
+	 * @return self
 	 */
 	public static function getInstance($value, $module = false)
 	{
@@ -115,8 +113,8 @@ class Settings_Picklist_Field_Model extends Vtiger_Field_Model
 	 */
 	public function validate($value, $id = false)
 	{
-		if (preg_match('/[\<\>\"\#\,]/', $value)) {
-			throw new \App\Exceptions\AppException(\App\Language::translateArgs('ERR_SPECIAL_CHARACTERS_NOT_ALLOWED', 'Other.Exceptions', '<>"#,'), 512);
+		if (preg_match('/[\<\>\"\#]/', $value)) {
+			throw new \App\Exceptions\AppException(\App\Language::translateArgs('ERR_SPECIAL_CHARACTERS_NOT_ALLOWED', 'Other.Exceptions', '<>"#'), 512);
 		}
 		if ($this->get('maximumlength') && \strlen($value) > $this->get('maximumlength')) {
 			throw new \App\Exceptions\AppException(\App\Language::translate('ERR_EXCEEDED_NUMBER_CHARACTERS', 'Other.Exceptions'), 512);

@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 
 namespace vtlib;
@@ -46,8 +46,6 @@ class Module extends ModuleBasic
 	 * @param mixed $functionName
 	 * @param mixed $fieldName
 	 * @param mixed $fields
-	 *
-	 * @internal Creates table vtiger_crmentityrel if it does not exists
 	 */
 	public function setRelatedList($moduleInstance, $label = '', $actions = false, $functionName = 'getRelatedList', $fieldName = null, $fields = [])
 	{
@@ -330,6 +328,12 @@ class Module extends ModuleBasic
 		$fire = self::fireEvent($moduleName, $eventType);
 		if ($fire) {
 			\App\Db::getInstance()->createCommand()->update('vtiger_tab', ['presence' => $enableDisable], ['name' => $moduleName])->execute();
+			$tabId = \App\Module::getModuleId($moduleName);
+			\App\Cache::delete('moduleTabByName', $moduleName);
+			\App\Cache::delete('moduleTabById', $tabId);
+			\App\Cache::delete('moduleTabs', 'all');
+			\App\Cache::staticDelete('module', $moduleName);
+			\App\Cache::staticDelete('module', $tabId);
 			\App\Module::createModuleMetaFile();
 			\Settings_GlobalPermission_Record_Model::recalculate();
 			$menuRecordModel = new \Settings_Menu_Record_Model();

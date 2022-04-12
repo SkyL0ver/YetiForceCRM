@@ -5,8 +5,10 @@ namespace App\Fields;
 /**
  * Picklist class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
@@ -39,7 +41,6 @@ class Picklist
 				$fldVal[] = \App\Purifier::decodeHtml($row[$fieldName]);
 			}
 		}
-
 		return $fldVal;
 	}
 
@@ -231,7 +232,7 @@ class Picklist
 			$sourceValue = \App\Purifier::decodeHtml($row['sourcevalue']);
 			$targetValues = \App\Purifier::decodeHtml($row['targetvalues']);
 			$unserializedTargetValues = \App\Json::decode(html_entity_decode($targetValues));
-			$criteria = \App\Purifier::decodeHtml($row['criteria']);
+			$criteria = \App\Purifier::decodeHtml($row['criteria'] ?? '');
 			$unserializedCriteria = \App\Json::decode(html_entity_decode($criteria));
 
 			if (!empty($unserializedCriteria) && null !== $unserializedCriteria['fieldname']) {

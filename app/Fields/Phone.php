@@ -2,8 +2,10 @@
 /**
  * Tools for phone class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -77,30 +79,5 @@ class Phone
 			\App\Log::info($e->getMessage(), __CLASS__);
 		}
 		throw new \App\Exceptions\FieldException('LBL_INVALID_PHONE_NUMBER');
-	}
-
-	/**
-	 * Get proper number.
-	 *
-	 * @param string   $numberToCheck
-	 * @param int|null $userId
-	 *
-	 * @return false|string Return false if wrong number
-	 */
-	public static function getProperNumber(string $numberToCheck, ?int $userId = null)
-	{
-		if (null === $userId) {
-			$userId = \App\User::getCurrentUserId();
-		}
-		$returnVal = false;
-		if (static::getDetails($numberToCheck)) {
-			$returnVal = $numberToCheck;
-		} else {
-			$country = \App\User::getUserModel($userId)->getDetail('sync_carddav_default_country');
-			if (!empty($country) && ($phoneDetails = static::getDetails($numberToCheck, Country::getCountryCode($country))) && isset($phoneDetails['number'])) {
-				$returnVal = $phoneDetails['number'];
-			}
-		}
-		return $returnVal;
 	}
 }

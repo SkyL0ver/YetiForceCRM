@@ -3,17 +3,20 @@
 /**
  * Widget as a chart with a filter.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package Dashboard
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Tomasz Kur <t.kur@yetiforce.com>
+ * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 class Vtiger_ChartFilter_Dashboard extends Vtiger_IndexAjax_View
 {
+	/** {@inheritdoc} */
 	public function process(App\Request $request, $widget = null)
 	{
 		$viewer = $this->getViewer($request);
 		$moduleName = $request->getModule();
-		// Initialize Widget to the right-state of information
 		if ($widget && !$request->has('widgetid')) {
 			$widgetId = $widget->get('id');
 		} else {
@@ -41,9 +44,6 @@ class Vtiger_ChartFilter_Dashboard extends Vtiger_IndexAjax_View
 		$viewer->assign('CHART_COLORS_FROM_FILTERS', $chartFilterWidgetModel->areColorsFromFilter() ? 1 : 0);
 		$viewer->assign('SEARCH_DETAILS', $searchParams);
 		$viewer->assign('CHART_DATA', $chartFilterWidgetModel->getChartData());
-		if ($owners = $chartFilterWidgetModel->getRowsOwners()) {
-			$viewer->assign('CHART_OWNERS', $owners);
-		}
 		if ($request->has('content')) {
 			$viewer->view('dashboards/ChartFilterContents.tpl', $moduleName);
 		} else {

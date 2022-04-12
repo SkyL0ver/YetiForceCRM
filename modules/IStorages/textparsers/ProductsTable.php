@@ -3,9 +3,10 @@
 /**
  * IStorages storage products table parser class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ * @author Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 class IStorages_ProductsTable_Textparser extends \App\TextParser\Base
 {
@@ -26,9 +27,7 @@ class IStorages_ProductsTable_Textparser extends \App\TextParser\Base
 		$relationModuleName = 'Products';
 		$relationListView = \Vtiger_RelationListView_Model::getInstance($this->textParser->recordModel, $relationModuleName);
 		$productModel = $relationListView->getRelatedModuleModel();
-		$pagingModel = new \Vtiger_Paging_Model();
-		$pagingModel->set('limit', 0);
-		$entries = $relationListView->getEntries($pagingModel);
+		$entries = $relationListView->getAllEntries();
 		// Gets sum of products quantity in current storage
 		$productsQty = [];
 		$dataReader = (new App\Db\Query())->select(['qtyinstock' => new yii\db\Expression('SUM(qtyinstock)'), 'relcrmid'])

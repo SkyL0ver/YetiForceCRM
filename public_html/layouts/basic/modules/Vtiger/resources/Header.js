@@ -5,7 +5,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  *************************************************************************************/
 'use strict';
 
@@ -404,21 +404,25 @@ $.Class(
 		},
 		registerSiteBarButton(container) {
 			const key = 'ShowHideRightPanel' + app.getModuleName();
-			if (app.cacheGet(key) == 'show') {
+			let cache = !container.find('.toggleSiteBarRightButton').data('nocache');
+			if (cache && app.cacheGet(key) == 'show') {
 				this.toggleSiteBar(container.find('.toggleSiteBarRightButton'));
-			} else if (app.cacheGet(key) == null) {
+			} else if (cache && app.cacheGet(key) == null) {
 				if (container.find('.siteBarRight').data('showpanel') == 1) {
 					this.toggleSiteBar(container.find('.toggleSiteBarRightButton'));
 				}
 			}
 			container.find('.toggleSiteBarRightButton').on('click', (e) => {
-				let toogleButton = $(e.currentTarget);
-				if (toogleButton.closest('.siteBarRight').hasClass('hideSiteBar')) {
-					app.cacheSet(key, 'show');
-				} else {
-					app.cacheSet(key, 'hide');
+				let toggleButton = $(e.currentTarget);
+				if (!toggleButton.data('nocache')) {
+					if (toggleButton.closest('.siteBarRight').hasClass('hideSiteBar')) {
+						app.cacheSet(key, 'show');
+					} else {
+						app.cacheSet(key, 'hide');
+					}
 				}
-				this.toggleSiteBar(toogleButton);
+
+				this.toggleSiteBar(toggleButton);
 			});
 		},
 		toggleSiteBar(toogleButton) {
@@ -431,24 +435,6 @@ $.Class(
 			$('.buttonTextHolder .dropdown-menu a').on('click', function () {
 				$(this).parents('.d-inline-block').find('.dropdown-toggle .textHolder').html($(this).text());
 			});
-		},
-		listenTextAreaChange: function () {
-			let thisInstance = this;
-			$('textarea').on('keyup', function () {
-				let elem = $(this);
-				if (!elem.data('has-scroll')) {
-					elem.data('has-scroll', true);
-					elem.on('scroll keyup', function () {
-						thisInstance.resizeTextArea($(this));
-					});
-				}
-				thisInstance.resizeTextArea($(this));
-			});
-		},
-		resizeTextArea: function (elem) {
-			elem.height(1);
-			elem.scrollTop(0);
-			elem.height(elem[0].scrollHeight - elem[0].clientHeight + elem.height());
 		},
 		registerKnowledgeBaseModal() {
 			$('.js-knowledge-base-modal').on('click', () => {
@@ -480,7 +466,6 @@ $.Class(
 				quickCreateModal = container.find('.quickCreateModules');
 			app.showNewScrollbarLeft(menuContainer, { suppressScrollX: true });
 			app.showNewScrollbar(menuContainer.find('.subMenu').last(), { suppressScrollX: true });
-			thisInstance.listenTextAreaChange();
 			thisInstance.registerFooTable(); //Enable footable
 			$('.js-clear-history').on('click', () => {
 				app.clearBrowsingHistory();
@@ -525,7 +510,7 @@ $.Class(
 		}
 	}
 );
-$(document).ready(function () {
+jQuery(function () {
 	window.addEventListener('popstate', (event) => {
 		if (event.state) {
 			window.location.href = event.state;

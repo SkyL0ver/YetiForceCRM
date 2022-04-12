@@ -5,7 +5,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce Sp. z o.o
+ * Contributor(s): YetiForce S.A.
  *************************************************************************************/
 'use strict';
 
@@ -321,11 +321,14 @@ Vtiger_Edit_Js(
 			});
 		},
 		getFreeTime: function (container) {
-			var timeStart = container.find('[name="time_start"], [data-element-name="time_start"]');
-			var timeEnd = container.find('[name="time_end"], [data-element-name="time_end"]');
-			var dateStart = container.find('[name="date_start"], [data-element-name="date_start"]');
-			var ownerId = container.find('[name="assigned_user_id"], [data-element-name="assigned_user_id"]');
-			var params = {
+			let ownerId = container.find('[name="assigned_user_id"], [data-element-name="assigned_user_id"]');
+			if (ownerId.length === 0 || !ownerId.val()) {
+				return;
+			}
+			let timeStart = container.find('[name="time_start"], [data-element-name="time_start"]');
+			let timeEnd = container.find('[name="time_end"], [data-element-name="time_end"]');
+			let dateStart = container.find('[name="date_start"], [data-element-name="date_start"]');
+			let params = {
 				module: 'Calendar',
 				action: 'GetFreeTime',
 				dateStart: dateStart.val(),
@@ -580,61 +583,6 @@ Vtiger_Edit_Js(
 				close: (event, ui) => {
 					participantsSearch.val('');
 				}
-			});
-		},
-		/**
-		 * Function validate is holiday day
-		 * @param {jQuery} form
-		 * @returns {boolean}
-		 */
-		validateHolidayDate(form) {
-			let fields = form.find('[name="date_start"], [name="due_date"]'),
-				isHoliday = false,
-				fieldHolidayArray = [],
-				aDeferred = $.Deferred();
-			$.each(fields, function (index, fieldObj) {
-				fieldHolidayArray.push(fieldObj.value);
-			});
-			AppConnector.request({
-				async: false,
-				data: {
-					module: form.find('[name="module"]').length ? form.find('[name="module"]').val() : app.getModuleName(),
-					action: 'Fields',
-					mode: 'verifyIsHolidayDate',
-					fieldName: 'date_start',
-					date: fieldHolidayArray
-				}
-			})
-				.done(function (data) {
-					if (true === data.success && true === data.result.isHolidayDate) {
-						isHoliday = true;
-					}
-					aDeferred.resolve(isHoliday);
-				})
-				.fail(function (error) {
-					aDeferred.reject(false);
-				});
-			return aDeferred.promise();
-		},
-		/**
-		 * Register pre save event
-		 * @param {jQuery} form
-		 */
-		registerRecordPreSaveEventEvent: function (form) {
-			const self = this;
-			let lockSave = true;
-			form.on(Vtiger_Edit_Js.recordPreSave, function (e, data) {
-				self.validateHolidayDate(form).done(function (isHoliday) {
-					if (lockSave && isHoliday) {
-						e.preventDefault();
-						app.showConfirmModal(app.vtranslate('JS_DATES_SELECTED_HOLIDAYS'), function (s) {
-							if (s) {
-								lockSave = false;
-								form.submit();
-							}
-						});
-					}
-				});
 			});
 		},
 		registerRow(row) {

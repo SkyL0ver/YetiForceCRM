@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Vtiger_MassActionAjax_View extends Vtiger_IndexAjax_View
@@ -19,7 +19,6 @@ class Vtiger_MassActionAjax_View extends Vtiger_IndexAjax_View
 		$this->exposeMethod('showMassEditForm');
 		$this->exposeMethod('showAddCommentForm');
 		$this->exposeMethod('showSendSMSForm');
-		$this->exposeMethod('transferOwnership');
 	}
 
 	/**
@@ -38,11 +37,6 @@ class Vtiger_MassActionAjax_View extends Vtiger_IndexAjax_View
 			throw new \App\Exceptions\NoPermitted('LBL_PERMISSION_DENIED', 406);
 		}
 		$recordStructureInstance = Vtiger_RecordStructure_Model::getInstanceForModule($moduleModel, Vtiger_RecordStructure_Model::RECORD_STRUCTURE_MODE_MASSEDIT);
-		$fieldInfo = [];
-		$fieldList = $moduleModel->getFields();
-		foreach ($fieldList as $fieldName => $fieldModel) {
-			$fieldInfo[$fieldName] = $fieldModel->getFieldInfo();
-		}
 		$picklistDependencyDatasource = \App\Fields\Picklist::getPicklistDependencyDatasource($moduleName);
 
 		$viewer->assign('PICKIST_DEPENDENCY_DATASOURCE', \App\Json::encode($picklistDependencyDatasource));
@@ -54,7 +48,6 @@ class Vtiger_MassActionAjax_View extends Vtiger_IndexAjax_View
 		$viewer->assign('EXCLUDED_IDS', $request->getArray('excluded_ids', 2));
 		$viewer->assign('RECORD_STRUCTURE_MODEL', $recordStructureInstance);
 		$viewer->assign('MODULE_MODEL', $moduleModel);
-		$viewer->assign('MASS_EDIT_FIELD_DETAILS', $fieldInfo);
 		$viewer->assign('RECORD_STRUCTURE', $recordStructureInstance->getStructure());
 		$viewer->assign('USER_MODEL', Users_Record_Model::getCurrentUserModel());
 		$viewer->assign('MODULE_MODEL', $moduleModel);
@@ -79,8 +72,8 @@ class Vtiger_MassActionAjax_View extends Vtiger_IndexAjax_View
 		$sourceModule = $request->getModule();
 		$moduleName = 'ModComments';
 		$moduleModel = Vtiger_Module_Model::getInstance($sourceModule);
-		$currentUserPriviligesModel = Users_Privileges_Model::getCurrentUserPrivilegesModel();
-		if (!$currentUserPriviligesModel->hasModulePermission($sourceModule) || !($moduleModel->isCommentEnabled() && $currentUserPriviligesModel->hasModuleActionPermission($moduleName, 'EditView') && $moduleModel->isPermitted('MassAddComment'))) {
+		$userPrivilegesModel = Users_Privileges_Model::getCurrentUserPrivilegesModel();
+		if (!$userPrivilegesModel->hasModulePermission($sourceModule) || !($moduleModel->isCommentEnabled() && $userPrivilegesModel->hasModuleActionPermission($moduleName, 'CreateView') && $moduleModel->isPermitted('MassAddComment'))) {
 			throw new \App\Exceptions\NoPermitted('LBL_PERMISSION_DENIED', 406);
 		}
 		$viewer = $this->getViewer($request);
@@ -136,29 +129,5 @@ class Vtiger_MassActionAjax_View extends Vtiger_IndexAjax_View
 		$viewer->assign('SEARCH_KEY', $request->getByType('search_key', 'Alnum'));
 		$viewer->assign('SEARCH_PARAMS', App\Condition::validSearchParams($sourceModule, $request->getArray('search_params'), false));
 		$viewer->view('SendSMSForm.tpl', $moduleName);
-	}
-
-	/**
-	 * Rransfer record ownership.
-	 *
-	 * @param \App\Request $request
-	 *
-	 * @throws \App\Exceptions\NoPermitted
-	 */
-	public function transferOwnership(App\Request $request)
-	{
-		$moduleName = $request->getModule();
-		$currentUserPriviligesModel = Users_Privileges_Model::getCurrentUserPrivilegesModel();
-		if (!$currentUserPriviligesModel->hasModuleActionPermission($moduleName, 'MassTransferOwnership')) {
-			throw new \App\Exceptions\NoPermitted('LBL_PERMISSION_DENIED', 406);
-		}
-		$transferModel = Vtiger_TransferOwnership_Model::getInstance($moduleName);
-		$viewer = $this->getViewer($request);
-		$viewer->assign('MODULE', $moduleName);
-		$viewer->assign('REL_BY_FIELDS', $transferModel->getRelationsByFields());
-		$viewer->assign('REL_BY_RELATEDLIST', $transferModel->getRelationsByRelatedList());
-		$viewer->assign('SKIP_MODULES', $transferModel->getSkipModules());
-		$viewer->assign('USER_MODEL', Users_Record_Model::getCurrentUserModel());
-		$viewer->view('TransferRecordOwnership.tpl', $moduleName);
 	}
 }

@@ -5,8 +5,10 @@ namespace App\Installer;
 /**
  * Composer installer.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 class Composer
@@ -31,6 +33,7 @@ class Composer
 		'.github',
 		'.dependabot',
 		'.git',
+		'.npm',
 		'.gitattributes',
 		'.gitignore',
 		'.gitkeep',
@@ -51,6 +54,7 @@ class Composer
 		'readme.md',
 		'security.md',
 		'upgrade.md',
+		'doc',
 		'docs',
 		'demo',
 		'examples',
@@ -65,6 +69,7 @@ class Composer
 		'sample',
 		'samples',
 		'todo',
+		'tutorial',
 		'test',
 		'tests',
 		'whatsnew',
@@ -95,6 +100,8 @@ class Composer
 		'crowdin.yml',
 		'sonar-project.properties',
 		'whitesource.config.json',
+		'changelog.htm',
+		'FAQ.htm',
 	];
 	/**
 	 * Clear vendor files.
@@ -104,40 +111,44 @@ class Composer
 	public static $clearVendorFiles = [
 		'dg/rss-php' => [
 			'example-atom.php',
-			'example-rss.php'
+			'example-rss.php',
 		],
 		'ezyang/htmlpurifier' => [
-			'plugins'
+			'plugins',
 		],
 		'illuminate/support' => [
-			'debug'
+			'debug',
 		],
 		'phpoffice/phpspreadsheet' => [
-			'bin'
+			'bin',
 		],
 		'sabre/dav' => [
-			'bin'
+			'bin',
 		],
 		'sabre/event' => [
-			'bin'
+			'bin',
 		],
 		'sabre/http' => [
-			'bin'
+			'bin',
 		],
 		'sabre/vobject' => [
-			'bin'
+			'bin',
 		],
 		'sabre/xml' => [
-			'bin'
+			'bin',
 		],
 		'sonata-project/google-authenticator' => [
-			'makefile'
+			'makefile',
 		],
 		'symfony/console' => [
-			'resources'
+			'resources',
 		],
 		'yetiforce/yii2' => [
-			'yii'
+			'yii',
+		],
+		'twig/twig' => [
+			'doc',
+			'drupal_test.sh',
 		],
 	];
 	/**
@@ -146,7 +157,7 @@ class Composer
 	 * @var array
 	 */
 	public static $copyDirectories = [
-		'public_html/libraries/ckeditor-image-to-base' => 'public_html/vendor/ckeditor/ckeditor/plugins/ckeditor-image-to-base'
+		'public_html/libraries/ckeditor-image-to-base' => 'public_html/vendor/ckeditor/ckeditor/plugins/ckeditor-image-to-base',
 	];
 
 	/**
@@ -154,7 +165,7 @@ class Composer
 	 *
 	 * @param \Composer\Script\Event $event
 	 */
-	public static function install(\Composer\Script\Event $event)
+	public static function install(\Composer\Script\Event $event): void
 	{
 		$rootDir = realpath(__DIR__ . '/../../');
 		if (!\defined('ROOT_DIRECTORY')) {
@@ -164,7 +175,7 @@ class Composer
 		static::clear();
 		$event->getComposer();
 		if (isset($_SERVER['SENSIOLABS_EXECUTION_NAME'])) {
-			return true;
+			return;
 		}
 		$publicDir = $rootDir . \DIRECTORY_SEPARATOR . 'public_html' . \DIRECTORY_SEPARATOR;
 		$types = ['js', 'css', 'woff', 'woff2', 'ttf', 'png', 'gif', 'jpg', 'json'];
@@ -202,7 +213,7 @@ class Composer
 	/**
 	 * Parse credits vue.
 	 */
-	public static function parseCreditsVue()
+	public static function parseCreditsVue(): void
 	{
 		$rootDir = realpath(__DIR__ . '/../../') . \DIRECTORY_SEPARATOR;
 		$dirLibraries = $rootDir . 'public_html' . \DIRECTORY_SEPARATOR . 'src' . \DIRECTORY_SEPARATOR . 'node_modules' . \DIRECTORY_SEPARATOR;
@@ -222,7 +233,7 @@ class Composer
 	/**
 	 * Custom copy.
 	 */
-	public static function customCopy()
+	public static function customCopy(): void
 	{
 		$list = '';
 		foreach (static::$copyDirectories as $src => $dest) {
@@ -238,8 +249,11 @@ class Composer
 	/**
 	 * Delete redundant files.
 	 */
-	public static function clear()
+	public static function clear(): void
 	{
+		if ('TEST' === getenv('INSTALL_MODE')) {
+			return;
+		}
 		$rootDir = realpath(__DIR__ . '/../../') . \DIRECTORY_SEPARATOR . 'vendor' . \DIRECTORY_SEPARATOR;
 		$objects = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($rootDir), \RecursiveIteratorIterator::SELF_FIRST);
 		$deleted = [];

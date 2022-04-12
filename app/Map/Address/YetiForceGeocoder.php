@@ -5,8 +5,10 @@
  *
  * The file is part of the paid functionality. Using the file is allowed only after purchasing a subscription. File modification allowed only with the consent of the system producer.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -17,41 +19,31 @@ namespace App\Map\Address;
  */
 class YetiForceGeocoder extends Base
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public $docUrl = 'index.php?module=YetiForce&parent=Settings&view=Shop&product=YetiForceGeocoder&mode=showProductModal';
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public $customFields = [
 		'country_codes' => [
 			'type' => 'text',
 			'info' => 'LBL_COUNTRY_CODES_INFO',
 			'link' => 'https://wikipedia.org/wiki/List_of_ISO_3166_country_codes',
-		]
+		],
 	];
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function isActive()
 	{
 		return (bool) ($this->config['active'] ?? 0) && \App\YetiForce\Shop::check('YetiForceGeocoder');
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function isConfigured()
 	{
 		return \App\YetiForce\Shop::check('YetiForceGeocoder');
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function find($value): array
 	{
 		$product = \App\YetiForce\Register::getProducts('YetiForceGeocoder');
@@ -63,7 +55,7 @@ class YetiForceGeocoder extends Base
 			'addressdetails' => 1,
 			'limit' => \App\Map\Address::getConfig()['global']['result_num'],
 			'accept-language' => \App\Language::getLanguage() . ',' . \App\Config::main('default_language') . ',en-US',
-			'q' => $value
+			'q' => $value,
 		];
 		if (!empty($this->config['country_codes'])) {
 			$params['countrycodes'] = $this->config['country_codes'];
@@ -71,8 +63,8 @@ class YetiForceGeocoder extends Base
 		$options = [
 			'timeout' => 30,
 			'headers' => [
-				'InsKey' => \App\YetiForce\Register::getInstanceKey()
-			]
+				'InsKey' => \App\YetiForce\Register::getInstanceKey(),
+			],
 		];
 		if (isset($product['params']['token'])) {
 			$params['yf_token'] = $product['params']['token'];
@@ -103,7 +95,7 @@ class YetiForceGeocoder extends Base
 					}
 					$rows[] = [
 						'label' => $row['display_name'],
-						'address' => \call_user_func_array($mappingFunction, [$row])
+						'address' => \call_user_func_array($mappingFunction, [$row]),
 					];
 				}
 			}

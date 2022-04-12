@@ -3,8 +3,10 @@
 /**
  * Loader class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 class Yii extends \yii\BaseYii
@@ -16,9 +18,7 @@ class Yii extends \yii\BaseYii
 	 */
 	public static $logToProfile;
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public static function beginProfile($token, $category = 'application')
 	{
 		if (static::$logToProfile) {
@@ -30,9 +30,7 @@ class Yii extends \yii\BaseYii
 		}
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public static function endProfile($token, $category = 'application')
 	{
 		if (static::$logToProfile) {

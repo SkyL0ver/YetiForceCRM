@@ -5,8 +5,10 @@ namespace App;
 /**
  * Event Handler main class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -18,12 +20,17 @@ class EventHandler
 	 * @var string
 	 */
 	protected static $baseTable = 'vtiger_eventhandlers';
-	private static $mandatoryEventClass = ['ModTracker_ModTrackerHandler_Handler', 'Vtiger_RecordLabelUpdater_Handler'];
+	private static $mandatoryEventClass = ['ModTracker_ModTrackerHandler_Handler'];
 	private $recordModel;
 	private $moduleName;
 	private $params;
 	private $exceptions = [];
 	private $handlers = [];
+
+	/** @var int Handler is in system mode, no editing possible */
+	public const SYSTEM = 0;
+	/** @var int Handler is in edit mode */
+	public const EDITABLE = 1;
 
 	/** @var string Edit view, validation before saving */
 	public const EDIT_VIEW_PRE_SAVE = 'EditViewPreSave';
@@ -74,6 +81,50 @@ class EventHandler
 		'EntityAfterSave' => [
 			'label' => 'LBL_ENTITY_AFTER_SAVE',
 			'icon' => 'far fa-save',
+			'columns' => [
+				'eventName' => ['label' => 'LBL_EVENT_NAME'],
+				'eventDescription' => ['label' => 'LBL_EVENT_DESC'],
+				'modules' => ['label' => 'LBL_INCLUDE_MODULES'],
+				'modulesExcluded' => ['label' => 'LBL_EXCLUDE_MODULES'],
+				'active' => ['label' => 'LBL_EVENT_IS_ACTIVE'],
+			],
+		],
+		'DetailViewBefore' => [
+			'label' => 'LBL_DETAIL_VIEW_BEFORE',
+			'icon' => 'mdi mdi-account-details c-mdi',
+			'columns' => [
+				'eventName' => ['label' => 'LBL_EVENT_NAME'],
+				'eventDescription' => ['label' => 'LBL_EVENT_DESC'],
+				'modules' => ['label' => 'LBL_INCLUDE_MODULES'],
+				'modulesExcluded' => ['label' => 'LBL_EXCLUDE_MODULES'],
+				'active' => ['label' => 'LBL_EVENT_IS_ACTIVE'],
+			],
+		],
+		'EditViewBefore' => [
+			'label' => 'LBL_EDIT_VIEW_BEFORE',
+			'icon' => 'yfi yfi-full-editing-view ',
+			'columns' => [
+				'eventName' => ['label' => 'LBL_EVENT_NAME'],
+				'eventDescription' => ['label' => 'LBL_EVENT_DESC'],
+				'modules' => ['label' => 'LBL_INCLUDE_MODULES'],
+				'modulesExcluded' => ['label' => 'LBL_EXCLUDE_MODULES'],
+				'active' => ['label' => 'LBL_EVENT_IS_ACTIVE'],
+			],
+		],
+		'EditViewDuplicate' => [
+			'label' => 'LBL_EDIT_VIEW_DUPLICATE',
+			'icon' => 'fas fa-clone',
+			'columns' => [
+				'eventName' => ['label' => 'LBL_EVENT_NAME'],
+				'eventDescription' => ['label' => 'LBL_EVENT_DESC'],
+				'modules' => ['label' => 'LBL_INCLUDE_MODULES'],
+				'modulesExcluded' => ['label' => 'LBL_EXCLUDE_MODULES'],
+				'active' => ['label' => 'LBL_EVENT_IS_ACTIVE'],
+			],
+		],
+		'InventoryRecordDetails' => [
+			'label' => 'LBL_INVENTORY_RECORD_DETAILS',
+			'icon' => 'fas fa-pallet',
 			'columns' => [
 				'eventName' => ['label' => 'LBL_EVENT_NAME'],
 				'eventDescription' => ['label' => 'LBL_EVENT_DESC'],
@@ -168,10 +219,11 @@ class EventHandler
 	 * @param int    $priority
 	 * @param bool   $isActive
 	 * @param int    $ownerId
+	 * @param int    $mode
 	 *
 	 * @return bool
 	 */
-	public static function registerHandler(string $eventName, string $className, $includeModules = '', $excludeModules = '', $priority = 5, $isActive = true, $ownerId = 0): bool
+	public static function registerHandler(string $eventName, string $className, $includeModules = '', $excludeModules = '', $priority = 5, $isActive = true, $ownerId = 0, $mode = 1): bool
 	{
 		$return = false;
 		$isExists = (new \App\Db\Query())->from(self::$baseTable)->where(['event_name' => $eventName, 'handler_class' => $className])->exists();
@@ -185,6 +237,7 @@ class EventHandler
 					'exclude_modules' => $excludeModules,
 					'priority' => $priority,
 					'owner_id' => $ownerId,
+					'privileges' => $mode,
 				])->execute();
 			static::clearCache();
 		}
@@ -193,8 +246,10 @@ class EventHandler
 
 	/**
 	 * Clear cache.
+	 *
+	 * @return void
 	 */
-	public static function clearCache()
+	public static function clearCache(): void
 	{
 		Cache::delete('EventHandlerByType', 'All');
 		Cache::delete('EventHandlerByType', 'All:active');
@@ -297,6 +352,7 @@ class EventHandler
 	public function setRecordModel(\Vtiger_Record_Model $recordModel)
 	{
 		$this->recordModel = $recordModel;
+		$this->moduleName = $recordModel->getModuleName();
 		return $this;
 	}
 
@@ -363,6 +419,18 @@ class EventHandler
 	public function getParams()
 	{
 		return $this->params;
+	}
+
+	/**
+	 * Get param.
+	 *
+	 * @param string $key
+	 *
+	 * @return mixed
+	 */
+	public function getParam(string $key)
+	{
+		return $this->params[$key] ?? null;
 	}
 
 	/**

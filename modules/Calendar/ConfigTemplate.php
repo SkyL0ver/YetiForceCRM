@@ -2,8 +2,8 @@
 /**
  * Calendar module config.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Arkadiusz Sołek <a.solek@yetiforce.com>
  */
 return [
@@ -93,14 +93,6 @@ return [
 	'CRON_MAX_NUMBERS_ACTIVITY_STATE' => [
 		'default' => 5000,
 		'description' => 'Max number of records to update status in cron',
-		'validation' => '\App\Validator::naturalNumber',
-		'sanitization' => function () {
-			return (int) func_get_arg(0);
-		}
-	],
-	'CRON_MAX_NUMBERS_ACTIVITY_STATS' => [
-		'default' => 5000,
-		'description' => ' Max number of records to update calendar activity fields in related modules (in cron)',
 		'validation' => '\App\Validator::naturalNumber',
 		'sanitization' => function () {
 			return (int) func_get_arg(0);

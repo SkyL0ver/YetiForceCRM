@@ -45,22 +45,7 @@ class Contacts_Record_Model extends Vtiger_Record_Model
 		];
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
-	public function delete()
-	{
-		parent::delete();
-		\App\Db::getInstance()->createCommand()->update('vtiger_customerdetails', [
-			'portal' => 0,
-			'support_start_date' => null,
-			'support_end_date' => null,
-		], ['customerid' => $this->getId()])->execute();
-	}
-
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getRecordRelatedListViewLinksLeftSide(Vtiger_RelationListView_Model $viewModel)
 	{
 		$links = parent::getRecordRelatedListViewLinksLeftSide($viewModel);

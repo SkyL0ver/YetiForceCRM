@@ -6,43 +6,12 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Calendar_DetailView_Model extends Vtiger_DetailView_Model
 {
-	/**
-	 * {@inheritdoc}
-	 */
-	public function getDetailViewRelatedLinks()
-	{
-		$recordModel = $this->getRecord();
-		$relatedLinks = [[
-			'linktype' => 'DETAILVIEWTAB',
-			'linklabel' => 'LBL_RECORD_DETAILS',
-			'linkurl' => $recordModel->getDetailViewUrl() . '&mode=showDetailViewByMode&requestMode=full',
-			'linkicon' => '',
-			'linkKey' => 'LBL_RECORD_DETAILS',
-			'related' => 'Details',
-		]];
-		$parentModuleModel = $this->getModule();
-		if ($parentModuleModel->isTrackingEnabled() && $parentModuleModel->isPermitted('ModTracker')) {
-			$relatedLinks[] = [
-				'linktype' => 'DETAILVIEWTAB',
-				'linklabel' => 'LBL_UPDATES',
-				'linkurl' => $recordModel->getDetailViewUrl() . '&mode=showRecentActivities&page=1',
-				'linkicon' => '',
-				'related' => 'ModTracker',
-				'countRelated' => App\Config::module('ModTracker', 'UNREVIEWED_COUNT') && $parentModuleModel->isPermitted('ReviewingUpdates'),
-				'badgeClass' => 'bgDanger',
-			];
-		}
-		return $relatedLinks;
-	}
-
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getDetailViewLinks(array $linkParams): array
 	{
 		$linkModelList = parent::getDetailViewLinks($linkParams);

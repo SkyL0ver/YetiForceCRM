@@ -1,4 +1,4 @@
-/* {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
+/* {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
 'use strict';
 
 jQuery.Class(
@@ -76,8 +76,13 @@ jQuery.Class(
 						container.find('button[name=saveButton]').prop('disabled', false);
 						return data['result'];
 					})
-					.fail(function () {
+					.fail(function (error, title) {
 						progress.progressIndicator({ mode: 'hide' });
+						app.showNotify({
+							title: title,
+							text: error,
+							type: 'error'
+						});
 					});
 			});
 			this.registerNewsletter();

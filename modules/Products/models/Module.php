@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Products_Module_Model extends Vtiger_Module_Model
@@ -58,5 +58,13 @@ class Products_Module_Model extends Vtiger_Module_Model
 	public function isSummaryViewSupported()
 	{
 		return false;
+	}
+
+	/** {@inheritdoc} */
+	public function getQueryForRecords(string $searchValue, int $limit, int $srcRecord = null): App\QueryGenerator
+	{
+		$queryGenerator = parent::getQueryForRecords($searchValue, $limit, $srcRecord);
+		$queryGenerator->addCondition('discontinued', 1, 'e');
+		return $queryGenerator;
 	}
 }

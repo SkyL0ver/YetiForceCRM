@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Vtiger_Percentage_UIType extends Vtiger_Base_UIType
@@ -58,7 +58,7 @@ class Vtiger_Percentage_UIType extends Vtiger_Base_UIType
 	/** {@inheritdoc} */
 	public function getQueryOperators()
 	{
-		return ['e', 'n', 'l', 'g', 'm', 'h', 'y', 'ny'];
+		return array_merge(['e', 'n', 'l', 'g', 'm', 'h', 'y', 'ny'], \App\Condition::FIELD_COMPARISON_OPERATORS);
 	}
 
 	/** {@inheritdoc} */

@@ -1,42 +1,61 @@
 <?php
 
+/**
+ * System warnings template abstract file.
+ *
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ */
+
 namespace App\SystemWarnings;
 
 /**
  * System warnings template abstract class.
- *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
- * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 abstract class Template
 {
 	/**
-	 * Status value - 2 = ignored.
+	 * Status value
+	 * 2 = ignored.
 	 *
 	 * @var int
 	 */
 	protected $statusValue = 0;
+
+	/** @var string Modal header title */
 	protected $title;
+
+	/** @var string|null Modal description */
 	protected $description;
+
+	/** @var int Warning priority code */
 	protected $priority = 0;
 	protected $color;
 	protected $status = 0;
 	protected $folder;
+
+	/** @var string|null Link URL */
 	protected $link;
+
+	/** @var bool Template flag */
 	protected $tpl = false;
 
 	/**
 	 * Checking whether there is a warning.
+	 *
+	 * @return void
 	 */
-	abstract public function process();
+	abstract public function process(): void;
 
 	/**
 	 * Whether a warning is active.
 	 *
 	 * @return bool
 	 */
-	public function preProcess()
+	public function preProcess(): bool
 	{
 		return true;
 	}
@@ -46,7 +65,7 @@ abstract class Template
 	 *
 	 * @return int
 	 */
-	public function getPriority()
+	public function getPriority(): int
 	{
 		return $this->priority;
 	}
@@ -56,7 +75,7 @@ abstract class Template
 	 *
 	 * @return string
 	 */
-	public function getTitle()
+	public function getTitle(): string
 	{
 		return $this->title;
 	}
@@ -66,7 +85,7 @@ abstract class Template
 	 *
 	 * @return string
 	 */
-	public function getColor()
+	public function getColor(): string
 	{
 		return $this->color;
 	}
@@ -110,9 +129,9 @@ abstract class Template
 	/**
 	 * Returns the warning description.
 	 *
-	 * @return string
+	 * @return string|null
 	 */
-	public function getDescription()
+	public function getDescription(): ?string
 	{
 		return $this->description;
 	}
@@ -120,9 +139,9 @@ abstract class Template
 	/**
 	 * Returns the warning link.
 	 *
-	 * @return string
+	 * @return string|null
 	 */
-	public function getLink()
+	public function getLink(): ?string
 	{
 		return $this->link;
 	}

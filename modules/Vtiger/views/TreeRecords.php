@@ -3,8 +3,10 @@
 /**
  * Basic TreeView View Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package View
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -61,9 +63,7 @@ class Vtiger_TreeRecords_View extends Vtiger_Index_View
 		$viewer->view('TreeRecordsPostProcess.tpl', $request->getModule());
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function process(App\Request $request)
 	{
 		$moduleName = $request->getModule();
@@ -77,11 +77,9 @@ class Vtiger_TreeRecords_View extends Vtiger_Index_View
 		$branches = $request->getArray('branches', 'Text');
 		$treeViewModel = Vtiger_TreeView_Model::getInstance($moduleName);
 		$field = $treeViewModel->getTreeField();
-		$pagingModel = new Vtiger_Paging_Model();
-		$pagingModel->set('limit', 0);
 		$listViewModel = Vtiger_ListView_Model::getInstance($moduleName, $filter);
 		$listViewModel->getQueryGenerator()->addCondition($field['fieldname'], implode('##', $branches), 'e');
-		$listEntries = $listViewModel->getListViewEntries($pagingModel);
+		$listEntries = $listViewModel->getAllEntries();
 		if (0 === \count($listEntries)) {
 			return;
 		}

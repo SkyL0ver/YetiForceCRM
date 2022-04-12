@@ -2,10 +2,10 @@
 /**
  * System cli file.
  *
- * @package   App
+ * @package Cli
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -24,6 +24,8 @@ class System extends Base
 		'history' => 'History of uploaded updates',
 		'update' => 'Update',
 		'checkRegStatus' => 'Check registration status',
+		'deleteRegistration' => 'Delete registration data',
+		'showProducts' => 'Show active products',
 		'reloadModule' => 'Reload modules',
 		'reloadUserPrivileges' => 'Reload users privileges',
 	];
@@ -45,7 +47,9 @@ class System extends Base
 		} else {
 			$this->climate->lightGreen('No updates');
 		}
-		$this->cli->actionsList('System');
+		if (!$this->climate->arguments->defined('action')) {
+			$this->cli->actionsList('System');
+		}
 	}
 
 	/**
@@ -164,12 +168,12 @@ class System extends Base
 			if ($packageInstance->_errorText) {
 				$this->climate->lightRed($packageInstance->_errorText);
 			} else {
-				echo $response;
+				echo $response . PHP_EOL;
 			}
 		} catch (\Throwable $th) {
 			$this->climate->lightRed($th->__toString());
 		}
-		$this->climate->lightBlue('Update time: ' . round(microtime(true) - $startTime, 2));
+		$this->climate->lightBlue('Total time: ' . round(microtime(true) - $startTime, 2));
 	}
 
 	/**
@@ -188,7 +192,40 @@ class System extends Base
 		$this->climate->border('─', 200);
 		$this->climate->bold('Provider: ' . \App\YetiForce\Register::getProvider());
 		$this->climate->border('─', 200);
-		$this->cli->actionsList('System');
+		$table = [];
+		foreach (\App\Company::getAll() as $row) {
+			$table[] = [
+				'name' => $row['name'],
+				'status' => $row['status'],
+				'type' => $row['type'],
+				'companysize' => $row['companysize'],
+				'vat_id' => $row['vat_id'],
+			];
+		}
+		$this->climate->table($table);
+		$this->climate->border('─', 200);
+		if (!$this->climate->arguments->defined('action')) {
+			$this->cli->actionsList('System');
+		}
+	}
+
+	/**
+	 * Show active products.
+	 *
+	 * @return void
+	 */
+	public function showProducts(): void
+	{
+		$table = [];
+		foreach (\App\YetiForce\Register::getProducts() as $row) {
+			$row['params'] = \App\Utils::varExport($row['params']);
+			$table[] = $row;
+		}
+		$table ? $this->climate->table($table) : $this->climate->bold('None');
+		$this->climate->border('─', 200);
+		if (!$this->climate->arguments->defined('action')) {
+			$this->cli->actionsList('System');
+		}
 	}
 
 	/**
@@ -207,7 +244,9 @@ class System extends Base
 		\App\Colors::generate();
 		$this->climate->bold('Colors');
 		$this->climate->lightYellow()->border('─', 200);
-		$this->cli->actionsList('System');
+		if (!$this->climate->arguments->defined('action')) {
+			$this->cli->actionsList('System');
+		}
 	}
 
 	/**
@@ -219,6 +258,23 @@ class System extends Base
 	{
 		$this->climate->bold('Users: ' . \App\UserPrivilegesFile::recalculateAll());
 		$this->climate->lightYellow()->border('─', 200);
-		$this->cli->actionsList('System');
+		if (!$this->climate->arguments->defined('action')) {
+			$this->cli->actionsList('System');
+		}
+	}
+
+	/**
+	 * Delete registration data.
+	 *
+	 * @return void
+	 */
+	public function deleteRegistration(): void
+	{
+		\App\Db::getInstance('admin')->createCommand()->update('s_#__companies', [
+			'status' => 0,
+			'name' => '', 'industry' => '', 'vat_id' => '', 'city' => '', 'address' => '',
+			'post_code' => '', 'country' => '', 'companysize' => '', 'website' => '', 'logo' => '',
+			'firstname' => '', 'lastname' => '', 'email' => '', 'facebook' => '', 'twitter' => '', 'linkedin' => '',
+		])->execute();
 	}
 }

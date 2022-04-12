@@ -5,9 +5,12 @@ namespace App\Conditions\QueryFields;
 /**
  * UserRole Query Field Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package UIType
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Tomasz Kur <t.kur@yetiforce.com>
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 class UserRoleField extends StringField
 {
@@ -16,7 +19,7 @@ class UserRoleField extends StringField
 	 *
 	 * @return array
 	 */
-	public function operatorE()
+	public function operatorE(): array
 	{
 		$this->queryGenerator->addJoin(['INNER JOIN', 'vtiger_user2role', 'vtiger_user2role.userid = vtiger_users.id']);
 
@@ -28,7 +31,7 @@ class UserRoleField extends StringField
 	 *
 	 * @return array
 	 */
-	public function operatorC()
+	public function operatorC(): array
 	{
 		$this->queryGenerator->addJoin(['INNER JOIN', 'vtiger_user2role', 'vtiger_user2role.userid = vtiger_users.id']);
 		$this->queryGenerator->addJoin(['INNER JOIN', 'vtiger_role', 'vtiger_role.roleid = ' . $this->getColumnName()]);
@@ -43,7 +46,7 @@ class UserRoleField extends StringField
 	 *
 	 * @return array
 	 */
-	public function getOrderBy($order = false)
+	public function getOrderBy($order = false): array
 	{
 		$this->queryGenerator->addJoin(['INNER JOIN', 'vtiger_user2role', 'vtiger_user2role.userid = vtiger_users.id']);
 		$this->queryGenerator->addJoin(['INNER JOIN', 'vtiger_role', 'vtiger_role.roleid = ' . $this->getColumnName()]);

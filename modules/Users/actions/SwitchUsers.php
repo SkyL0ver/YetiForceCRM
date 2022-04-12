@@ -3,8 +3,8 @@
 /**
  * Switch Users Action Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -51,7 +51,7 @@ class Users_SwitchUsers_Action extends \App\Controller\Action
 		$baseUserId = $currentUser->getId();
 		$userId = $request->getInteger('id');
 
-		if ($request->has('visitPurpose') && \App\Config::security('askAdminAboutVisitPurpose', true)) {
+		if ($request->has('visitPurpose') && \App\Config::security('askAdminAboutVisitSwitchUsers', true)) {
 			$db->createCommand()->insert('l_#__users_login_purpose', [
 				'userid' => $userId,
 				'datetime' => date('Y-m-d H:i:s'),

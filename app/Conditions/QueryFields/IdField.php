@@ -5,8 +5,10 @@ namespace App\Conditions\QueryFields;
 /**
  * Id Query Field Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package UIType
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 class IdField extends StringField
@@ -26,7 +28,7 @@ class IdField extends StringField
 	 *
 	 * @return string
 	 */
-	public function getColumnName()
+	public function getColumnName(): string
 	{
 		if ($this->fullColumnName) {
 			return $this->fullColumnName;
@@ -49,7 +51,7 @@ class IdField extends StringField
 	 *
 	 * @return array
 	 */
-	public function operatorA()
+	public function operatorA(): array
 	{
 		return ['>', $this->getColumnName(), $this->getValue()];
 	}

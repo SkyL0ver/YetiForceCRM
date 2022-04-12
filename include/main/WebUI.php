@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 require_once 'include/ConfigUtils.php';
 require_once 'include/utils/CommonUtils.php';
@@ -96,6 +96,7 @@ class Vtiger_WebUI extends Vtiger_EntryPoint
 		}
 		try {
 			App\Session::init();
+			App\Process::init();
 			// common utils api called, depend on this variable right now
 			$this->getLogin();
 			App\Debuger::initConsole();
@@ -105,7 +106,7 @@ class Vtiger_WebUI extends Vtiger_EntryPoint
 			$view = $request->getByType('view', 2);
 			$action = $request->getByType('action', 2);
 			$response = false;
-			if (!$hasLogin && 'GET' === $_SERVER['REQUEST_METHOD'] && ($returnUrl = $request->getServer('QUERY_STRING')) && !\App\Session::has('return_params')) {
+			if (!$hasLogin && 'GET' === $_SERVER['REQUEST_METHOD'] && 'Users' !== $moduleName && ($returnUrl = $request->getServer('QUERY_STRING')) && !\App\Session::has('return_params')) {
 				//Take the url that user would like to redirect after they have successfully logged in.
 				\App\Session::set('return_params', str_replace('&amp;', '&', $returnUrl));
 			}
@@ -143,7 +144,7 @@ class Vtiger_WebUI extends Vtiger_EntryPoint
 			}
 			if ('Login' === $view && 'Users' === $moduleName) {
 				if (!\App\Session::has('CSP_TOKEN')) {
-					\App\Session::set('CSP_TOKEN', hash('sha256', \App\Encryption::generatePassword(10)));
+					\App\Controller\Headers::generateCspToken();
 				}
 				if ($hasLogin) {
 					header('location: index.php');
@@ -167,9 +168,7 @@ class Vtiger_WebUI extends Vtiger_EntryPoint
 				\App\Log::error("HandlerClass: $handlerClass", 'Loader');
 				throw new \App\Exceptions\AppException('LBL_HANDLER_NOT_FOUND', 405);
 			}
-			if ($handler->csrfActive) {
-				$handler->validateRequest($request);
-			}
+			$handler->validateRequest($request);
 			if ($handler->loginRequired() && $this->checkLogin($request)) {
 				return true;
 			}
@@ -217,7 +216,7 @@ class Vtiger_WebUI extends Vtiger_EntryPoint
 				throw $e;
 			}
 		}
-		if (\is_object($response)) {
+		if (isset($response) && \is_object($response)) {
 			$response->emit();
 		}
 	}
@@ -283,18 +282,5 @@ class Vtiger_WebUI extends Vtiger_EntryPoint
 			return true;
 		}
 		$handler->postProcess($request);
-	}
-
-	/**
-	 * Content Security Policy token.
-	 *
-	 * @return void
-	 */
-	public function cspInitToken(): void
-	{
-		if (!App\Session::has('CSP_TOKEN') || App\Session::get('CSP_TOKEN_TIME') < time()) {
-			App\Session::set('CSP_TOKEN', \base64_encode(\random_bytes(16)));
-			App\Session::set('CSP_TOKEN_TIME', strtotime('+' . \Config\Security::$cspHeaderTokenTime));
-		}
 	}
 }

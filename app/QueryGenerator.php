@@ -1,14 +1,19 @@
 <?php
+/**
+ * Query generator file.
+ *
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
+ */
 
 namespace App;
 
 /**
  * Query generator class.
- *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
- * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
- * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 class QueryGenerator
 {
@@ -24,7 +29,7 @@ class QueryGenerator
 	 * 1 - Trash
 	 * 2 - Archived.
 	 *
-	 * @var int
+	 * @var int|null
 	 */
 	private $stateCondition = 0;
 
@@ -47,11 +52,10 @@ class QueryGenerator
 	private $advFilterList;
 	private $conditions;
 
-	/**
-	 * Search fields for duplicates.
-	 *
-	 * @var array
-	 */
+	/** @var array Advanced conditions */
+	private $advancedConditions = [];
+
+	/** @var array Search fields for duplicates. */
 	private $searchFieldsForDuplicates = [];
 
 	/** @var array Joins */
@@ -151,7 +155,7 @@ class QueryGenerator
 	/**
 	 * Get query fields.
 	 *
-	 * @return \Vtiger_Field_Model[]
+	 * @return string[]
 	 */
 	public function getFields()
 	{
@@ -182,10 +186,14 @@ class QueryGenerator
 	 * Sets conditions from ConditionBuilder.
 	 *
 	 * @param array $conditions
+	 *
+	 * @return $this
 	 */
 	public function setConditions(array $conditions)
 	{
 		$this->conditions = $conditions;
+
+		return $this;
 	}
 
 	/**
@@ -421,16 +429,21 @@ class QueryGenerator
 	 * Set source record.
 	 *
 	 * @param int $sourceRecord
+	 *
+	 * @return $this
 	 */
-	public function setSourceRecord($sourceRecord)
+	public function setSourceRecord(int $sourceRecord)
 	{
 		$this->sourceRecord = $sourceRecord;
+		return $this;
 	}
 
 	/**
 	 * Appends a JOIN part to the query.
 	 *
 	 * @param array $join
+	 *
+	 * @return $this
 	 */
 	public function addJoin($join)
 	{
@@ -483,7 +496,6 @@ class QueryGenerator
 	{
 		$queryField = $this->getQueryField($fieldName);
 		$this->order = array_merge($this->order, $queryField->getOrderBy($order));
-
 		return $this;
 	}
 
@@ -498,7 +510,6 @@ class QueryGenerator
 	{
 		$queryField = $this->getQueryField($fieldName);
 		$this->group[] = $queryField->getColumnName();
-
 		return $this;
 	}
 
@@ -582,7 +593,7 @@ class QueryGenerator
 	 *
 	 * @param string $fieldName
 	 *
-	 * @return bool|\Vtiger_Field_Model
+	 * @return \Vtiger_Field_Model|bool
 	 */
 	public function getModuleField(string $fieldName)
 	{
@@ -601,7 +612,7 @@ class QueryGenerator
 	 * @param string $fieldName
 	 * @param string $moduleName
 	 *
-	 * @return bool|\Vtiger_Field_Model
+	 * @return \Vtiger_Field_Model|bool
 	 */
 	public function getRelatedModuleField(string $fieldName, string $moduleName)
 	{
@@ -652,7 +663,6 @@ class QueryGenerator
 	public function getCustomViewQueryById($viewId)
 	{
 		$this->initForCustomViewById($viewId);
-
 		return $this->createQuery();
 	}
 
@@ -674,9 +684,32 @@ class QueryGenerator
 			$this->addRelatedField([
 				'sourceField' => $sourceFieldName,
 				'relatedModule' => $cvColumn['module_name'],
-				'relatedField' => $fieldName
+				'relatedField' => $fieldName,
 			]);
 		}
+	}
+
+	/**
+	 * Get advanced conditions.
+	 *
+	 * @return array
+	 */
+	public function getAdvancedConditions(): array
+	{
+		return $this->advancedConditions;
+	}
+
+	/**
+	 * Set advanced conditions.
+	 *
+	 * @param array $advancedConditions
+	 *
+	 * @return $this
+	 */
+	public function setAdvancedConditions(array $advancedConditions)
+	{
+		$this->advancedConditions = $advancedConditions;
+		return $this;
 	}
 
 	/**
@@ -741,7 +774,7 @@ class QueryGenerator
 						'relatedField' => $fieldName,
 						'sourceField' => $sourceFieldName,
 						'value' => $rule['value'],
-						'operator' => $rule['operator']
+						'operator' => $rule['operator'],
 					]);
 				} else {
 					$condition = $this->getCondition($fieldName, $rule['value'], $rule['operator']);
@@ -759,7 +792,7 @@ class QueryGenerator
 	 *
 	 * @param mixed $advFilterList
 	 *
-	 * @return bool
+	 * @return $this
 	 */
 	public function parseAdvFilter($advFilterList = false)
 	{
@@ -767,7 +800,7 @@ class QueryGenerator
 			$advFilterList = $this->advFilterList;
 		}
 		if (!$advFilterList) {
-			return false;
+			return $this;
 		}
 		foreach ($advFilterList as $group => &$filters) {
 			$and = ('and' === $group || 1 === (int) $group);
@@ -789,14 +822,19 @@ class QueryGenerator
 							'relatedField' => $filter['field_name'],
 							'value' => $filter['value'],
 							'operator' => $filter['comparator'],
-							'conditionGroup' => $and
+							'conditionGroup' => $and,
 						]);
+					} elseif (0 === strpos($filter['field_name'], 'relationColumn_') && preg_match('/(^relationColumn_)(\d+)$/', $filter['field_name'], $matches)) {
+						if (\in_array($matches[2], $this->advancedConditions['relationColumns'] ?? [])) {
+							$this->advancedConditions['relationColumnsValues'][$matches[2]] = $filter;
+						}
 					} else {
 						$this->addCondition($filter['field_name'], $filter['value'], $filter['comparator'], $and);
 					}
 				}
 			}
 		}
+		return $this;
 	}
 
 	/**
@@ -867,11 +905,9 @@ class QueryGenerator
 	{
 		if ('id' === $fieldName) {
 			$baseTable = $this->entityModel->table_name;
-
 			return $baseTable . '.' . $this->entityModel->tab_name_index[$baseTable];
 		}
 		$field = $this->getModuleField($fieldName);
-
 		return $field->getTableName() . '.' . $field->getColumnName();
 	}
 
@@ -960,7 +996,7 @@ class QueryGenerator
 			$this->joins['duplicates'] = ['INNER JOIN', ['duplicates' => $subQuery], implode(' AND ', $duplicateCheckClause)];
 		}
 		uksort($this->joins, function ($a, $b) use ($moduleTableIndexList) {
-			return !isset($moduleTableIndexList[$a]) && isset($moduleTableIndexList[$b]);
+			return (int) (!isset($moduleTableIndexList[$a]) && isset($moduleTableIndexList[$b]));
 		});
 		foreach ($this->joins as $join) {
 			$on = $join[2] ?? '';
@@ -987,8 +1023,11 @@ class QueryGenerator
 	 */
 	public function loadWhere()
 	{
-		if (false !== $this->stateCondition) {
+		if (null !== $this->stateCondition) {
 			$this->query->andWhere($this->getStateCondition());
+		}
+		if ($this->advancedConditions) {
+			$this->loadAdvancedConditions();
 		}
 		$this->query->andWhere(['and', array_merge(['and'], $this->conditionsAnd), array_merge(['or'], $this->conditionsOr)]);
 		$this->query->andWhere($this->parseConditions($this->conditions));
@@ -1000,6 +1039,62 @@ class QueryGenerator
 				PrivilegeQuery::getConditions($this->query, $this->moduleName, $this->user, $this->sourceRecord);
 			}
 		}
+	}
+
+	/**
+	 * Load advanced conditions to section where in query.
+	 *
+	 * @return void
+	 */
+	private function loadAdvancedConditions(): void
+	{
+		if (!empty($this->advancedConditions['relationId']) && ($relationModel = \Vtiger_Relation_Model::getInstanceById($this->advancedConditions['relationId']))) {
+			$typeRelationModel = $relationModel->getTypeRelationModel();
+			if (!method_exists($typeRelationModel, 'loadAdvancedConditionsByRelationId')) {
+				$className = \get_class($typeRelationModel);
+				Log::error("The relationship relationId: {$this->advancedConditions['relationId']} does not support advanced conditions | No function in the class: $className | Module: " . $this->getModule());
+				throw new \App\Exceptions\AppException("ERR_FUNCTION_NOT_FOUND_IN_CLASS||loadAdvancedConditionsByRelationId|$className|" . $this->getModule());
+			}
+			$typeRelationModel->loadAdvancedConditionsByRelationId($this);
+		}
+		if (!empty($this->advancedConditions['relationColumnsValues'])) {
+			foreach ($this->advancedConditions['relationColumnsValues'] as $relationId => $value) {
+				if ($relationModel = \Vtiger_Relation_Model::getInstanceById($relationId)) {
+					$typeRelationModel = $relationModel->getTypeRelationModel();
+					if (!method_exists($typeRelationModel, 'loadAdvancedConditionsByColumns')) {
+						$className = \get_class($typeRelationModel);
+						Log::error("The relationship relationId: {$relationId} does not support advanced conditions | No function in the class: $className | Module: " . $this->getModule());
+						throw new \App\Exceptions\AppException("ERR_FUNCTION_NOT_FOUND_IN_CLASS|loadAdvancedConditionsByColumns|$className|" . $this->getModule());
+					}
+					$typeRelationModel->loadAdvancedConditionsByColumns($this, $value);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Get records state.
+	 *
+	 * @return string
+	 */
+	public function getState(): string
+	{
+		if (null === $this->stateCondition) {
+			return 'All';
+		}
+		switch ($this->stateCondition) {
+			default:
+			case 0:
+				$stateCondition = 'Active';
+				break;
+			case 1:
+				$stateCondition = 'Trash';
+				break;
+			case 2:
+				$stateCondition = 'Archived';
+				break;
+		}
+		return $stateCondition;
 	}
 
 	/**
@@ -1044,7 +1139,7 @@ class QueryGenerator
 				$this->stateCondition = 2;
 				break;
 			case 'All':
-				$this->stateCondition = false;
+				$this->stateCondition = null;
 				break;
 		}
 		return $this;
@@ -1144,13 +1239,12 @@ class QueryGenerator
 		}
 		if ('id' === $fieldName) {
 			$queryField = new Conditions\QueryFields\IdField($this, '');
-
 			return $this->queryFields[$fieldName] = $queryField;
 		}
 		$field = $this->getModuleField($fieldName);
 		if (empty($field)) {
-			Log::error('Not found field model | Field name: ' . $fieldName);
-			throw new \App\Exceptions\AppException('ERR_NOT_FOUND_FIELD_MODEL|' . $fieldName);
+			Log::error("Not found field model | Field name: '$fieldName' in module" . $this->getModule());
+			throw new \App\Exceptions\AppException("ERR_NOT_FOUND_FIELD_MODEL|$fieldName|" . $this->getModule());
 		}
 		$className = '\App\Conditions\QueryFields\\' . ucfirst($field->getFieldDataType()) . 'Field';
 		if (!class_exists($className)) {
@@ -1192,7 +1286,6 @@ class QueryGenerator
 		$relatedFieldModel = $this->getRelatedModuleField($fieldDetail['relatedField'], $fieldDetail['relatedModule']);
 		if (!$relatedFieldModel || !$relatedFieldModel->isActiveField()) {
 			Log::warning("Field in related module is inactive or does not exist. Related module: {$fieldDetail['relatedModule']} | Related field: {$fieldDetail['relatedField']}");
-
 			return false;
 		}
 		$tableName = $relatedFieldModel->getTableName();
@@ -1200,7 +1293,6 @@ class QueryGenerator
 		$relatedTableName = $tableName . $fieldDetail['sourceField'];
 		$relatedTableIndex = $relatedFieldModel->getModule()->getEntityInstance()->tab_name_index[$tableName];
 		$this->addJoin(['LEFT JOIN', "$tableName $relatedTableName", "{$sourceFieldModel->getTableName()}.{$sourceFieldModel->getColumnName()} = $relatedTableName.$relatedTableIndex"]);
-
 		return $relatedFieldModel;
 	}
 
@@ -1221,7 +1313,7 @@ class QueryGenerator
 			$relatedInfo = [
 				'sourceField' => $sourceFieldName,
 				'relatedModule' => $relatedModule,
-				'relatedField' => $fieldName
+				'relatedField' => $fieldName,
 			];
 		}
 		$relatedModule = $relatedInfo['relatedModule'];
@@ -1308,7 +1400,7 @@ class QueryGenerator
 						} else {
 							$field = $this->getModuleField($fieldName);
 						}
-						if ('date_start' === $fieldName || 'due_date' === $fieldName || 'datetime' === $field->getFieldDataType()) {
+						if ($field && ('date_start' === $fieldName || 'due_date' === $fieldName || 'datetime' === $field->getFieldDataType())) {
 							$dateValues = explode(',', $fieldValue);
 							//Indicate whether it is fist date in the between condition
 							$isFirstDate = true;

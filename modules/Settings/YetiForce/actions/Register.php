@@ -5,8 +5,8 @@
  *
  * @package   Modules
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Sławomir Kłos <s.klos@yetiforce.com>
  */
 
@@ -69,7 +69,27 @@ class Settings_YetiForce_Register_Action extends Settings_Vtiger_Save_Action
 		$response = new Vtiger_Response();
 		$result = true;
 		$message = App\Language::translate('LBL_REGISTERED', $request->getModule(false));
-		if (!\App\Company::registerOnline($request->getByType('companies', 'Text'))) {
+		$companies = $request->getMultiDimensionArray('companies', [
+			'id' => 'Integer',
+			'type' => 'Integer',
+			'name' => 'Text',
+			'vat_id' => 'Text',
+			'country' => 'Text',
+			'post_code' => 'Text',
+			'city' => 'Text',
+			'address' => 'Text',
+			'industry' => 'Text',
+			'companysize' => 'Integer',
+			'website' => 'Url',
+			'newsletter' => 'Integer',
+			'firstname' => 'Text',
+			'lastname' => 'Text',
+			'email' => 'Email',
+			'facebook' => 'Url',
+			'twitter' => 'Url',
+			'linkedin' => 'Url',
+		]);
+		if (!\App\Company::registerOnline($companies)) {
 			$result = false;
 			$message = App\Language::translate('LBL_ONLINE_REGISTRATION_FAILED', $request->getModule(false));
 			$responseType = 'error';

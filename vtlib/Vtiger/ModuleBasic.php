@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 
 namespace vtlib;
@@ -131,7 +131,7 @@ class ModuleBasic
 
 		Profile::initForModule($this);
 
-		self::syncfile();
+		\App\Module::createModuleMetaFile();
 
 		if ($this->isentitytype) {
 			Access::initSharing($this);
@@ -207,7 +207,6 @@ class ModuleBasic
 		Access::deleteSharing($moduleInstance);
 		$this->deleteFromModentityNum();
 		Cron::deleteForModule($moduleInstance);
-		Profile::deleteForModule($moduleInstance);
 		\Settings_Workflows_Module_Model::deleteForModule($moduleInstance);
 		Menu::deleteForModule($moduleInstance);
 		$this->deleteGroup2Modules();
@@ -219,7 +218,7 @@ class ModuleBasic
 		\Settings_Vtiger_Module_Model::deleteSettingsFieldBymodule($this->name);
 		$this->__delete();
 		$this->deleteDir($moduleInstance);
-		self::syncfile();
+		\App\Module::createModuleMetaFile();
 		\App\Cache::clear();
 	}
 
@@ -432,30 +431,25 @@ class ModuleBasic
 	}
 
 	/**
-	 * Synchronize the menu information to flat file.
-	 */
-	public static function syncfile()
-	{
-		\App\Log::trace('Updating tabdata file ... ', __METHOD__);
-		\App\Module::createModuleMetaFile();
-		\App\Log::trace('DONE', __METHOD__);
-	}
-
-	/**
 	 * Unset related list information that exists with other module.
 	 */
 	public function unsetAllRelatedList()
 	{
 		\App\Log::trace('Start', __METHOD__);
 		$db = \App\Db::getInstance();
-		$ids = (new \App\Db\Query())->select(['relation_id'])->from('vtiger_relatedlists')->where(['or', ['tabid' => $this->id], ['related_tabid' => $this->id]])->column();
+		$relations = (new \App\Db\Query())->select(['relation_id', 'tabid'])->from('vtiger_relatedlists')->where(['or', ['tabid' => $this->id], ['related_tabid' => $this->id]])->createCommand()->queryAllByGroup();
 		$db->createCommand()->delete('vtiger_relatedlists', ['or', ['tabid' => $this->id], ['related_tabid' => $this->id]])->execute();
-		if ($ids) {
+		if ($relations) {
+			$ids = array_keys($relations);
 			$db->createCommand()->delete('vtiger_relatedlists_fields', ['relation_id' => $ids])->execute();
 			$db->createCommand()->delete('a_#__relatedlists_inv_fields', ['relation_id' => $ids])->execute();
-		}
-		foreach ($ids as $id) {
-			\App\Relation::clearCacheById($id);
+			foreach ($ids as $id) {
+				\App\Relation::clearCacheById((int) $id, false);
+			}
+			foreach (array_unique($relations) as $tabId) {
+				\App\Relation::clearCacheByModule((string) \App\Module::getModuleName($tabId), false);
+			}
+			\App\Relation::clearCacheByModule($this->name, false);
 		}
 		\App\Log::trace('End', __METHOD__);
 	}
@@ -465,9 +459,7 @@ class ModuleBasic
 	 */
 	public function deleteGroup2Modules()
 	{
-		\App\Log::trace('Start', __METHOD__);
 		\App\Db::getInstance()->createCommand()->delete('vtiger_group2modules', ['tabid' => $this->id])->execute();
-		\App\Log::trace('End', __METHOD__);
 	}
 
 	/**
@@ -498,9 +490,7 @@ class ModuleBasic
 	 */
 	public function deleteFromModentityNum()
 	{
-		\App\Log::trace('Start', __METHOD__);
 		\App\Db::getInstance()->createCommand()->delete('vtiger_modentity_num', ['tabid' => $this->id])->execute();
-		\App\Log::trace('End', __METHOD__);
 	}
 
 	/**
@@ -559,9 +549,10 @@ class ModuleBasic
 	{
 		\App\Log::trace('Start', __METHOD__);
 		$iconSize = ['', 48, 64, 128];
-		foreach ($iconSize as $value) {
-			foreach (\App\Layout::getAllLayouts() as $name => $label) {
-				$fileName = "layouts/$name/images/{$this->name}{$value}.png";
+		$layouts = array_keys(\App\Layout::getAllLayouts());
+		foreach ($layouts as $name) {
+			foreach ($iconSize as $value) {
+				$fileName = ROOT_DIRECTORY . "/public_html/layouts/$name/images/{$this->name}{$value}.png";
 				if (file_exists($fileName)) {
 					@unlink($fileName);
 				}

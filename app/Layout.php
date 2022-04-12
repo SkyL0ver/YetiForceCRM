@@ -2,8 +2,10 @@
 /**
  * Layout class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -43,7 +45,6 @@ class Layout
 			if (!IS_PUBLIC_DIR) {
 				$basePath = 'public_html/' . $basePath;
 			}
-
 			return $basePath . $name;
 		}
 		$basePath = 'layouts' . '/' . \Vtiger_Viewer::getDefaultLayoutName() . '/';
@@ -153,22 +154,22 @@ class Layout
 	 * @param string $text
 	 * @param int    $length
 	 * @param bool   $showIcon
+	 * @param bool   $nl2br
 	 *
 	 * @return string
 	 */
-	public static function truncateText(string $text, int $length, bool $showIcon = false): string
+	public static function truncateText(string $text, int $length, bool $showIcon = false, bool $nl2br = false): string
 	{
 		if (\mb_strlen($text) < $length) {
-			return $text;
+			return $nl2br ? nl2br($text) : $text;
 		}
 		$teaser = TextParser::textTruncate($text, $length);
-		$text = nl2br($text);
 		if ($showIcon) {
 			$btn = '<span class="mdi mdi-overscan"></span>';
 		} else {
 			$btn = \App\Language::translate('LBL_MORE_BTN');
 		}
-		return "<div class=\"js-more-content\"><span class=\"teaserContent\">$teaser</span><span class=\"fullContent d-none\">$text</span><span class=\"text-right mb-1\"><button type=\"button\" class=\"btn btn-link btn-sm pt-0 js-more\">{$btn}</button></span></div>";
+		return "<div class=\"js-more-content\"><pre class=\"teaserContent u-pre\">$teaser</pre><span class=\"fullContent d-none\"><pre class=\"u-pre\">$text</pre></span><span class=\"text-right mb-1\"><button type=\"button\" class=\"btn btn-link btn-sm pt-0 js-more\">{$btn}</button></span></div>";
 	}
 
 	/**
@@ -186,6 +187,7 @@ class Layout
 			return '';
 		}
 		$teaser = $css = $btn = '';
+		$loadData = true;
 		$btnTemplate = function (string $popoverText = '', ?string $btnClass = ''): string {
 			$popoverText = \App\Language::translate($popoverText);
 			return "<a href=\"#\" class=\"js-more noLinkBtn font-weight-lighter js-popover-tooltip {$btnClass}\" data-iframe=\"true\" data-content=\"{$popoverText}\"><span class=\"mdi mdi-overscan\"></span></a>";
@@ -197,11 +199,12 @@ class Layout
 			$btn = $btnTemplate('LBL_SHOW_ORIGINAL_CONTENT');
 			$css = 'display: none;';
 			$teaser = TextParser::textTruncate(trim(strip_tags($html)), $length);
+			$loadData = false;
 		} elseif ('medium' === $size) {
 			$btn = $btnTemplate('LBL_FULLSCREEN', 'c-btn-floating-right-bottom btn btn-primary');
 		}
 		$html = Purifier::encodeHtml($html);
-		return "<div class=\"js-iframe-content\" >$teaser <iframe sandbox=\"allow-same-origin allow-popups allow-popups-to-escape-sandbox\" class=\"w-100 {$iframeClass}\" frameborder=\"0\" style=\"{$css}\" srcdoc=\"{$html}\"></iframe>{$btn}</div>";
+		return "<div class=\"js-iframe-content\" >$teaser <iframe sandbox=\"allow-same-origin allow-popups allow-popups-to-escape-sandbox\" class=\"w-100 {$iframeClass}\" frameborder=\"0\" style=\"{$css}\" " . ($loadData ? 'srcdoc' : 'srcdoctemp') . "=\"{$html}\"></iframe>{$btn}</div>";
 	}
 
 	/**

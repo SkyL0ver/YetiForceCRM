@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Leads_Module_Model extends Vtiger_Module_Model
@@ -41,29 +41,10 @@ class Leads_Module_Model extends Vtiger_Module_Model
 		while ($row = $dataReader->read()) {
 			$response[] = [
 				$row['count'],
-				$row['time']
+				$row['time'],
 			];
 		}
 		return $response;
-	}
-
-	/**
-	 * Function to get Converted Information for selected records.
-	 *
-	 * @param array $recordIdsList
-	 *
-	 * @return array converted Info
-	 */
-	public static function getConvertedInfo($recordIdsList = [])
-	{
-		$convertedInfo = [];
-		if ($recordIdsList) {
-			$convertedInfo = (new App\Db\Query())->select(['leadid', 'converted'])
-				->from('vtiger_leaddetails')
-				->where(['leadid' => $recordIdsList])
-				->createCommand()->queryAllByGroup(0);
-		}
-		return $convertedInfo;
 	}
 
 	/**
@@ -133,7 +114,7 @@ class Leads_Module_Model extends Vtiger_Module_Model
 			$focus = $moduleModel->getEntityInstance();
 			foreach ($mappingFields as $mappingField) {
 				foreach ($mappingField as $leadFieldName => $accountFieldName) {
-					$fieldModel = $moduleModel->getField($accountFieldName);
+					$fieldModel = $moduleModel->getFieldByName($accountFieldName);
 					if (!$fieldModel) {
 						throw new \App\Exceptions\NoPermitted('LBL_PERMISSION_DENIED');
 					}
@@ -182,7 +163,7 @@ class Leads_Module_Model extends Vtiger_Module_Model
 	 *
 	 * @param string $status - lead status
 	 *
-	 * @return <boolean> if or not allowed to convert
+	 * @return bool if or not allowed to convert
 	 */
 	public static function checkIfAllowedToConvert($status)
 	{
@@ -192,5 +173,23 @@ class Leads_Module_Model extends Vtiger_Module_Model
 			return true;
 		}
 		return \in_array($status, $leadConfig['convert_status']);
+	}
+
+	/**
+	 * The function adds restrictions to the functionality of searching for records.
+	 *
+	 * @param App\Db\Query     $query
+	 * @param App\RecordSearch $recordSearch
+	 *
+	 * @return void
+	 */
+	public function searchRecordCondition(App\Db\Query $query, App\RecordSearch $recordSearch = null): void
+	{
+		if ($recordSearch->moduleName === $this->getName()) {
+			$query->innerJoin('vtiger_leaddetails', 'csl.crmid = vtiger_leaddetails.leadid');
+			$query->andWhere(['vtiger_leaddetails.converted' => 0]);
+		} else {
+			$query->andWhere(['not in', 'csl.crmid', (new \App\Db\Query())->select(['leadid'])->from('vtiger_leaddetails')->where(['converted' => 1])]);
+		}
 	}
 }

@@ -2,10 +2,10 @@
 /**
  * Developer tools for installer.
  *
- * @package   App
+ * @package App
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -29,7 +29,7 @@ class Developer
 			echo "<pre>$msg</pre><hr>";
 		}, E_ALL);
 		$json = '';
-		foreach (['Portal', 'ManageConsents'] as $type) {
+		foreach (\Api\Core\Containers::$list as $type) {
 			$json .= self::generateSwaggerByType($type, false);
 		}
 		return $json;
@@ -52,7 +52,7 @@ class Developer
 				echo "<pre>$msg</pre><hr>";
 			}, E_ALL);
 		}
-		$openApi = \OpenApi\scan(ROOT_DIRECTORY . '/api/webservice/' . $type);
+		$openApi = \OpenApi\Generator::scan([ROOT_DIRECTORY . '/api/webservice/' . $type]);
 		$openApi->saveAs(ROOT_DIRECTORY . "/public_html/api/{$type}.json");
 		$openApi->saveAs(ROOT_DIRECTORY . "/public_html/api/{$type}.yaml");
 		return $openApi->toJson();

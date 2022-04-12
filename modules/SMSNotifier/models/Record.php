@@ -2,8 +2,8 @@
 /**
  * Record Class for SMSNotifier.
  *
- * @copyright YetiForce Sp. z o.o
- * @license YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 
@@ -27,7 +27,7 @@ class SMSNotifier_Record_Model extends Vtiger_Record_Model
 	 *
 	 * @return bool
 	 */
-	public function isEditable()
+	public function isEditable(): bool
 	{
 		return false;
 	}
@@ -59,7 +59,7 @@ class SMSNotifier_Record_Model extends Vtiger_Record_Model
 		$provider = SMSNotifier_Module_Model::getActiveProviderInstance();
 		$numbers = \is_array($toNumbers) ? implode(',', $toNumbers) : $toNumbers;
 		$provider->set($provider->toName, $numbers);
-		$provider->set($provider->messageName, $message);
+		$provider->set($provider->messageName, \App\Utils\Completions::decode($message));
 		$result = $provider->send();
 		if ($result) {
 			$recordModel->set('smsnotifier_status', 'PLL_DELIVERED');

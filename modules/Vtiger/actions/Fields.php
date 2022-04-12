@@ -3,8 +3,10 @@
 /**
  * Fields Action Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package Action
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -28,16 +30,17 @@ class Vtiger_Fields_Action extends \App\Controller\Action
 	 */
 	public function checkPermission(App\Request $request)
 	{
-		if ('verifyPhoneNumber' !== $request->getMode()) {
+		$mode = $request->getMode();
+		if ('verifyPhoneNumber' !== $mode) {
 			$currentUserPriviligesModel = Users_Privileges_Model::getCurrentUserPrivilegesModel();
 			if (!$currentUserPriviligesModel->hasModulePermission($request->getModule())) {
 				throw new \App\Exceptions\NoPermitted('LBL_PERMISSION_DENIED', 406);
 			}
-			if (!\App\Privilege::isPermitted($request->getModule(), 'EditView')) {
+			if ('getReference' !== $mode && !\App\Privilege::isPermitted($request->getModule(), 'EditView')) {
 				throw new \App\Exceptions\NoPermitted('LBL_PERMISSION_DENIED', 406);
 			}
 		}
-		if ('findAddress' !== $request->getMode() && 'getReference' !== $request->getMode()) {
+		if ('findAddress' !== $mode && 'getReference' !== $mode && 'validateByMode' !== $mode) {
 			$this->fieldModel = Vtiger_Module_Model::getInstance($request->getModule())->getFieldByName($request->getByType('fieldName', 2));
 			if (!$this->fieldModel || !$this->fieldModel->isEditable()) {
 				throw new \App\Exceptions\NoPermitted('ERR_NO_PERMISSIONS_TO_FIELD', 406);
@@ -51,9 +54,10 @@ class Vtiger_Fields_Action extends \App\Controller\Action
 		$this->exposeMethod('getOwners');
 		$this->exposeMethod('getReference');
 		$this->exposeMethod('getUserRole');
-		$this->exposeMethod('verifyPhoneNumber');
 		$this->exposeMethod('findAddress');
-		$this->exposeMethod('verifyIsHolidayDate');
+		$this->exposeMethod('validateForField');
+		$this->exposeMethod('validateByMode');
+		$this->exposeMethod('verifyPhoneNumber');
 		$this->exposeMethod('changeFavoriteOwner');
 	}
 
@@ -146,22 +150,38 @@ class Vtiger_Fields_Action extends \App\Controller\Action
 	 */
 	public function getReference(App\Request $request)
 	{
-		$fieldModel = Vtiger_Module_Model::getInstance($request->getModule())->getFieldByName($request->getByType('fieldName', 2));
-		if (!$fieldModel || !$fieldModel->isActiveField() || !$fieldModel->isViewEnabled()) {
+		if ($request->has('fieldName')) {
+			$fieldModel = Vtiger_Module_Model::getInstance($request->getModule())->getFieldByName($request->getByType('fieldName', 2));
+			if (empty($fieldModel) || !$fieldModel->isActiveField() || !$fieldModel->isViewEnabled()) {
+				throw new \App\Exceptions\NoPermitted('ERR_NO_PERMISSIONS_TO_FIELD', 406);
+			}
+			$searchInModule = $fieldModel->getReferenceList();
+		} elseif ($request->has('relationId') && ($relation = \App\Relation::getById($request->getInteger('relationId'))) && $relation['related_modulename'] === $request->getModule()) {
+			if (\in_array($relation['related_modulename'], ['getDependentsList', 'getManyToMany', 'getRelatedList'])) {
+				$searchInModule = $relation['related_modulename'];
+			} else {
+				$typeRelationModel = \Vtiger_Relation_Model::getInstanceById($relation['relation_id'])->getTypeRelationModel();
+				if (method_exists($typeRelationModel, 'getConfigAdvancedConditionsByColumns')) {
+					$searchInModule = $typeRelationModel->getConfigAdvancedConditionsByColumns()['relatedModules'] ?? $relation['related_modulename'];
+				} else {
+					$searchInModule = $relation['related_modulename'];
+				}
+			}
+		} else {
 			throw new \App\Exceptions\NoPermitted('ERR_NO_PERMISSIONS_TO_FIELD', 406);
 		}
 		$response = new Vtiger_Response();
-		$rows = (new \App\RecordSearch($request->getByType('value', 'Text'), $fieldModel->getReferenceList()))->search();
-		$data = $modules = $ids = [];
+		$limit = \App\Config::search('GLOBAL_SEARCH_AUTOCOMPLETE_LIMIT');
+		$searchValue = \App\RecordSearch::getSearchField()->getUITypeModel()->getDbConditionBuilderValue($request->getByType('value', \App\Purifier::TEXT), '');
+		$rows = (new \App\RecordSearch($searchValue, $searchInModule, $limit))->setMode(\App\RecordSearch::LABEL_MODE)->search();
+		$data = $modules = [];
 		foreach ($rows as $row) {
-			$ids[] = $row['crmid'];
-			$modules[$row['setype']][] = $row['crmid'];
+			$modules[$row['setype']][] = $row;
 		}
-		$labels = \App\Record::getLabel($ids);
 		foreach ($modules as $moduleName => $rows) {
 			$data[] = ['name' => App\Language::translateSingleMod($moduleName, $moduleName), 'type' => 'optgroup'];
-			foreach ($rows as $id) {
-				$data[] = ['id' => $id, 'name' => $labels[$id]];
+			foreach ($rows as $row) {
+				$data[] = ['id' => $row['crmid'], 'name' => \App\Purifier::encodeHtml($row['label'])];
 			}
 		}
 		$response->setResult(['items' => $data]);
@@ -215,34 +235,6 @@ class Vtiger_Fields_Action extends \App\Controller\Action
 	}
 
 	/**
-	 * Verify is holiday date.
-	 *
-	 * @param \App\Request $request
-	 *
-	 * @throws \App\Exceptions\NoPermitted
-	 */
-	public function verifyIsHolidayDate(App\Request $request)
-	{
-		if ('datetime' === $this->fieldModel->getFieldDataType() || 'date' === $this->fieldModel->getFieldDataType()) {
-			$response = new Vtiger_Response();
-			$result = false;
-			if ($request->isEmpty('date', true)) {
-				$data['message'] = \App\Language::translate('LBL_NO_DATE');
-			} else {
-				$date = $request->getArray('date', 'DateInUserFormat');
-				if (!empty(App\Fields\Date::getHolidays(App\Fields\Date::formatToDB($date[0]), App\Fields\Date::formatToDB($date[1])))) {
-					$result = true;
-				}
-			}
-			$data = ['isHolidayDate' => $result];
-			$response->setResult($data);
-			$response->emit();
-		} else {
-			throw new \App\Exceptions\NoPermitted('ERR_NO_PERMISSIONS_TO_FIELD');
-		}
-	}
-
-	/**
 	 * Change favorite owner state.
 	 *
 	 * @param \App\Request $request
@@ -263,6 +255,48 @@ class Vtiger_Fields_Action extends \App\Controller\Action
 		$message = \App\Language::translate($this->fieldModel->getFieldLabel(), $moduleName) . ': ' . \App\Language::translate($message, $moduleName);
 		$response = new Vtiger_Response();
 		$response->setResult(['result' => $result, 'message' => $message]);
+		$response->emit();
+	}
+
+	/**
+	 * Validate the field name and value.
+	 *
+	 * @param \App\Request $request
+	 *
+	 * @throws \App\Exceptions\NoPermitted
+	 */
+	public function validateForField(App\Request $request)
+	{
+		$fieldModel = Vtiger_Module_Model::getInstance($request->getModule())->getFieldByName($request->getByType('fieldName', 2));
+		if (!$fieldModel || !$fieldModel->isActiveField() || !$fieldModel->isViewEnabled()) {
+			throw new \App\Exceptions\NoPermitted('ERR_NO_PERMISSIONS_TO_FIELD', 406);
+		}
+		$recordModel = \Vtiger_Record_Model::getCleanInstance($fieldModel->getModuleName());
+		$fieldModel->getUITypeModel()->setValueFromRequest($request, $recordModel, 'fieldValue');
+		$response = new Vtiger_Response();
+		$response->setResult([
+			'raw' => $recordModel->get($fieldModel->getName()),
+			'display' => $recordModel->getDisplayValue($fieldModel->getName()),
+		]);
+		$response->emit();
+	}
+
+	/**
+	 * Validate the value based on the type of purify.
+	 *
+	 * @param \App\Request $request
+	 *
+	 * @throws \App\Exceptions\NoPermitted
+	 */
+	public function validateByMode(App\Request $request)
+	{
+		if ($request->isEmpty('purifyMode') || !$request->has('value')) {
+			throw new \App\Exceptions\NoPermitted('ERR_ILLEGAL_VALUE', 406);
+		}
+		$response = new Vtiger_Response();
+		$response->setResult([
+			'raw' => $request->getByType('value', $request->getByType('purifyMode')),
+		]);
 		$response->emit();
 	}
 }

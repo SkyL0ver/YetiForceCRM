@@ -5,8 +5,10 @@ namespace App;
 /**
  * Json class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 class Json
@@ -84,7 +86,7 @@ class Json
 	 */
 	public static function isJson(?string $value): bool
 	{
-		return !('' === $value || null === self::decode($value) || JSON_ERROR_NONE !== \json_last_error());
+		return !(null === $value || '' === $value || null === self::decode($value) || JSON_ERROR_NONE !== \json_last_error());
 	}
 
 	/**

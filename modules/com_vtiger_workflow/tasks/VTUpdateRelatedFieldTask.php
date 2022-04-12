@@ -2,8 +2,8 @@
 /**
  * Update Related Field Task Handler Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 require_once 'modules/com_vtiger_workflow/VTWorkflowUtils.php';
@@ -61,17 +61,21 @@ class VTUpdateRelatedFieldTask extends VTTask
 					}
 				} else {
 					$recordId = $recordModel->get($relatedData[0]);
-					if ($recordId) {
+					if ($recordId && \App\Record::isExists($recordId)) {
 						$relRecordModel = Vtiger_Record_Model::getInstanceById($recordId, $relatedData[1]);
 						$fieldModel = $relRecordModel->getField($relatedData[2]);
 						if ($fieldModel->isEditable()) {
 							$fieldModel->getUITypeModel()->validate($fieldValue);
-							$relRecordModel->setHandlerExceptions(['disableHandlerClasses' => ['Vtiger_Workflow_Handler']]);
 							$relRecordModel->set($relatedData[2], $fieldValue);
-							$relRecordModel->save();
+							if(false !== $relRecordModel->getPreviousValue($relatedData[2])){
+								$relRecordModel->setHandlerExceptions(['disableHandlerClasses' => ['Vtiger_Workflow_Handler']]);
+								$relRecordModel->save();
+							}
 						} else {
 							\App\Log::warning('No permissions to edit field: ' . $fieldModel->getName());
 						}
+					} else {
+						\App\Log::warning('Record not found: ' . $recordId);
 					}
 				}
 			}
@@ -103,7 +107,10 @@ class VTUpdateRelatedFieldTask extends VTTask
 			if ($fieldModel->isEditable()) {
 				$fieldModel->getUITypeModel()->validate($fieldValue);
 				$recordModel->set($relatedFieldName, $fieldValue);
-				$recordModel->save();
+				if (false !== $recordModel->getPreviousValue($relatedFieldName)) {
+					$recordModel->setHandlerExceptions(['disableHandlerClasses' => ['Vtiger_Workflow_Handler']]);
+					$recordModel->save();
+				}
 			} else {
 				\App\Log::warning('No permissions to edit field: ' . $fieldModel->getName());
 			}

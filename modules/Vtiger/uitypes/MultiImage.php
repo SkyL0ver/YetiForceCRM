@@ -2,8 +2,10 @@
 /**
  * UIType MultiImage Field Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package   UIType
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Michał Lorencik <m.lorencik@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
@@ -12,24 +14,13 @@
 /**
  * UIType MultiImage Field Class.
  */
-class Vtiger_MultiImage_UIType extends Vtiger_Base_UIType
+class Vtiger_MultiImage_UIType extends Vtiger_MultiAttachment_UIType
 {
-	/** {@inheritdoc} */
-	public function setValueFromRequest(App\Request $request, Vtiger_Record_Model $recordModel, $requestFieldName = false)
-	{
-		$fieldName = $this->getFieldModel()->getFieldName();
-		if (!$requestFieldName) {
-			$requestFieldName = $fieldName;
-		}
-		[$value, $newValues, $save] = \App\Fields\File::updateUploadFiles($request->getArray($requestFieldName, 'Text'), $recordModel, $this->getFieldModel());
-		$this->validate($newValues, true);
-		if ($save) {
-			if ($request->getBoolean('_isDuplicateRecord')) {
-				$this->duplicateValueFromRecord($value, $request);
-			}
-			$recordModel->set($fieldName, $this->getDBValue($value, $recordModel));
-		}
-	}
+	/** @var int Default attachments limit. */
+	public const LIMIT = 10;
+
+	/** @var string Name of the action to handle the files */
+	public const FILE_ACTION_NAME = 'MultiImage';
 
 	/** {@inheritdoc} */
 	public function validate($value, $isUserFormat = false)
@@ -44,10 +35,10 @@ class Vtiger_MultiImage_UIType extends Vtiger_Base_UIType
 		$fieldInfo = $this->getFieldModel()->getFieldInfo();
 		foreach ($value as $index => $item) {
 			if ((empty($item['name']) && empty($item['baseContent'])) && (empty($item['key']) || empty($item['name']) || empty($item['size']) || 50 !== App\TextParser::getTextLength($item['key']))) {
-				throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getFieldName() . '||' . $this->getFieldModel()->getModuleName() . '||' . \App\Json::encode($value), 406);
+				throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getName() . '||' . $this->getFieldModel()->getModuleName() . '||' . \App\Json::encode($value), 406);
 			}
 			if ($index > (int) $fieldInfo['limit']) {
-				throw new \App\Exceptions\Security('ERR_TO_MANY_FILES||' . $this->getFieldModel()->getFieldName() . '||' . $this->getFieldModel()->getModuleName() . '||' . \App\Json::encode($value), 406);
+				throw new \App\Exceptions\Security('ERR_TO_MANY_FILES||' . $this->getFieldModel()->getName() . '||' . $this->getFieldModel()->getModuleName() . '||' . \App\Json::encode($value), 406);
 			}
 			$path = \App\Fields\File::getLocalPath($item['path']);
 			if (!file_exists($path)) {
@@ -66,7 +57,7 @@ class Vtiger_MultiImage_UIType extends Vtiger_Base_UIType
 				}
 			}
 			if (!$validExtension || !$validFormat) {
-				throw new \App\Exceptions\Security('ERR_FILE_WRONG_IMAGE||' . $this->getFieldModel()->getFieldName() . '||' . \App\Json::encode($value), 406);
+				throw new \App\Exceptions\Security('ERR_FILE_WRONG_IMAGE||' . $this->getFieldModel()->getName() . '||' . \App\Json::encode($value), 406);
 			}
 		}
 		$this->validate[$hashValue] = true;
@@ -88,7 +79,7 @@ class Vtiger_MultiImage_UIType extends Vtiger_Base_UIType
 	 */
 	public function getImageUrl($key, $record)
 	{
-		return "file.php?module={$this->getFieldModel()->getModuleName()}&action=MultiImage&field={$this->getFieldModel()->getFieldName()}&record={$record}&key={$key}";
+		return "file.php?module={$this->getFieldModel()->getModuleName()}&action=" . static::FILE_ACTION_NAME . "&field={$this->getFieldModel()->getName()}&record={$record}&key={$key}";
 	}
 
 	/**
@@ -115,6 +106,10 @@ class Vtiger_MultiImage_UIType extends Vtiger_Base_UIType
 		}
 		for ($i = 0; $i < $len; ++$i) {
 			$value[$i]['imageSrc'] = $this->getImageUrl($value[$i]['key'], $record);
+			if (!is_numeric($value[$i]['size'])) {
+				$value[$i]['size'] = \vtlib\Functions::parseBytes($value[$i]['size']);
+			}
+			$value[$i]['sizeDisplay'] = \vtlib\Functions::showBytes($value[$i]['size']);
 			unset($value[$i]['path']);
 		}
 		return \App\Purifier::encodeHtml(\App\Json::encode($value));
@@ -123,7 +118,7 @@ class Vtiger_MultiImage_UIType extends Vtiger_Base_UIType
 	/** {@inheritdoc} */
 	public function getHistoryDisplayValue($value, Vtiger_Record_Model $recordModel, $rawText = false)
 	{
-		if (\in_array('modTrackerDisplay', $this->getFieldModel()->getAnonymizationTarget())) {
+		if (\in_array(\App\Anonymization::MODTRACKER_DISPLAY, $this->getFieldModel()->getAnonymizationTarget())) {
 			return '****';
 		}
 		$value = \App\Json::decode($value);
@@ -146,7 +141,7 @@ class Vtiger_MultiImage_UIType extends Vtiger_Base_UIType
 		}
 		$images = $style = '';
 		if ($params) {
-			[$width, $height] = array_pad(explode('|', $params, 2), 2, '');
+			[$width, $height, $style] = array_pad(explode('|', $params, 3), 3, '');
 			if ($width) {
 				$style .= "max-width:$width;";
 			}
@@ -231,10 +226,10 @@ class Vtiger_MultiImage_UIType extends Vtiger_Base_UIType
 		if (!\is_array($value)) {
 			return '';
 		}
-		$result = '<div class="c-multi-image__result">';
+		$result = '<div class="c-multi-image__result text-center">';
 		foreach ($value as $item) {
 			if ($record) {
-				$result .= '<div class="d-inline-block mr-1 c-multi-image__preview-img" style="background-image:url(' . $this->getImageUrl($item['key'], $record) . ')"></div>';
+				$result .= '<div class="d-inline-block mr-1 c-multi-image__preview-img middle" style="background-image:url(' . $this->getImageUrl($item['key'], $record) . ')"></div>';
 			} else {
 				$result .= \App\Purifier::encodeHtml($item['name']) . ', ';
 			}
@@ -256,6 +251,10 @@ class Vtiger_MultiImage_UIType extends Vtiger_Base_UIType
 		if (\is_array($value)) {
 			foreach ($value as &$item) {
 				$item['imageSrc'] = $this->getImageUrl($item['key'], $id);
+				if (!is_numeric($item['size'])) {
+					$item['size'] = \vtlib\Functions::parseBytes($item['size']);
+				}
+				$item['sizeDisplay'] = \vtlib\Functions::showBytes($item['size']);
 				unset($item['path']);
 			}
 		} else {
@@ -277,7 +276,7 @@ class Vtiger_MultiImage_UIType extends Vtiger_Base_UIType
 		foreach ($value as $item) {
 			$path = \App\Fields\File::getLocalPath($item['path']);
 			if (!file_exists($path)) {
-				throw new \Api\Core\Exception('File does not exist', 404);
+				throw new \Api\Core\Exception('File does not exist: ' . $path, 404);
 			}
 			$file = \App\Fields\File::loadFromInfo([
 				'path' => $path,
@@ -291,10 +290,10 @@ class Vtiger_MultiImage_UIType extends Vtiger_Base_UIType
 				'postData' => [
 					'module' => $this->getFieldModel()->getModuleName(),
 					'actionName' => 'MultiImage',
-					'field' => $this->getFieldModel()->getFieldName(),
+					'field' => $this->getFieldModel()->getName(),
 					'record' => $id,
 					'key' => $item['key'],
-				]
+				],
 			];
 			if ($multiMode) {
 				$return[] = $file;
@@ -304,6 +303,39 @@ class Vtiger_MultiImage_UIType extends Vtiger_Base_UIType
 			}
 		}
 		return $return;
+	}
+
+	/** {@inheritdoc} */
+	public function getValueToExport($value, int $recordId)
+	{
+		$multiMode = 'multiImage' === $this->getFieldModel()->getFieldDataType();
+		if (\is_string($value)) {
+			$value = \App\Json::isEmpty($value) ? [] : \App\Json::decode($value);
+		} elseif (!\is_array($value)) {
+			$value = [];
+		}
+		$return = [];
+		foreach ($value as $item) {
+			$path = \App\Fields\File::getLocalPath($item['path']);
+			if (!file_exists($path)) {
+				throw new \App\Exceptions\AppException('File does not exist: ' . $path, 404);
+			}
+			$fileInstance = \App\Fields\File::loadFromInfo([
+				'path' => $path,
+				'name' => $item['name'],
+			]);
+			$file = [
+				'name' => $item['name'],
+				'type' => $fileInstance->getMimeType(),
+				'size' => $fileInstance->getSize(),
+				'baseContent' => base64_encode($fileInstance->getContents()),
+			];
+			$return[] = $file;
+			if (!$multiMode) {
+				break;
+			}
+		}
+		return $return ? \App\Json::encode($return) : '';
 	}
 
 	/** {@inheritdoc} */
@@ -318,132 +350,94 @@ class Vtiger_MultiImage_UIType extends Vtiger_Base_UIType
 		return 'Detail/Field/MultiImage.tpl';
 	}
 
-	/**
-	 * If the field is editable by ajax.
-	 *
-	 * @return bool
-	 */
-	public function isAjaxEditable()
+	/** {@inheritdoc} */
+	public function getFieldInfo(): array
 	{
-		return false;
+		$fieldInfo = $this->getFieldModel()->loadFieldInfo();
+		$params = $this->getFieldModel()->getFieldParams();
+		$fieldInfo['limit'] = $params['limit'] ?? static::LIMIT;
+		$fieldInfo['formats'] = $params['formats'] ?? \App\Fields\File::$allowedFormats['image'];
+		$fieldInfo['maxFileSize'] = $params['maxFileSize'] ?? \App\Config::main('upload_maxsize');
+		$fieldInfo['maxFileSizeDisplay'] = !empty($fieldInfo['maxFileSize']) ? \vtlib\Functions::showBytes($fieldInfo['maxFileSize']) : '';
+
+		return $fieldInfo;
 	}
 
 	/**
-	 * If the field is active in search.
-	 *
-	 * @return bool
-	 */
-	public function isActiveSearchView()
-	{
-		return false;
-	}
-
-	/**
-	 * If the field is sortable in ListView.
-	 *
-	 * @return bool
-	 */
-	public function isListviewSortable()
-	{
-		return false;
-	}
-
-	/**
-	 * Duplicate value from record.
-	 *
-	 * @param array        $value
-	 * @param \App\Request $request
-	 *
-	 * @throws \App\Exceptions\FieldException
-	 */
-	public function duplicateValueFromRecord(&$value, App\Request $request)
-	{
-		$fieldName = $this->getFieldModel()->getFieldName();
-		$recordModel = Vtiger_Record_Model::getInstanceById($request->getInteger('_duplicateRecord'), $request->getModule());
-		$copyValue = $recordModel->get($fieldName);
-		$keyColumn = array_column($value, 'key');
-		if ($copyValue && '[]' !== $copyValue && '""' !== $copyValue) {
-			foreach (\App\Json::decode($copyValue) as $item) {
-				$key = array_search($item['key'], $keyColumn);
-				if (false === $key) {
-					continue;
-				}
-				$file = \App\Fields\File::loadFromPath($item['path']);
-				$dirPath = $file->getDirectoryPath();
-				$newKey = $file->generateHash(true, $dirPath);
-				$path = $dirPath . DIRECTORY_SEPARATOR . $newKey;
-				if (copy($item['path'], $path)) {
-					$item['key'] = $newKey;
-					$item['path'] = $path;
-					$value[$key] = $item;
-				} else {
-					\App\Log::error("Error during file copy: {$item['path']} >> {$path}");
-					throw new \App\Exceptions\FieldException('ERR_CREATE_FILE_FAILURE');
-				}
-			}
-		}
-	}
-
-	/**
-	 * Duplicate value from record.
-	 *
-	 * @param Vtiger_Record_Model $recordModel
-	 *
-	 * @throws \App\Exceptions\FieldException
+	 * Provide a filter in the file select dialog box.
 	 *
 	 * @return string
 	 */
-	public function getDuplicateValue(Vtiger_Record_Model $recordModel)
+	public function getAcceptFormats(): string
 	{
-		$value = [];
-		$copyValue = $recordModel->get($this->getFieldModel()->getFieldName());
-		if ($copyValue && '[]' !== $copyValue && '""' !== $copyValue) {
-			foreach (\App\Json::decode($copyValue) as $item) {
-				$file = \App\Fields\File::loadFromPath($item['path']);
-				$dirPath = $file->getDirectoryPath();
-				$newKey = $file->generateHash(true, $dirPath);
-				$path = $dirPath . DIRECTORY_SEPARATOR . $newKey;
-				if (copy($item['path'], $path)) {
-					$item['key'] = $newKey;
-					$item['path'] = $path;
-					$value[] = $item;
-				} else {
-					\App\Log::error("Error during file copy: {$item['path']} >> {$item['path']}");
-					throw new \App\Exceptions\FieldException('ERR_CREATE_FILE_FAILURE');
-				}
-			}
+		$formats = [];
+		foreach ($this->getFieldModel()->getFieldInfo()['formats'] ?? [] as $format) {
+			$formats[] = "image/{$format}";
 		}
-		return $this->getDBValue($value, $recordModel);
+		return $formats ? implode(',', $formats) : 'image/*';
 	}
 
 	/**
-	 * Delete files for the field MultiImage.
+	 * Upload and save attachment.
 	 *
-	 * @param \Vtiger_Record_Model $recordModel
+	 * @param array   $files
+	 * @param int     $recordId
+	 * @param ?string $hash
+	 *
+	 * @return array
 	 */
-	public static function deleteRecord(Vtiger_Record_Model $recordModel)
+	public function uploadTempFile(array $files, int $recordId, ?string $hash = null)
 	{
-		foreach ($recordModel->getModule()->getFieldsByType(['multiImage', 'image']) as $fieldModel) {
-			if (!$recordModel->isEmpty($fieldModel->getName()) && !\App\Json::isEmpty($recordModel->get($fieldModel->getName()))) {
-				foreach (\App\Json::decode($recordModel->get($fieldModel->getName())) as $image) {
-					$path = ROOT_DIRECTORY . DIRECTORY_SEPARATOR . $image['path'];
-					if (file_exists($path)) {
-						unlink($path);
+		$db = \App\Db::getInstance();
+		$attach = [];
+		$type = 'image';
+		foreach (\App\Fields\File::transform($files, true) as $key => $transformFiles) {
+			foreach ($transformFiles as $fileDetails) {
+				$additionalNotes = '';
+				$file = \App\Fields\File::loadFromRequest($fileDetails);
+				if (!$file->validate($type)) {
+					if (!\App\Fields\File::secureFile($file)) {
+						$attach[] = ['name' => $file->getName(), 'error' => $file->validateError, 'hash' => $hash];
+						continue;
 					}
+					$fileDetails['size'] = filesize($fileDetails['tmp_name']);
+					$file = \App\Fields\File::loadFromRequest($fileDetails);
+					if (!$file->validate($type)) {
+						$attach[] = ['name' => $file->getName(), 'error' => $file->validateError, 'hash' => $hash];
+						continue;
+					}
+					$additionalNotes = \App\Language::translate('LBL_FILE_HAS_BEEN_MODIFIED');
+				}
+				$uploadFilePath = \App\Fields\File::initStorageFileDirectory($this->getStorageFileDir());
+				$key = $file->generateHash(true, $uploadFilePath);
+				$tempValue = [
+					'name' => $file->getName(true),
+					'size' => $file->getSize(),
+					'path' => $file->getPath(),
+					'key' => $key,
+					'type' => $file->getMimeType()
+				];
+				$this->validate([$tempValue]);
+
+				$tempAdd = $file->insertTempFile(['path' => $uploadFilePath, 'fieldname' => $this->getFieldModel()->getName(), 'key' => $key, 'crmid' => $recordId]);
+				if ($tempAdd && move_uploaded_file($file->getPath(), $uploadFilePath . $key)) {
+					$attach[] = [
+						'name' => $file->getName(true),
+						'size' => $file->getSize(),
+						'sizeDisplay' => \vtlib\Functions::showBytes($file->getSize()),
+						'key' => $key,
+						'icon' => \App\Layout\Icon::getIconByFileType($file->getMimeType()),
+						'type' => $file->getMimeType(),
+						'info' => $additionalNotes,
+						'hash' => $hash,
+					];
+				} else {
+					$db->createCommand()->delete(\App\Fields\File::TABLE_NAME_TEMP, ['key' => $key])->execute();
+					\App\Log::error("Moves an uploaded file to a new location failed: {$uploadFilePath}");
+					$attach[] = ['name' => $file->getName(true), 'error' => ''];
 				}
 			}
 		}
-	}
-
-	/** {@inheritdoc} */
-	public function getAllowedColumnTypes()
-	{
-		return ['text'];
-	}
-
-	/** {@inheritdoc} */
-	public function getQueryOperators()
-	{
-		return ['y', 'ny'];
+		return $attach;
 	}
 }

@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Vtiger_ExportData_Action extends Vtiger_Mass_Action
@@ -37,7 +37,7 @@ class Vtiger_ExportData_Action extends Vtiger_Mass_Action
 	 */
 	public function process(App\Request $request)
 	{
-		$exportModel = Vtiger_Export_Model::getInstanceFromRequest($request);
+		$exportModel = \App\Export\ExportRecords::getInstanceFromRequest($request);
 		if ('ExportSelectedRecords' === $request->getMode()) {
 			$exportModel->setRecordList($this->getRecordsListFromRequest($request));
 		}
@@ -45,9 +45,7 @@ class Vtiger_ExportData_Action extends Vtiger_Mass_Action
 		$exportModel->exportData();
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public static function getQuery(App\Request $request)
 	{
 		$cvId = $request->isEmpty('viewname') ? '' : $request->getByType('viewname', 2);

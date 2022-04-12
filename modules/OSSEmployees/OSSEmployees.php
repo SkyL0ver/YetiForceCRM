@@ -2,8 +2,8 @@
 /**
  * OSSEmployees CRMEntity class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  */
 include_once 'modules/Vtiger/CRMEntity.php';
 
@@ -35,19 +35,6 @@ class OSSEmployees extends Vtiger_CRMEntity
 		'vtiger_ossemployeescf' => 'ossemployeesid',
 		'vtiger_entity_stats' => 'crmid', ];
 
-	/**
-	 * Mandatory for Listing (Related listview).
-	 */
-	public $list_fields = [
-		// Format: Field Label => Array(tablename, columnname)
-		// tablename should not have prefix 'vtiger_'
-		'LBL_LASTNAME' => ['ossemployees', 'last_name'],
-		'LBL_NAME' => ['ossemployees', 'name'],
-		'LBL_BUSINESSPHONE' => ['ossemployees', 'business_phone'],
-		'LBL_BUSINESSMAIL' => ['ossemployees', 'business_mail'],
-		'Assigned To' => ['crmentity', 'smownerid'],
-		'FL_POSITION' => ['crmentity', 'position'],
-	];
 	public $list_fields_name = [
 		// Format: Field Label => fieldname
 		'LBL_NAME' => 'name',
@@ -62,8 +49,7 @@ class OSSEmployees extends Vtiger_CRMEntity
 	 * @var string[] List of fields in the RelationListView
 	 */
 	public $relationFields = [];
-	// Make the field link to detail view from list view (Fieldname)
-	public $list_link_field = 'assigned_user_id';
+
 	// For Popup listview and UI type support
 	public $search_fields = [
 		'LBL_LASTNAME' => ['ossemployees', 'last_name'],
@@ -129,10 +115,11 @@ class OSSEmployees extends Vtiger_CRMEntity
 						} else {
 							$data = '<b>' . $data . '</b>';
 						}
-						$accountDepth = str_repeat(' .. ', $accountInfo['depth'] * 2);
+						$accountDepth = str_repeat(' .. ', $accountInfo['depth']);
 						$data = $accountDepth . $data;
 					} elseif ('parentid' == $colName) {
-						$data = '<a href="index.php?module=' . \App\Record::getType($data) . '&action=DetailView&record=' . $data . '">' . vtlib\Functions::getCRMRecordLabel($data) . '</a>';
+						$fieldModel = Vtiger_Module_Model::getInstance('OSSEmployees')->getFieldByName($fieldName);
+						$data = $fieldModel->getDisplayValue($data);
 					}
 					$accountInfoData[] = $data;
 				}
@@ -147,7 +134,6 @@ class OSSEmployees extends Vtiger_CRMEntity
 
 	public function __getParentEmployees($id, &$parentAccounts, &$encounteredAccounts)
 	{
-		\App\Log::trace('Entering __getParentEmployees(' . $id . ',' . $parentAccounts . ') method ...');
 		$parentId = (new App\Db\Query())
 			->select(['parentid'])
 			->from('vtiger_ossemployees')
@@ -181,14 +167,12 @@ class OSSEmployees extends Vtiger_CRMEntity
 			}
 		}
 		$parentAccounts[$id] = $parentAccountInfo;
-		\App\Log::trace('Exiting __getParentEmployees method ...');
 
 		return $parentAccounts;
 	}
 
 	public function __getChildEmployees($id, &$childAccounts, $depth)
 	{
-		\App\Log::trace('Entering __getChildEmployees(' . $id . ',' . $childAccounts . ',' . $depth . ') method ...');
 		$userNameSql = App\Module::getSqlForNameInDisplayFormat('Users');
 		$dataReader = (new App\Db\Query())
 			->select(['vtiger_ossemployees.*', 'user_name' => new \yii\db\Expression('CASE when (vtiger_users.user_name not like ' . App\Db::getInstance()->quoteValue('') . ") THEN $userNameSql ELSE vtiger_groups.groupname END")])
@@ -196,7 +180,7 @@ class OSSEmployees extends Vtiger_CRMEntity
 			->innerJoin('vtiger_crmentity', 'vtiger_ossemployees.ossemployeesid = vtiger_crmentity.crmid')
 			->leftJoin('vtiger_groups', 'vtiger_crmentity.smownerid = vtiger_groups.groupid')
 			->leftJoin('vtiger_users', 'vtiger_crmentity.smownerid = vtiger_users.id')
-			->where(['vtiger_crmentity.deleted' => 0, 'parentid' => $id])->createCommand()->query();
+			->where(['vtiger_crmentity.deleted' => 0, 'vtiger_ossemployees.parentid' => $id])->createCommand()->query();
 		if ($dataReader->count() > 0) {
 			++$depth;
 			while ($row = $dataReader->read()) {
@@ -217,8 +201,6 @@ class OSSEmployees extends Vtiger_CRMEntity
 				$this->__getChildEmployees($childAccId, $childAccounts, $depth);
 			}
 		}
-		\App\Log::trace('Exiting __getChildEmployees method ...');
-
 		return $childAccounts;
 	}
 

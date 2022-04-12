@@ -5,8 +5,10 @@
  *
  * @see       maps.googleapis.com Documentation  of Google Geocoding API
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -24,24 +26,18 @@ class GoogleGeocode extends Base
 	 */
 	protected static $url = 'https://maps.googleapis.com/maps/api/geocode/json?';
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public $docUrl = 'https://code.google.com/apis/console/?noredirect';
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public $customFields = [
 		'key' => [
 			'type' => 'text',
-			'validator' => 'required,custom[onlyLetterNumber]'
+			'validator' => 'required,custom[onlyLetterNumber]',
 		],
 	];
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function find($value)
 	{
 		if (empty($value) || !\App\RequestUtil::isNetConnection()) {
@@ -85,7 +81,7 @@ class GoogleGeocode extends Base
 					foreach ($body['results'] as $row) {
 						$rows[] = [
 							'label' => $row['formatted_address'],
-							'address' => $this->parse($row['address_components'])
+							'address' => $this->parse($row['address_components']),
 						];
 					}
 				}

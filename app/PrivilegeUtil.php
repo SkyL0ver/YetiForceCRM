@@ -1,16 +1,22 @@
 <?php
-
-namespace App;
-
 /**
  * Privilege Util basic class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
+
+namespace App;
+
 class PrivilegeUtil
 {
+	/** @var int Allowed group nests */
+	public const GROUP_LOOP_LIMIT = 5;
+
 	/** Function to get parent record owner.
 	 * @param $tabid    -- tabid :: Type integer
 	 * @param $parModId -- parent module id :: Type integer
@@ -98,16 +104,16 @@ class PrivilegeUtil
 	/**
 	 * Function to get the vtiger_role related user ids.
 	 *
-	 * @param int $roleId RoleId :: Type varchar
+	 * @param string $roleId Role ID
 	 *
-	 * @return array $users -- Role Related User Array in the following format:
+	 * @return array $users Role related user array
 	 */
-	public static function getUsersByRole($roleId)
+	public static function getUsersByRole($roleId): array
 	{
 		if (Cache::has('getUsersByRole', $roleId)) {
 			return Cache::get('getUsersByRole', $roleId);
 		}
-		$users = (new \App\Db\Query())->select(['userid'])->from('vtiger_user2role')->where(['roleid' => $roleId])->column();
+		$users = static::getQueryToUsersByRole($roleId)->column();
 		$users = array_map('intval', $users);
 		Cache::save('getUsersByRole', $roleId, $users);
 		return $users;
@@ -290,32 +296,19 @@ class PrivilegeUtil
 		if (Cache::has('getUsersByGroup', $cacheKey)) {
 			return Cache::get('getUsersByGroup', $cacheKey);
 		}
-		//Retreiving from the user2grouptable
-		$users = (new \App\Db\Query())->select(['userid'])->from('vtiger_users2group')->where(['groupid' => $groupId])->column();
-		//Retreiving from the vtiger_group2role
-		$dataReader = (new \App\Db\Query())->select(['roleid'])->from('vtiger_group2role')->where(['groupid' => $groupId])->createCommand()->query();
-		while ($roleId = $dataReader->readColumn(0)) {
-			$roleUsers = static::getUsersByRole($roleId);
-			$users = array_merge($users, $roleUsers);
-		}
-		//Retreiving from the vtiger_group2rs
-		$dataReader = (new \App\Db\Query())->select(['roleandsubid'])->from('vtiger_group2rs')->where(['groupid' => $groupId])->createCommand()->query();
-		while ($roleId = $dataReader->readColumn(0)) {
-			$roleUsers = static::getUsersByRoleAndSubordinate($roleId);
-			$users = array_merge($users, $roleUsers);
-		}
-		if ($i < 10) {
-			if (true === $subGroups) {
-				$subGroups = [];
-			}
-			//Retreving from group2group
-			$dataReader = (new \App\Db\Query())->select(['containsgroupid'])->from('vtiger_group2grouprel')->where(['groupid' => $groupId])->createCommand()->query();
-			$containsGroups = [];
-			while ($containsGroupId = $dataReader->readColumn(0)) {
-				$roleUsers = static::getUsersByGroup($containsGroupId, $subGroups, $i++);
-				if (false === $subGroups) {
-					$containsGroups = array_merge($containsGroups, $roleUsers);
-				} else {
+		if (false === $subGroups) {
+			$users = static::getQueryToUsersByGroup($groupId)->column();
+		} else {
+			$users = static::getQueryToUsersByGroup($groupId, false)->column();
+			if ($i < self::GROUP_LOOP_LIMIT) {
+				++$i;
+				if (true === $subGroups) {
+					$subGroups = [];
+				}
+				$dataReader = (new \App\Db\Query())->select(['containsgroupid'])->from('vtiger_group2grouprel')->where(['groupid' => $groupId])->createCommand()->query();
+				$containsGroups = [];
+				while ($containsGroupId = $dataReader->readColumn(0)) {
+					$roleUsers = static::getUsersByGroup($containsGroupId, $subGroups, $i);
 					$containsGroups = array_merge($containsGroups, $roleUsers['users']);
 					if (!isset($subGroups[$containsGroupId])) {
 						$subGroups[$containsGroupId] = $containsGroups;
@@ -326,12 +319,12 @@ class PrivilegeUtil
 						}
 					}
 				}
+				if ($containsGroups) {
+					$users = array_merge($users, $containsGroups);
+				}
+			} else {
+				Log::error('Exceeded the recursive limit, a loop might have been created. Group ID:' . $groupId);
 			}
-			if ($containsGroups) {
-				$users = array_merge($users, $containsGroups);
-			}
-		} else {
-			Log::warning('Exceeded the recursive limit, a loop might have been created. Group ID:' . $groupId);
 		}
 		$users = array_unique($users);
 		$return = (false === $subGroups ? $users : ['users' => $users, 'subGroups' => $subGroups]);
@@ -340,9 +333,116 @@ class PrivilegeUtil
 	}
 
 	/**
+	 * Gets query to users by members.
+	 *
+	 * @param array $members
+	 *
+	 * @return Db\Query
+	 */
+	public static function getQueryToUsersByMembers(array $members): Db\Query
+	{
+		$queryGenerator = (new \App\QueryGenerator('Users'))->setFields(['id']);
+		$columName = $queryGenerator->getColumnName('id');
+		$conditions = ['or'];
+		foreach ($members as $member) {
+			[$type, $id] = explode(':', $member);
+			switch ($type) {
+					case self::MEMBER_TYPE_USERS:
+						if (!isset($conditions[$type])) {
+							$conditions[$type][$columName] = [(int) $id];
+						} else {
+							$conditions[$type][$columName][] = (int) $id;
+						}
+						break;
+					case self::MEMBER_TYPE_GROUPS:
+						$conditions[] = [$columName => (new \App\Db\Query())->select(['userid'])->from(["condition_{$type}_{$id}_" . \App\Layout::getUniqueId() => self::getQueryToUsersByGroup((int) $id)])];
+						break;
+					case self::MEMBER_TYPE_ROLES:
+						$conditions[] = [$columName => self::getQueryToUsersByRole($id)];
+						break;
+					case self::MEMBER_TYPE_ROLE_AND_SUBORDINATES:
+						$conditions[] = [$columName => self::getQueryToUsersByRoleAndSubordinate($id)];
+						break;
+					default:
+						break;
+				}
+		}
+		if (\count($conditions) <= 1) {
+			$conditions[] = [$columName => -1];
+		}
+
+		return $queryGenerator->setFields(['id'])->addNativeCondition(array_values($conditions))->createQuery();
+	}
+
+	/**
+	 * Gets query to users by group.
+	 *
+	 * @param int  $groupId
+	 * @param bool $recursive
+	 * @param int  $depth
+	 *
+	 * @return Db\Query
+	 */
+	public static function getQueryToUsersByGroup(int $groupId, bool $recursive = true, int $depth = 0): Db\Query
+	{
+		++$depth;
+		$query = (new \App\Db\Query())->select(['userid'])->from('vtiger_users2group')->where(['groupid' => $groupId])
+			->union(
+			(new \App\Db\Query())->select(['vtiger_user2role.userid'])
+				->from('vtiger_group2role')
+				->innerJoin('vtiger_user2role', 'vtiger_group2role.roleid=vtiger_user2role.roleid')->where(['groupid' => $groupId])
+			)
+			->union(
+			(new \App\Db\Query())->select(['vtiger_user2role.userid'])->from('vtiger_group2rs')
+				->innerJoin('vtiger_role', "vtiger_group2rs.roleandsubid=vtiger_role.roleid OR vtiger_role.parentrole like CONCAT('%', vtiger_group2rs.roleandsubid, '::%')")
+				->innerJoin('vtiger_user2role', 'vtiger_role.roleid=vtiger_user2role.roleid')
+				->where(['vtiger_group2rs.groupid' => $groupId])
+			);
+		if ($recursive) {
+			if ($depth < self::GROUP_LOOP_LIMIT) {
+				$dataReader = (new \App\Db\Query())->select(['containsgroupid'])->from('vtiger_group2grouprel')->where(['groupid' => $groupId])->createCommand()->query();
+				while ($containsGroupId = $dataReader->readColumn(0)) {
+					$query->union((new \App\Db\Query())->select(['userid'])->from(["query_{$groupId}_{$containsGroupId}_{$depth}" => static::getQueryToUsersByGroup($containsGroupId, $recursive, $depth)]));
+				}
+				$dataReader->close();
+			} else {
+				Log::error('Exceeded the recursive limit, a loop might have been created. Group ID:' . $groupId);
+			}
+		}
+		return $query;
+	}
+
+	/**
+	 * Gets query to users by role.
+	 *
+	 * @param string $roleId
+	 *
+	 * @return Db\Query
+	 */
+	public static function getQueryToUsersByRole(string $roleId): Db\Query
+	{
+		return (new \App\Db\Query())->select(['userid'])->from('vtiger_user2role')->where(['roleid' => $roleId]);
+	}
+
+	/**
+	 * Gets query to users by role and subordinate.
+	 *
+	 * @param string $roleId
+	 *
+	 * @return Db\Query
+	 */
+	public static function getQueryToUsersByRoleAndSubordinate(string $roleId): Db\Query
+	{
+		$parentRole = static::getRoleDetail($roleId)['parentrole'] ?? '-';
+		return (new \App\Db\Query())->select(['vtiger_user2role.userid'])->from('vtiger_user2role')
+			->innerJoin('vtiger_role', 'vtiger_user2role.roleid = vtiger_role.roleid')
+			->where(['or', ['vtiger_role.parentrole' => $parentRole], ['like', 'vtiger_role.parentrole', "{$parentRole}::%", false]]);
+	}
+
+	/**
 	 * Function to get the roles and subordinate users.
 	 *
-	 * @param int $roleId
+	 * @param string $roleId
 	 *
 	 * @return array
 	 */
@@ -351,10 +451,7 @@ class PrivilegeUtil
 		if (Cache::has('getUsersByRoleAndSubordinate', $roleId)) {
 			return Cache::get('getUsersByRoleAndSubordinate', $roleId);
 		}
-		$roleInfo = static::getRoleDetail($roleId);
-		$parentRole = $roleInfo['parentrole'];
-		$users = (new \App\Db\Query())->select(['vtiger_user2role.userid'])->from('vtiger_user2role')->innerJoin('vtiger_role', 'vtiger_user2role.roleid = vtiger_role.roleid')
-			->where(['like', 'vtiger_role.parentrole', "$parentRole%", false])->column();
+		$users = static::getQueryToUsersByRoleAndSubordinate($roleId)->column();
 		$users = array_map('intval', $users);
 		Cache::save('getUsersByRoleAndSubordinate', $roleId, $users, Cache::LONG);
 
@@ -534,9 +631,10 @@ class PrivilegeUtil
 				}
 			}
 		}
-		$homeTabid = Module::getModuleId('Home');
-		if (!isset($userTabPerrArr[$homeTabid])) {
-			$userTabPerrArr[$homeTabid] = 0;
+		$homeId = Module::getModuleId('Home');
+		if (!isset($userTabPerrArr[$homeId])) {
+			$dashBoardId = Module::getModuleId('Dashboard');
+			$userTabPerrArr[$homeId] = $userTabPerrArr[$dashBoardId] ?? 1;
 		}
 		Cache::staticSave('getCombinedUserModulesPermissions', $userId, $userTabPerrArr);
 		return $userTabPerrArr;
@@ -730,10 +828,10 @@ class PrivilegeUtil
 			$parRoleList = [];
 			if (\is_array($parentRoles)) {
 				foreach ($parentRoles as $par_role_id) {
-					array_push($parRoleList, $par_role_id);
+					$parRoleList[] = $par_role_id;
 				}
 			}
-			array_push($parRoleList, $currentUserRoles);
+			$parRoleList[] = $currentUserRoles;
 			foreach (static::getDatashare('role2rs', $modTabId, $parRoleList) as $row) {
 				$shareRoleId = $row['share_roleid'];
 				$shareIdRoles = [];
@@ -1204,6 +1302,47 @@ class PrivilegeUtil
 	}
 
 	/**
+	 * Creates a query to all groups where the user is a member..
+	 *
+	 * @param int $userId
+	 *
+	 * @return Db\Query
+	 */
+	public static function getQueryToGroupsByUserId(int $userId): Db\Query
+	{
+		return (new \App\Db\Query())->select(['groupid'])->from('vtiger_groups')->where(['groupid' => self::getAllGroupsByUser($userId)]);
+	}
+
+	/**
+	 * Returns the leaders of the groups where the user is a member.
+	 *
+	 * @param int $userId
+	 *
+	 * @return array
+	 */
+	public static function getLeadersGroupByUserId(int $userId): array
+	{
+		$db = \App\Db::getInstance();
+		$query = self::getQueryToGroupsByUserId($userId)->andWhere(['<>', 'parentid', 0])->andWhere(['not', ['parentid' => null]]);
+		$member = new \yii\db\Expression('CASE WHEN vtiger_users.id IS NOT NULL THEN CONCAT(' . $db->quoteValue(self::MEMBER_TYPE_USERS) . ',\':\', parentid) ELSE CONCAT(' . $db->quoteValue(self::MEMBER_TYPE_GROUPS) . ',\':\', parentid) END');
+		$query->select(['groupid', 'member' => $member])->leftJoin('vtiger_users', 'vtiger_groups.parentid=vtiger_users.id');
+
+		return $query->createCommand()->queryAllByGroup(0);
+	}
+
+	/**
+	 * Returns groups whose leader is the user.
+	 *
+	 * @param int $userId
+	 *
+	 * @return array
+	 */
+	public static function getGroupsWhereUserIsLeader(int $userId): array
+	{
+		return (new \App\Db\Query())->select(['groupid'])->from('vtiger_groups')->where(['or', ['parentid' => $userId], ['parentid' => self::getQueryToGroupsByUserId($userId)]])->column();
+	}
+
+	/**
 	 * Tables to sharing rules.
 	 *
 	 * @var array
@@ -1329,6 +1468,9 @@ class PrivilegeUtil
 	public static function recalculateSharingRulesByUser($id)
 	{
 		$userModel = \App\User::getUserModel($id);
+		if (!$userModel->getId()) {
+			return null;
+		}
 		$roles = explode('::', $userModel->getParentRolesSeq());
 		$groups = $userModel->getGroups();
 		$sharing = [];

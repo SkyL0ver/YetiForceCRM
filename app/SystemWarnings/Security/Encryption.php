@@ -1,23 +1,35 @@
 <?php
 
+/**
+ * Encryption warnings file.
+ *
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @author    Tomasz Kur <t.kur@yetiforce.com>
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ */
+
 namespace App\SystemWarnings\Security;
 
 /**
  * Encryption warnings class.
- *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
- * @author    Tomasz Kur <t.kur@yetiforce.com>
  */
 class Encryption extends \App\SystemWarnings\Template
 {
+	/** {@inheritdoc} */
 	protected $title = 'LBL_MECHANISM_ENCRYPTION';
+
+	/** {@inheritdoc} */
 	protected $priority = 9;
 
 	/**
 	 * Checks if encryption is active.
+	 *
+	 * @return void
 	 */
-	public function process()
+	public function process(): void
 	{
 		if (\App\Encryption::getInstance()->isActive()) {
 			$this->status = 1;

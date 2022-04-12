@@ -3,27 +3,22 @@
 /**
  * Record Model.
  *
- * @package Service
+ * @package Settings
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 class Settings_WebserviceUsers_ManageConsents_Service extends Settings_WebserviceUsers_Record_Model
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public $baseTable = 'w_#__manage_consents_user';
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public $baseIndex = 'id';
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public $editFields = [
 		'server_id' => 'FL_SERVER',
 		'status' => 'FL_STATUS',
@@ -32,16 +27,13 @@ class Settings_WebserviceUsers_ManageConsents_Service extends Settings_Webservic
 		'user_id' => 'FL_USER'
 	];
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public $listFields = [
 		'server_id' => 'FL_SERVER',
 		'status' => 'FL_STATUS',
 		'user_id' => 'FL_USER',
 		'type' => 'FL_TYPE',
 		'login_time' => 'FL_LOGIN_TIME',
-		'logout_time' => 'FL_LOGOUT_TIME',
 		'language' => 'FL_LANGUAGE'
 	];
 
@@ -60,11 +52,12 @@ class Settings_WebserviceUsers_ManageConsents_Service extends Settings_Webservic
 		switch ($name) {
 			case 'status':
 				$params['uitype'] = 16;
-				$params['picklistValues'] = [1 => \App\Language::translate('PLL_ACTIVE', $moduleName), 0 => \App\Language::translate('PLL_INACTIVE', $moduleName)];
+				$params['picklistValues'] = [1 => \App\Language::translate('FL_ACTIVE'), 0 => \App\Language::translate('FL_INACTIVE')];
 				break;
 			case 'server_id':
 				$servers = Settings_WebserviceApps_Module_Model::getActiveServers($this->getModule()->typeApi);
 				$params['uitype'] = 16;
+				$params['picklistValues'] = [];
 				foreach ($servers as $key => $value) {
 					$params['picklistValues'][$key] = $value['name'];
 				}
@@ -92,6 +85,24 @@ class Settings_WebserviceUsers_ManageConsents_Service extends Settings_Webservic
 				break;
 		}
 		return Settings_Vtiger_Field_Model::init($moduleName, $params);
+	}
+
+	/** {@inheritdoc} */
+	public function save()
+	{
+		$db = App\Db::getInstance('webservice');
+		$table = $this->baseTable;
+		$index = $this->baseIndex;
+		$data = $this->getDataForSave();
+		if (empty($this->getId())) {
+			$success = $db->createCommand()->insert($table, $data)->execute();
+			if ($success) {
+				$this->set('id', $db->getLastInsertID("{$table}_{$index}_seq"));
+			}
+		} else {
+			$success = $db->createCommand()->update($table, $data, [$index => $this->getId()])->execute();
+		}
+		return $success;
 	}
 
 	/**
@@ -122,9 +133,7 @@ class Settings_WebserviceUsers_ManageConsents_Service extends Settings_Webservic
 		}
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getFieldsForSave()
 	{
 		$fields = $this->getEditFields();
@@ -132,9 +141,7 @@ class Settings_WebserviceUsers_ManageConsents_Service extends Settings_Webservic
 		return $fields = array_intersect_key($fields, $this->changes);
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getDataForSave()
 	{
 		if ($this->isNew()) {
@@ -181,7 +188,7 @@ class Settings_WebserviceUsers_ManageConsents_Service extends Settings_Webservic
 				$value = $servers ? $servers->getName() : '<span class="redColor">ERROR</span>';
 				break;
 			case 'status':
-				$value = empty($this->get($name)) ? 'PLL_INACTIVE' : 'PLL_ACTIVE';
+				$value = \App\Language::translate((empty($this->get($name)) ? 'FL_INACTIVE' : 'FL_ACTIVE'));
 				break;
 			case 'user_id':
 				$value = \App\Fields\Owner::getLabel($this->get($name));
@@ -243,15 +250,15 @@ class Settings_WebserviceUsers_ManageConsents_Service extends Settings_Webservic
 	 *
 	 * @param type $value
 	 *
-	 * @return string
+	 * @return string|string[]
 	 */
 	public function getTypeValues($value = false)
 	{
 		$data = [
-			\Api\Portal\Privilege::USER_PERMISSIONS => 'PLL_USER_PERMISSIONS',
+			\Api\WebservicePremium\Privilege::USER_PERMISSIONS => 'PLL_USER_PERMISSIONS',
 		];
 		if ($value) {
-			return $data[$value];
+			return $data[$value] ?: '';
 		}
 		return $data;
 	}

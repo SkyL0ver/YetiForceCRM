@@ -142,26 +142,35 @@ window.AppConnector = {
 		}
 		jQuery.ajax(params);
 		if (pjaxMode) {
-			if (typeof params.data.historyUrl !== 'undefined') {
-				fullUrl = params.data.historyUrl;
-			}
-			if (fullUrl === '') {
-				fullUrl = 'index.php?' + $.param(params.data);
-			} else if (fullUrl.indexOf('index.php?') === -1) {
-				fullUrl = 'index.php?' + fullUrl;
-			}
-			if (app.isWindowTop() && history.pushState && fullUrl !== '') {
-				const currentHref = window.location.href;
-				if (!history.state) {
-					history.replaceState(currentHref, 'title 1', currentHref);
-				}
-				history.pushState(fullUrl, 'title 2', fullUrl);
-			}
+			app.changeUrl(params);
 		}
 		return aDeferred.promise();
 	},
-
-	requestForm: function (url, params = {}) {
-		app.openUrlMethodPost(url, params);
+	/**
+	 * Send form data
+	 * @param {string} url
+	 * @param {object} postData
+	 * @param {object} formAttr
+	 */
+	requestForm: function (url, postData = {}, formAttr = {}) {
+		$.extend(formAttr, {
+			method: 'post',
+			action: url,
+			style: 'display:none;'
+		});
+		let form = $('<form></form>', formAttr);
+		if (typeof csrfMagicName !== 'undefined') {
+			postData[csrfMagicName] = csrfMagicToken;
+		}
+		$.each(postData, (index, value) => {
+			let input = $(document.createElement('input'));
+			input.attr('type', 'hidden');
+			input.attr('name', index);
+			input.val(value);
+			form.append(input);
+		});
+		$('body').append(form);
+		form.trigger('submit');
+		form.remove();
 	}
 };

@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Vtiger_Export_View extends Vtiger_Index_View
@@ -26,9 +26,7 @@ class Vtiger_Export_View extends Vtiger_Index_View
 		}
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function process(App\Request $request)
 	{
 		$sourceModule = $request->getModule();
@@ -51,7 +49,7 @@ class Vtiger_Export_View extends Vtiger_Index_View
 		$viewer->assign('SOURCE_MODULE', $sourceModule);
 		$viewer->assign('MODULE', 'Export');
 		$viewer->assign('XML_TPL_LIST', Import_Module_Model::getListTplForXmlType($sourceModule));
-		$viewer->assign('EXPORT_TYPE', Vtiger_Export_Model::getSupportedFileFormats($sourceModule));
+		$viewer->assign('EXPORT_TYPE', \App\Export\ExportRecords::getSupportedFileFormats($sourceModule));
 		$viewer->assign('OPERATOR', $request->getByType('operator'));
 		$viewer->assign('ALPHABET_VALUE', \App\Condition::validSearchValue($request->getByType('search_value', 'Text'), $sourceModule, $request->getByType('search_key', 'Alnum'), $request->getByType('operator')));
 		$viewer->assign('SEARCH_KEY', $request->getByType('search_key', 'Alnum'));

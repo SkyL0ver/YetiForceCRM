@@ -2,8 +2,8 @@
 /**
  * Bank accounts crmentity file.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  */
 include_once 'modules/Vtiger/CRMEntity.php';
 /**
@@ -33,21 +33,11 @@ class BankAccounts extends Vtiger_CRMEntity
 		'u_yf_bankaccountscf' => 'bankaccountsid',
 	];
 
-	/**
-	 * Mandatory for Listing (Related listview).
-	 */
-	public $list_fields = [
-		// Format: Field Label => Array(tablename, columnname)
-		'FL_NAME' => ['bankaccounts', 'name'],
-		'Assigned To' => ['crmentity', 'smownerid'],
-	];
 	public $list_fields_name = [
 		// Format: Field Label => fieldname
 		'FL_NAME' => 'name',
 		'Assigned To' => 'assigned_user_id',
 	];
-	// Make the field link to detail view
-	public $list_link_field = 'name';
 	// For Popup listview and UI type support
 	public $search_fields = [
 		// Format: Field Label => Array(tablename, columnname)

@@ -1,4 +1,4 @@
-{*<!-- {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} -->*}
+{*<!-- {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} -->*}
 {strip}
 	<!-- tpl-Users-Modals-PasswordModal -->
 	<form name="PasswordUsersForm" class="form-horizontal sendByAjax validateForm" action="index.php" method="post" autocomplete="off">
@@ -8,7 +8,7 @@
 		<input type="hidden" name="record" value="{$RECORD}" />
 		{if $MODE === 'massReset'}
 			<input type="hidden" name="selected_ids" value="{\App\Purifier::encodeHtml(\App\Json::encode($SELECTED_IDS))}">
-            <input type="hidden" name="excluded_ids" value="{\App\Purifier::encodeHtml(\App\Json::encode($EXCLUDED_IDS))}">
+			<input type="hidden" name="excluded_ids" value="{\App\Purifier::encodeHtml(\App\Json::encode($EXCLUDED_IDS))}">
 			<input type="hidden" name="search_params" value='{\App\Purifier::encodeHtml(\App\Json::encode($SEARCH_PARAMS))}' />
 		{/if}
 		<div class="modal-body">
@@ -25,7 +25,7 @@
 						{$WARNING}
 					</div>
 				{/if}
-				{if App\User::getCurrentUserId() == $RECORD}
+				{if App\User::getCurrentUserId() === $RECORD}
 					<div class="form-group">
 						<label class="col-form-label col-sm-4">{\App\Language::translate('LBL_OLD_PASSWORD', $MODULE_NAME)}</label>
 						<div class="controls col-sm-6 input-group">
@@ -77,5 +77,5 @@
 				</div>
 			{/if}
 		</div>
-	<!-- /tpl-Users-Modals-PasswordModal -->
+		<!-- /tpl-Users-Modals-PasswordModal -->
 {/strip}

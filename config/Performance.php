@@ -6,14 +6,14 @@
  *
  * @package Config
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  */
 
 namespace Config;
 
 /**
- * Configuration Class.
+ * Configuration file: Config\Performance.
  */
 class Performance
 {
@@ -116,9 +116,6 @@ class Performance
 	/** Charts multi filter limit */
 	public static $CHART_MULTI_FILTER_LIMIT = 5;
 
-	/** Charts multi filter maximum db value length */
-	public static $CHART_MULTI_FILTER_STR_LEN = 50;
-
 	/** Additional filters limit for ChartFilter's */
 	public static $CHART_ADDITIONAL_FILTERS_LIMIT = 6;
 
@@ -160,4 +157,18 @@ class Performance
 
 	/** Number of records that can be shown in history login modal */
 	public static $LOGIN_HISTORY_VIEW_LIMIT = 10;
+
+	/**
+	 * Functionality notifying about activity on the record.
+	 *
+	 * @var bool
+	 */
+	public static $recordActivityNotifier = false;
+
+	/**
+	 * Interval for Record activity notifier.
+	 *
+	 * @var int Number of seconds
+	 */
+	public static $recordActivityNotifierInterval = 5;
 }

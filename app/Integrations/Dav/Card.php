@@ -2,13 +2,15 @@
 /**
  * CardDav address books file.
  *
- * @package   Integrations
+ * @package Integration
  *
  * @see https://en.wikipedia.org/wiki/VCard#Properties
  * @see https://tools.ietf.org/id/draft-calconnect-vobject-vformat-00.html
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package Integration
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -20,7 +22,7 @@ namespace App\Integrations\Dav;
 class Card
 {
 	/**
-	 * Address mapping for modules.
+	 * @var array Address mapping for modules.
 	 */
 	const ADDRESS_MAPPING = [
 		'Contacts' => [
@@ -30,7 +32,7 @@ class Card
 				'addresslevel2a' => ['state'],
 				'addresslevel5a' => ['city'],
 				'addresslevel8a' => ['street'],
-				'localnumbera' => ['localNumber']
+				'localnumbera' => ['localNumber'],
 			],
 			'HOME' => [
 				'addresslevel1b' => ['country'],
@@ -38,7 +40,7 @@ class Card
 				'addresslevel2b' => ['state'],
 				'addresslevel5b' => ['city'],
 				'addresslevel8b' => ['street'],
-				'localnumberb' => ['localNumber']
+				'localnumberb' => ['localNumber'],
 			],
 		],
 		'OSSEmployees' => [
@@ -59,18 +61,14 @@ class Card
 		],
 	];
 	/**
-	 * Mail fields.
-	 *
-	 * @var array
+	 * @var array Mail fields.
 	 */
 	public static $mailFields = [
 		'Contacts' => ['email' => 'WORK', 'secondary_email' => 'HOME'],
 		'OSSEmployees' => ['business_mail' => 'WORK', 'private_mail' => 'HOME'],
 	];
 	/**
-	 * $Phone fields.
-	 *
-	 * @var array
+	 * @var array Phone fields.
 	 */
 	public static $telFields = [
 		'Contacts' => ['phone' => 'WORK', 'mobile' => 'CELL'],
@@ -159,10 +157,10 @@ class Card
 			'uri' => $uri,
 			'synctoken' => (int) $addressBook['synctoken'],
 			'addressbookid' => $addressBookId,
-			'operation' => $operation
+			'operation' => $operation,
 		])->execute();
 		$dbCommand->update('dav_addressbooks', [
-			'synctoken' => ((int) $addressBook['synctoken']) + 1
+			'synctoken' => ((int) $addressBook['synctoken']) + 1,
 		], ['id' => $addressBookId])
 			->execute();
 	}
@@ -277,11 +275,19 @@ class Card
 						$vcardType = explode(',', $p->getValue());
 						if (strtoupper($vcardType[0]) === $type) {
 							$orgPhone = \App\Purifier::purify($t->getValue());
-							if (\App\Config::main('phoneFieldAdvancedVerification', false) && !($phone = \App\Fields\Phone::getProperNumber($orgPhone, ($this->user ? $this->user->getId() : null)))) {
-								$this->record->set($key . '_extra', $fieldModel->getDBValue($orgPhone));
-								continue 2;
+							if ($orgPhone && 'phone' === $fieldModel->getFieldDataType()) {
+								$country = null;
+								if ($userId = $this->user ? $this->user->getId() : null) {
+									$country = \App\Fields\Country::getCountryCode(\App\User::getUserModel($userId)->getDetail('sync_carddav_default_country'));
+								}
+								$details = $fieldModel->getUITypeModel()->getPhoneDetails($orgPhone, $country);
+								if ($key !== $details['fieldName']) {
+									$this->record->set($details['fieldName'], $details['number']);
+									continue 2;
+								}
+								$orgPhone = $details['number'];
 							}
-							$this->record->set($key, $fieldModel->getDBValue($phone));
+							$this->record->set($key, $fieldModel->getDBValue($orgPhone));
 							continue 2;
 						}
 					}

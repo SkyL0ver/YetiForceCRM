@@ -1,6 +1,14 @@
-{*<!-- {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} -->*}
+{*<!-- {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} -->*}
 {strip}
 	<!-- tpl-Settings-WebserviceApps-Index -->
+	{assign var=CHECK_ALERT value=\App\YetiForce\Shop::checkAlert('YetiForceWebservicePremium')}
+	{if $IS_PORTAL && $CHECK_ALERT}
+		<div class="alert alert-warning">
+			<span class="yfi-premium mr-2 u-fs-2em color-red-600 float-left"></span>
+			{\App\Language::translate($CHECK_ALERT, 'Settings::YetiForce')}
+			<a class="btn btn-primary btn-sm ml-2" href="index.php?parent=Settings&module=YetiForce&view=Shop&product=YetiForceWebservicePremium&mode=showProductModal"><span class="yfi yfi-shop mr-2"></span>{\App\Language::translate('LBL_YETIFORCE_SHOP', $QUALIFIED_MODULE)}</a>
+		</div>
+	{/if}
 	<div class="table-responsive">
 		<table class="table table-bordered table-sm">
 			<thead>
@@ -8,7 +16,8 @@
 					<th><strong>{\App\Language::translate('LBL_APP_NAME',$QUALIFIED_MODULE)}</strong></th>
 					<th><strong>{\App\Language::translate('Status',$QUALIFIED_MODULE)}</strong></th>
 					<th><strong>{\App\Language::translate('LBL_TYPE_SERVER', $QUALIFIED_MODULE)}</strong></th>
-					<th><strong>{\App\Language::translate('LBL_ADDRESS_URL',$QUALIFIED_MODULE)}</strong></th>
+					<th><strong>{\App\Language::translate('LBL_ALLOWED_IPS',$QUALIFIED_MODULE)}</strong></th>
+					<th><strong>{\App\Language::translate('LBL_PUBLIC_URL',$QUALIFIED_MODULE)}</strong></th>
 					<th><strong>{\App\Language::translate('LBL_API_KEY',$QUALIFIED_MODULE)}</strong></th>
 				</tr>
 			</thead>
@@ -26,7 +35,8 @@
 						<td>
 							{\App\Language::translate($SERVER['type'], $QUALIFIED_MODULE)}
 						</td>
-						<td>{$SERVER['acceptable_url']}</td>
+						<td>{$SERVER['ips']}</td>
+						<td>{$SERVER['url']}</td>
 						<td>
 							<div class="action">
 								*******************

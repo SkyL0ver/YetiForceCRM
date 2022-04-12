@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Vtiger_Util_Helper
@@ -226,7 +226,8 @@ class Vtiger_Util_Helper
 	{
 		return [
 			'twilight' => '#404952',
-			'gray' => '#d1d1db'
+			'gray' => '#d1d1db',
+			'blue' => '#0078d4',
 		];
 	}
 

@@ -1,4 +1,4 @@
-/* {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
+/* {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
 
 @media print {
 	.noprint {
@@ -545,10 +545,6 @@ hr {
 		font-size: calculate-rem(16px);
 		padding: 5% 0;
 	}
-}
-
-.filterConditionsDiv {
-	padding-bottom: 0;
 }
 
 .conditionGroup {
@@ -1627,13 +1623,9 @@ table tr td .input-sm {
 	background-color: #f5f5f5;
 }
 
-.panel-title,
-.message-medium {
-	font-size: calculate-rem(14px);
-}
-
 tr.summaryViewEntries,
 #detailView table,
+#recordsListContents table,
 table.listViewEntriesTable {
 	font-size: calculate-rem(13px);
 }
@@ -2300,10 +2292,6 @@ body,
 	line-height: 2.5em;
 }
 
-.form-horizontal .form-group .description-field {
-	text-align: right;
-}
-
 .div-bordered {
 	border: 1px solid #ddd;
 }
@@ -2351,10 +2339,6 @@ body,
 
 #rssFeedHeading h3 {
 	margin-top: 0;
-}
-
-.bootbox .btn-warning {
-	margin-left: 5px;
 }
 
 .menuPanel {
@@ -2545,10 +2529,6 @@ body,
 
 	.quickCreateContent .fieldsLabelValue {
 		border-bottom: 1px solid $light;
-	}
-
-	.form-horizontal .form-group .description-field {
-		text-align: left;
 	}
 
 	.bodyContents {
@@ -3561,4 +3541,15 @@ ul.tweets li {
 	.marketplace-product {
 		max-width: calculate-rem(398px);
 	}
+}
+.c-user-image {
+	width: 1.35rem;
+	height: 1.35rem;
+	border-radius: 50%;
+	vertical-align: sub;
+	margin-right: 5px;
+}
+.c-user-xl {
+	width: 2.5rem;
+	height: 2.5rem;
 }

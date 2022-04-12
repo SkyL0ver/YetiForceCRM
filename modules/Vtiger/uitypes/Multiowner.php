@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 /**
@@ -123,12 +123,12 @@ class Vtiger_Multiowner_UIType extends Vtiger_Base_UIType
 	/** {@inheritdoc} */
 	public function getQueryOperators()
 	{
-		return ['e', 'n', 'y', 'ny'];
+		return ['e', 'n', 'y', 'ny', 'ef', 'nf'];
 	}
 
 	/** {@inheritdoc} */
 	public function getOperatorTemplateName(string $operator = '')
 	{
-		return 'ConditionBuilder/Owner.tpl';
+		return 'ConditionBuilder/SharedOwner.tpl';
 	}
 }

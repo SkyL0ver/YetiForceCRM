@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 Vtiger_Loader::includeOnce('~include/Webservices/ConvertLead.php');
 
@@ -138,6 +138,7 @@ class Leads_SaveConvertLead_View extends \App\Controller\View\Page
 		$viewer->view('ConvertLeadError.tpl', $moduleName);
 	}
 
+	/** {@inheritdoc} */
 	public function validateRequest(App\Request $request)
 	{
 		$request->validateWriteAccess();

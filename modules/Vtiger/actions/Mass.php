@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 abstract class Vtiger_Mass_Action extends \App\Controller\Action
@@ -26,7 +26,7 @@ abstract class Vtiger_Mass_Action extends \App\Controller\Action
 			$sourceModule = $request->getByType('sourceModule', 2);
 			$cvId = CustomView_Record_Model::getAllFilterByModule($sourceModule)->getId();
 		}
-		$customViewModel = CustomView_Record_Model::getInstanceById($cvId);
+		$customViewModel = CustomView_Record_Model::getInstanceById((int) $cvId);
 		if (!$customViewModel) {
 			return false;
 		}

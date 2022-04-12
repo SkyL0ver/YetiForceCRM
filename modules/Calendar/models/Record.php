@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Calendar_Record_Model extends Vtiger_Record_Model
@@ -74,20 +74,6 @@ class Calendar_Record_Model extends Vtiger_Record_Model
 	}
 
 	/**
-	 * Function returns the Entity Name of Record Model.
-	 *
-	 * @return string
-	 */
-	public function getName()
-	{
-		$name = \App\Purifier::encodeHtml($this->get('subject'));
-		if (empty($name)) {
-			$name = parent::getName();
-		}
-		return $name;
-	}
-
-	/**
 	 * Function returns the Module Name based on the activity type.
 	 *
 	 * @return string
@@ -107,9 +93,7 @@ class Calendar_Record_Model extends Vtiger_Record_Model
 		return 'index.php?module=Calendar&view=' . $this->getModule()->getDetailViewName() . '&record=' . $this->getId();
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function saveToDb()
 	{
 		parent::saveToDb();
@@ -164,9 +148,7 @@ class Calendar_Record_Model extends Vtiger_Record_Model
 		}
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function isMandatorySave()
 	{
 		return true;
@@ -321,9 +303,7 @@ class Calendar_Record_Model extends Vtiger_Record_Model
 		return 'index.php?module=Calendar&view=ActivityStateModal&record=' . $this->getId();
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function changeState($state)
 	{
 		parent::changeState($state);
@@ -344,9 +324,7 @@ class Calendar_Record_Model extends Vtiger_Record_Model
 		\App\Db::getInstance()->createCommand()->update('vtiger_activity', ['deleted' => $stateId], ['activityid' => $this->getId()])->execute();
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function delete()
 	{
 		parent::delete();
@@ -379,9 +357,7 @@ class Calendar_Record_Model extends Vtiger_Record_Model
 		return $links;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getRecordRelatedListViewLinksLeftSide(Vtiger_RelationListView_Model $viewModel)
 	{
 		$links = parent::getRecordRelatedListViewLinksLeftSide($viewModel);
@@ -392,7 +368,7 @@ class Calendar_Record_Model extends Vtiger_Record_Model
 					'linkhref' => true,
 					'linkurl' => $this->getActivityStateModalUrl(),
 					'linkicon' => 'fas fa-check',
-					'linkclass' => 'btn-xs btn-default',
+					'linkclass' => 'btn-sm btn-default',
 					'modalView' => true,
 				]);
 			}
@@ -402,7 +378,7 @@ class Calendar_Record_Model extends Vtiger_Record_Model
 					'linkurl' => $this->getEditViewUrl(),
 					'linkhref' => true,
 					'linkicon' => 'yfi yfi-full-editing-view',
-					'linkclass' => 'btn-xs btn-default',
+					'linkclass' => 'btn-sm btn-default',
 				]);
 			}
 		}

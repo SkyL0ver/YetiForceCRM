@@ -5,7 +5,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  *************************************************************************************/
 'use strict';
 
@@ -107,7 +107,7 @@ var App = (window.App = {
 							progress.progressIndicator({
 								mode: 'hide'
 							});
-							App.Components.QuickCreate.showModal(data, params);
+							App.Components.QuickCreate.showModal(data, params, element);
 							app.registerEventForClockPicker();
 						});
 					}
@@ -182,8 +182,9 @@ var App = (window.App = {
 			 *
 			 * @param   {string}  html
 			 * @param   {object}  params
+			 * @param   {jQuery}  element
 			 */
-			showModal(html, params = {}) {
+			showModal(html, params = {}, element = null) {
 				app.showModalWindow(html, (container) => {
 					const quickCreateForm = container.find('form.js-form');
 					const moduleName = quickCreateForm.find('[name="module"]').val();
@@ -198,18 +199,19 @@ var App = (window.App = {
 					if (typeof params.callbackPostShown !== 'undefined') {
 						params.callbackPostShown(quickCreateForm);
 					}
-					this.registerPostLoadEvents(quickCreateForm, params);
+					this.registerPostLoadEvents(quickCreateForm, params, element);
 				});
 			},
 			/**
 			 * Register post load events
 			 *
-			 * @param   {object}  form jQuery
+			 * @param   {jQuery}  form
 			 * @param   {object}  params
+			 * @param   {jQuery}  element
 			 *
 			 * @return  {boolean}
 			 */
-			registerPostLoadEvents(form, params) {
+			registerPostLoadEvents(form, params, element) {
 				const submitSuccessCallback = params.callbackFunction || function () {};
 				const goToFullFormCallBack = params.goToFullFormcallback || function () {};
 				form.on('submit', (e) => {
@@ -263,17 +265,8 @@ var App = (window.App = {
 											text: app.vtranslate('JS_SAVE_NOTIFY_SUCCESS'),
 											type: 'success'
 										});
-										if ('List' === app.getViewName()) {
-											let listInstance = new Vtiger_List_Js();
-											listInstance.getListViewRecords();
-										} else if ('Detail' === app.getViewName()) {
-											if (app.getUrlVar('mode') === 'showRelatedList') {
-												Vtiger_Detail_Js.getInstance().loadRelatedList();
-											} else {
-												window.location.reload();
-											}
-										}
 									}
+									app.reloadAfterSave(data, params, form, element);
 								})
 								.fail(function (textStatus, errorThrown) {
 									app.showNotify({
@@ -313,7 +306,7 @@ var App = (window.App = {
 					$(data).removeAttr('data-validation-engine');
 				});
 				form.addClass('not_validation');
-				form.submit();
+				form.trigger('submit');
 			},
 			/**
 			 * Register tab events
@@ -404,10 +397,9 @@ var App = (window.App = {
 			/**
 			 * Register post load events
 			 *
-			 * @param   {object}  form jQuery
+			 * @param   {jQuery}  form jQuery
 			 * @param   {object}  params
-			 *
-			 * @return  {boolean}
+			 * @param   {jQuery}  element
 			 */
 			registerPostLoadEvents(form, params, element) {
 				const submitSuccessCallback = params.callbackFunction || function () {};
@@ -451,14 +443,8 @@ var App = (window.App = {
 							});
 							saveHandler(form).done((data) => {
 								const modalContainer = form.closest('.modalContainer');
-								const parentModuleName = app.getModuleName();
-								const viewName = app.getViewName();
 								if (modalContainer.length) {
 									app.hideModalWindow(false, modalContainer[0].id);
-								}
-								if (moduleName === parentModuleName && 'List' === viewName) {
-									const listInstance = new Vtiger_List_Js();
-									listInstance.getListViewRecords();
 								}
 								submitSuccessCallback(data);
 								app.event.trigger('QuickEdit.AfterSaveFinal', data, form, element);
@@ -469,21 +455,7 @@ var App = (window.App = {
 										type: 'success'
 									});
 								}
-								if ('Detail' === viewName && app.getRecordId() === form.find('[name="record"]').val()) {
-									if (data.result._isViewable == false) {
-										if (window !== window.parent) {
-											window.parent.location.href = 'index.php?module=' + moduleName + '&view=ListPreview';
-										} else {
-											window.location.href = 'index.php?module=' + moduleName + '&view=List';
-										}
-									} else if (params.removeFromUrl) {
-										let searchParams = new URLSearchParams(window.location.search);
-										searchParams.delete('step');
-										window.location.href = 'index.php?' + searchParams.toString();
-									} else {
-										window.location.reload();
-									}
-								}
+								app.reloadAfterSave(data, params, form, element);
 							});
 						} else {
 							//If validation fails in recordPreSaveEvent, form should submit again
@@ -512,7 +484,7 @@ var App = (window.App = {
 					$(data).removeAttr('data-validation-engine');
 				});
 				form.addClass('not_validation');
-				form.submit();
+				form.trigger('submit');
 			},
 			/**
 			 * Save quick create form
@@ -665,12 +637,148 @@ var App = (window.App = {
 									app.errorLog(error, err);
 								});
 						};
-					app.showConfirmModal(app.vtranslate('JS_CHANGE_CONFIRMATION'), (result) => {
-						if (result) {
+					app.showConfirmModal({
+						text: app.vtranslate('JS_CHANGE_CONFIRMATION'),
+						confirmedCallback: () => {
 							params.callback(e, this);
 						}
 					});
 				});
+			}
+		},
+		ActivityNotifier: class ActivityNotifier {
+			notice = {
+				type: 'error',
+				icon: false,
+				hide: true,
+				delay: 8000,
+				stack: new PNotify.Stack({
+					dir1: 'up',
+					dir2: 'left',
+					firstpos1: 25,
+					firstpos2: 25,
+					modal: false,
+					maxOpen: 2,
+					maxStrategy: 'close',
+					maxClosureCausesWait: true
+				})
+			};
+			intervalId = null;
+			state = null;
+			static identifier = '#recordActivityNotifier';
+			constructor(element, params, interval, notice = {}) {
+				this.nodeElement = element.get(0);
+				this.url = params;
+				this.interval = interval || 10;
+				if (notice.length) {
+					this.notice = { ...this.notice, ...notice };
+				}
+			}
+			/**
+			 * Register
+			 * @param {jQuery} container
+			 */
+			static register(container) {
+				let element = container.find(ActivityNotifier.identifier);
+				if (element.length) {
+					let notifierData = element.data();
+					new ActivityNotifier(
+						element,
+						{ module: notifierData.module, view: 'RecordActivity', record: notifierData.record },
+						notifierData.interval
+					).init();
+				}
+			}
+			/**
+			 * Initiation
+			 */
+			init() {
+				this.setFormat();
+				this.setTime();
+				document.addEventListener('visibilitychange', (_) => {
+					if (document.hidden) {
+						this.destroyInterval();
+					} else {
+						this.setInterval();
+						this.requestNotifier();
+					}
+				});
+				if (!document.hidden) {
+					this.setInterval();
+				}
+			}
+			/**
+			 * Set date format
+			 * @param string
+			 */
+			setFormat(format = '') {
+				if (!format) {
+					let timeFormat = '';
+					if (CONFIG.hourFormat.toUpperCase() == 24) {
+						timeFormat = 'HH:mm:ss';
+					} else {
+						timeFormat = 'hh:mm:ss A';
+					}
+					format = CONFIG.dateFormat.toUpperCase() + ' ' + timeFormat;
+				}
+				this.format = format;
+			}
+			/**
+			 * Set date time
+			 * @param string
+			 */
+			setTime(time = '') {
+				if (!time) {
+					time = moment().format(this.format);
+				}
+				this.startTime = time;
+			}
+			/**
+			 * Set Interval
+			 */
+			setInterval() {
+				if (this.nodeElement.isConnected) {
+					this.intervalId = setInterval(() => {
+						if (!this.state) {
+							this.requestNotifier();
+						}
+					}, this.interval * 1000);
+				}
+			}
+			/**
+			 * Destroy Interval
+			 */
+			destroyInterval() {
+				clearInterval(this.intervalId);
+			}
+			/**
+			 * Function request for notifier popups
+			 */
+			requestNotifier() {
+				if (!this.nodeElement.isConnected) {
+					this.destroyInterval();
+					return false;
+				}
+				this.url.dateTime = this.startTime;
+				this.state = 1;
+				AppConnector.request(this.url)
+					.done((data) => {
+						this.state = 0;
+						if (app.isJsonString(data)) {
+							data = JSON.parse(data);
+						}
+						let response = data.result;
+						if (response.text) {
+							this.notice.text = response.text.trim();
+							this.notice.title = response.title.trim();
+							app.showNotify(this.notice);
+						}
+						this.setTime(response.dateTime);
+					})
+					.fail((data, err) => {
+						app.errorLog(data, err);
+						this.destroyInterval();
+					});
 			}
 		}
 	},
@@ -704,6 +812,98 @@ var App = (window.App = {
 				}
 			}
 			return PNotify[type](params);
+		}
+	},
+	Clipboard: class Clipboard {
+		constructor(container) {
+			this.text = null;
+			this.oClipboard = null;
+			this.container = container;
+		}
+		/**
+		 * Register
+		 * @param {jQuery} params
+		 */
+		static register(container) {
+			if (typeof container === 'undefined') {
+				container = $('body');
+			}
+			container.on('dblclick', '.js-copy-clipboard', (e) => {
+				e.preventDefault();
+				new Clipboard($(e.currentTarget)).load().then((instance) => {
+					instance.createClipboard();
+					instance.copy();
+					instance.destroy();
+				});
+			});
+		}
+		/**
+		 * Initiation
+		 */
+		load() {
+			const aDeferred = $.Deferred();
+			let url = this.container.data('url');
+			if (url) {
+				this.getTextFromUrl(url).then((response) => {
+					this.text = response.result.text;
+					aDeferred.resolve(this);
+				});
+			} else {
+				aDeferred.resolve(this);
+			}
+			return aDeferred.promise();
+		}
+		/**
+		 * Create ClipboardJS
+		 */
+		createClipboard() {
+			let id = this.container.attr('id');
+			this.oClipboard = new ClipboardJS(`#${id}`, {
+				text: (_) => {
+					return this.text;
+				}
+			});
+		}
+		/**
+		 * Get text to Clipboard from URL
+		 */
+		getTextFromUrl(url) {
+			const aDeferred = $.Deferred();
+			let progressIndicatorElement = $.progressIndicator({ blockInfo: { enabled: true } });
+			AppConnector.request(url)
+				.done((response) => {
+					progressIndicatorElement.progressIndicator({ mode: 'hide' });
+					if (response.success) {
+						aDeferred.resolve(response);
+					} else {
+						aDeferred.reject(response);
+					}
+				})
+				.fail((_) => {
+					app.showNotify({
+						text: app.vtranslate('JS_ERROR'),
+						type: 'error'
+					});
+					progressIndicatorElement.progressIndicator({ mode: 'hide' });
+					aDeferred.reject(_);
+				});
+			return aDeferred.promise();
+		}
+		/**
+		 * Set text to Clipboard
+		 */
+		copy() {
+			this.container.trigger('click');
+			app.showNotify({
+				text: app.vtranslate('JS_NOTIFY_COPY_TEXT'),
+				type: 'success'
+			});
+		}
+		/**
+		 * Destroy ClipboardJS object
+		 */
+		destroy() {
+			this.oClipboard.destroy();
 		}
 	}
 });
@@ -766,9 +966,10 @@ var app = (window.app = {
 	 * Function returns the record id
 	 */
 	getRecordId: function () {
-		var view = this.getViewName();
-		var recordId;
-		if ($.inArray(view, ['Edit', 'PreferenceEdit', 'Detail', 'PreferenceDetail', 'DetailPreview']) !== -1) {
+		let recordId;
+		if (
+			$.inArray(this.getViewName(), ['Edit', 'PreferenceEdit', 'Detail', 'PreferenceDetail', 'DetailPreview']) !== -1
+		) {
 			recordId = this.getMainParams('recordId');
 		}
 		return recordId;
@@ -947,8 +1148,7 @@ var app = (window.app = {
 			manualTriggerDelay: 500,
 			placement: 'auto',
 			html: true,
-			template:
-				'<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-header"></h3><div class="popover-body"></div></div>',
+			template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-header"></h3></div>',
 			container: 'body',
 			boundary: 'viewport',
 			delay: { show: 300, hide: 100 }
@@ -956,12 +1156,14 @@ var app = (window.app = {
 		selectElement.each(function (index, domElement) {
 			let element = $(domElement);
 			let elementParams = $.extend(true, defaultParams, params, element.data());
-			if (element.data('class')) {
-				elementParams.template =
-					'<div class="popover ' +
-					element.data('class') +
-					'" role="tooltip"><div class="arrow"></div><h3 class="popover-header"></h3><div class="popover-body"></div></div>';
+			let tmp = elementParams.template;
+			if (elementParams.class) {
+				tmp = tmp.replace('class="popover"', `class="popover ${elementParams.class}"`);
 			}
+			if (elementParams.content) {
+				tmp = tmp.replace('</h3></div>', `</h3><div class="popover-body">${elementParams.content}</div></div>`);
+			}
+			elementParams.template = tmp;
 			if (element.hasClass('delay0')) {
 				elementParams.delay = { show: 0, hide: 0 };
 			}
@@ -990,8 +1192,7 @@ var app = (window.app = {
 			},
 			trigger: 'manual',
 			placement: 'right',
-			template:
-				'<div class="popover js-popover--before-positioned" role="tooltip"><div class="popover-body"></div></div>'
+			class: 'js-popover--before-positioned'
 		};
 		let popoverText = element.find('.js-popover-text').length ? element.find('.js-popover-text') : element;
 		if (!app.isEllipsisActive(popoverText)) {
@@ -1024,7 +1225,7 @@ var app = (window.app = {
 	 * @param {object} customParams
 	 */
 	registerPopoverRecord: function (
-		selectElement = $('a.js-popover-tooltip--record'),
+		selectElement = $('.js-popover-tooltip--record'),
 		customParams = {},
 		container = $(document)
 	) {
@@ -1036,7 +1237,10 @@ var app = (window.app = {
 			manualTriggerDelay: app.getMainParams('recordPopoverDelay'),
 			placement: 'right',
 			callbackShown: () => {
-				if (!selectElement.attr('href')) {
+				if (
+					!selectElement.attr('href') ||
+					selectElement.closest('.ui-sortable-handle').hasClass('ui-sortable-helper')
+				) {
 					return false;
 				}
 				let link = new URL(selectElement.eq(0).attr('href'), window.location.origin);
@@ -1219,6 +1423,7 @@ var app = (window.app = {
 				height: '5em',
 				toolbar: 'Min'
 			});
+			App.Fields.MultiAttachment.register(modalContainer);
 			app.registesterScrollbar(modalContainer);
 			app.registerIframeEvents(modalContainer);
 			modalContainer.find('.modal-dialog').draggable({
@@ -1228,6 +1433,7 @@ var app = (window.app = {
 		});
 		$('body').append(container);
 		modalContainer.modal(params);
+		app.registerFormsEvents(modalContainer);
 		thisInstance.registerModalEvents(modalContainer, sendByAjaxCb);
 	},
 	showModalWindow: function (data, url, cb, paramsObject = {}) {
@@ -1235,12 +1441,12 @@ var app = (window.app = {
 			return false;
 		}
 		const thisInstance = this;
-		let sendByAjaxCb;
-		Window.lastModalId = 'modal_' + Math.random().toString(36).substr(2, 9);
+		let sendByAjaxCb, modalId;
+		modalId = 'modal_' + Math.random().toString(36).substr(2, 9);
 		//null is also an object
 		if (typeof data === 'object' && data != null && !(data instanceof $)) {
 			if (data.id != undefined) {
-				Window.lastModalId = data.id;
+				modalId = data.id;
 			}
 			paramsObject = data.css;
 			cb = data.cb;
@@ -1249,6 +1455,11 @@ var app = (window.app = {
 				sendByAjaxCb = data.sendByAjaxCb;
 			}
 			data = data.data;
+		} else if (typeof data === 'string') {
+			let modalData = $(data).last();
+			if (modalData.data('modalid')) {
+				modalId = modalData.data('modalid');
+			}
 		}
 		if (typeof url === 'function') {
 			if (typeof cb === 'object') {
@@ -1268,15 +1479,15 @@ var app = (window.app = {
 			sendByAjaxCb = function () {};
 		}
 		if (paramsObject !== undefined && paramsObject.modalId !== undefined) {
-			Window.lastModalId = paramsObject.modalId;
+			modalId = paramsObject.modalId;
 		}
 		// prevent duplicate hash generation
-		let container = $('#' + Window.lastModalId);
+		let container = $('#' + modalId);
 		if (container.length) {
 			container.remove();
 		}
 		container = $('<div></div>');
-		container.attr('id', Window.lastModalId).addClass('modalContainer js-modal-container');
+		container.attr('id', modalId).addClass('modalContainer js-modal-container');
 		container.one('hidden.bs.modal', function () {
 			container.remove();
 			let backdrop = $('.modal-backdrop');
@@ -1287,6 +1498,7 @@ var app = (window.app = {
 				$('body').addClass('modal-open');
 			}
 		});
+		Window.lastModalId = modalId;
 		if (data) {
 			thisInstance.showModalData(data, container, paramsObject, cb, url, sendByAjaxCb);
 		} else {
@@ -1295,6 +1507,34 @@ var app = (window.app = {
 			});
 		}
 		return container;
+	},
+	showModalHtml: function (params) {
+		let data = '',
+			icon = '';
+		let footer = params['footer'] ?? '';
+		if (params['header']) {
+			params['header'] = `<span class="${params['headerIcon']} mr-2"></span>${params['header']}`;
+		}
+		if (params['footerButtons']) {
+			$.each(params['footerButtons'], (i, button) => {
+				icon = data = '';
+				$.each(button['data'], (key, val) => {
+					data += ` data-${key}="${val}"`;
+				});
+				if (button['icon']) {
+					icon += `<span class="${button['icon']} mr-2"></span>`;
+				}
+				footer += `<button type="button" class="btn ${button['class']}" ${data}>${icon}${button['text']}</button>`;
+			});
+		}
+		if (footer) {
+			footer = `<div class="modal-footer">${footer}</div>`;
+		}
+		let html = `<div class="modal" tabindex="-1" role="dialog"><div class="modal-dialog ${params['class']}" role="document"><div class="modal-content">
+		<div class="modal-header"><h5 class="modal-title js-modal-title" data-js="container">${params['header']}</h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
+		<div class="modal-body js-modal-content text-break ${params['bodyClass']}" data-js="container">${params['body']}</div></div>${footer}</div></div>`;
+		params.data = html;
+		return app.showModalWindow(params);
 	},
 	/**
 	 * Check if current window is target for a modal and trigger in correct window if not
@@ -1348,14 +1588,17 @@ var app = (window.app = {
 	},
 	registerModalController: function (modalId, modalContainer, cb) {
 		let windowParent = this.childFrame ? window.parent : window;
-		if (modalId === undefined) {
+		if (!modalId) {
 			modalId = Window.lastModalId;
 		}
-		if (modalContainer === undefined) {
+		if (!modalContainer) {
 			modalContainer = $('#' + modalId + ' .js-modal-data');
 		}
 		let moduleName = modalContainer.data('module') || 'Base';
 		let modalClass = moduleName.replace(':', '_') + '_' + modalContainer.data('view') + '_JS';
+		if (typeof windowParent[modalClass] === 'undefined') {
+			modalClass = [...modalClass.split('_').slice(0, -1), 'Js'].join('_');
+		}
 		if (typeof windowParent[modalClass] === 'undefined') {
 			modalClass = 'Base_' + modalContainer.data('view') + '_JS';
 		}
@@ -1400,7 +1643,7 @@ var app = (window.app = {
 								if (responseData.result.notify) {
 									Vtiger_Helper_Js.showMessage(responseData.result.notify);
 								}
-								if (responseData.result.procesStop) {
+								if (responseData.result.processStop) {
 									progressIndicatorElement.progressIndicator({ mode: 'hide' });
 									return false;
 								}
@@ -1477,6 +1720,9 @@ var app = (window.app = {
 								if (responseData.success && responseData.result) {
 									if (responseData.result.notify) {
 										Vtiger_Helper_Js.showMessage(responseData.result.notify);
+									}
+									if (responseData.result.closeModal) {
+										app.hideModalWindow(null, container.closest('.js-modal-container').attr('id'));
 									}
 								}
 								progressIndicatorElement.progressIndicator({ mode: 'hide' });
@@ -1558,31 +1804,22 @@ var app = (window.app = {
 		switch (dateFormat) {
 			case 'yyyy-mm-dd':
 				return 'Y-m-d';
-				break;
 			case 'mm-dd-yyyy':
 				return 'm-d-Y';
-				break;
 			case 'dd-mm-yyyy':
 				return 'd-m-Y';
-				break;
 			case 'yyyy.mm.dd':
 				return 'Y.m.d';
-				break;
 			case 'mm.dd.yyyy':
 				return 'm.d.Y';
-				break;
 			case 'dd.mm.yyyy':
 				return 'd.m.Y';
-				break;
 			case 'yyyy/mm/dd':
 				return 'Y/m/d';
-				break;
 			case 'mm/dd/yyyy':
 				return 'm/d/Y';
-				break;
 			case 'dd/mm/yyyy':
 				return 'd/m/Y';
-				break;
 		}
 	},
 	convertTojQueryDatePickerFormat: function (dateFormat) {
@@ -1780,6 +2017,9 @@ var app = (window.app = {
 				}
 			}
 		});
+		if (!Object.keys(options).length) {
+			options = Object.assign({ searching: true, ordering: true, paging: true, info: true }, table.data());
+		}
 		return table.DataTable(options);
 	},
 	/**
@@ -1809,7 +2049,7 @@ var app = (window.app = {
 	},
 	showNewScrollbarTopBottomRight: function (element, options = {}) {
 		if (typeof element === 'undefined' || !element.length) return;
-		options = Object.assign(this.scrollOptions, options);
+		options = Object.assign(options, this.scrollOptions);
 		let scrollbarTopLeftInit = new PerfectScrollbar(element[0], options);
 		let scrollbarTopElement = element.find('.ps__rail-x').first();
 		scrollbarTopElement.css({
@@ -1825,7 +2065,7 @@ var app = (window.app = {
 	},
 	showNewScrollbarTopBottom: function (element, options = { wheelPropagation: true, suppressScrollY: true }) {
 		if (typeof element === 'undefined' || !element.length) return;
-		options = Object.assign(this.scrollOptions, options);
+		options = Object.assign(options, this.scrollOptions);
 		new PerfectScrollbar(element[0], options);
 		new PerfectScrollbar(element[0], options);
 		var scrollbarTopElement = element.find('.ps__rail-x').first();
@@ -2100,7 +2340,7 @@ var app = (window.app = {
 	getUrlVar: function (varName) {
 		var getVar = function () {
 			var vars = {};
-			window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
+			window.location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
 				vars[key] = value;
 			});
 			return vars;
@@ -2244,18 +2484,11 @@ var app = (window.app = {
 			if (element.data('values')) {
 				$.extend(data, element.data('values'));
 			}
-			if (element.data('mandatoryFields')) {
-				data.mandatoryFields = element.data('mandatoryFields');
-			}
-			if (element.data('showLayout')) {
-				data.showLayout = element.data('showLayout');
-			}
-			if (element.data('editFields')) {
-				data.editFields = element.data('editFields');
-			}
-			if (element.data('picklistValues')) {
-				data.picklistValues = element.data('picklistValues');
-			}
+			$.each(['mandatoryFields', 'modalTitle', 'showLayout', 'editFields', 'picklistValues'], function (index, value) {
+				if (element.data(value)) {
+					data[value] = element.data(value);
+				}
+			});
 			App.Components.QuickEdit.showModal(data, element);
 		});
 	},
@@ -2315,10 +2548,11 @@ var app = (window.app = {
 			if (currentElement.data('class')) {
 				modalClass = currentElement.data('class');
 			}
-			app.showModalWindow(`<div class="modal" tabindex="-1" role="dialog"><div class="modal-dialog ${modalClass}" role="document"><div class="modal-content">
-			<div class="modal-header"> <h5 class="modal-title">${title}</h5>
-			  <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-			</div><div class="modal-body text-break">${content}</div></div></div></div>`);
+			app.showModalHtml({
+				class: modalClass,
+				header: title,
+				body: content
+			});
 			e.stopPropagation();
 		});
 	},
@@ -2330,27 +2564,53 @@ var app = (window.app = {
 		}
 	},
 	registerIframeAndMoreContent(container = $(document)) {
-		let showMoreModal = (e) => {
+		container.on('click', '.js-more', (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 			const btn = $(e.currentTarget);
-			const message = btn.data('iframe')
-				? btn.siblings('iframe').clone().show()
-				: btn.closest('.js-more-content').find('.fullContent').html();
-			bootbox.dialog({
-				message,
-				title: '<span class="mdi mdi-overscan"></span>  ' + app.vtranslate('JS_FULL_TEXT'),
-				className: 'u-word-break modal-fullscreen',
-				buttons: {
-					danger: {
-						label: '<span class="fas fa-times mr-1"></span>' + app.vtranslate('JS_CLOSE'),
-						className: 'btn-danger',
-						callback: function () {}
+			app.showModalHtml({
+				class: 'modal-fullscreen',
+				header: app.vtranslate('JS_FULL_TEXT'),
+				headerIcon: 'mdi mdi-overscan',
+				bodyClass: 'u-word-break pb-0 pt-1',
+				footerButtons: [
+					{ text: app.vtranslate('JS_CANCEL'), icon: 'fas fa-times', class: 'btn-danger', data: { dismiss: 'modal' } }
+				],
+				cb: (modal) => {
+					if (btn.data('iframe')) {
+						let iframe = btn.siblings('iframe');
+						let message = iframe.clone();
+						if (message[0].hasAttribute('srcdoctemp')) {
+							message.attr('srcdoc', message.attr('srcdoctemp'));
+						}
+						let isHidden = iframe.is(':hidden');
+						let height = 0;
+						if (iframe.data('height')) {
+							if (iframe.data('height') === 'full') {
+								height = $(window).height() - 185;
+							} else {
+								height = iframe.data('height');
+							}
+						} else {
+							if (isHidden) {
+								message.css('display', '');
+								iframe.css('display', '');
+							}
+							height = iframe.contents().height() ?? iframe.contents().find('body').height();
+						}
+						if (height) {
+							message.height(height);
+						}
+						if (isHidden) {
+							iframe.css('display', 'none');
+						}
+						modal.find('.js-modal-content').html(message);
+					} else {
+						modal.find('.js-modal-content').html(btn.closest('.js-more-content').find('.fullContent').html());
 					}
 				}
 			});
-		};
-		container.on('click', '.js-more', showMoreModal);
+		});
 	},
 	registerIframeEvents(content) {
 		content.find('.js-iframe-full-height').each(function () {
@@ -2533,26 +2793,36 @@ var app = (window.app = {
 			window.location.href = url;
 		}
 	},
-	openUrlMethodPost(url, postData = {}, formAttr = {}) {
-		$.extend(formAttr, {
-			method: 'post',
-			action: url,
-			style: 'display:none;'
-		});
-		let form = $('<form></form>', formAttr);
-		if (typeof csrfMagicName !== 'undefined') {
-			postData[csrfMagicName] = csrfMagicToken;
+	/**
+	 * Convert url string to object
+	 *
+	 * @param   {string}  url  example: index.php?module=LayoutEditor&parent=Settings
+	 */
+	changeUrl(params) {
+		let fullUrl = '';
+		if (params.data && typeof params.data.historyUrl !== 'undefined') {
+			fullUrl = params.data.historyUrl;
 		}
-		$.each(postData, (index, value) => {
-			let input = $(document.createElement('input'));
-			input.attr('type', 'hidden');
-			input.attr('name', index);
-			input.val(value);
-			form.append(input);
-		});
-		$('body').append(form);
-		form.submit();
-		form.remove();
+		if (fullUrl === '') {
+			if (params.data) {
+				if (typeof params.data == 'string') {
+					fullUrl = 'index.php?' + params.data;
+				} else {
+					fullUrl = 'index.php?' + $.param(params.data);
+				}
+			} else if (typeof params === 'object') {
+				fullUrl = 'index.php?' + $.param(params);
+			}
+		} else if (fullUrl.indexOf('index.php?') === -1) {
+			fullUrl = 'index.php?' + fullUrl;
+		}
+		if (app.isWindowTop() && history && history.pushState && fullUrl !== '') {
+			if (!history.state) {
+				let currentHref = window.location.href;
+				history.replaceState(currentHref, 'title 1', currentHref);
+			}
+			history.pushState(fullUrl, 'title 2', fullUrl);
+		}
 	},
 	/**
 	 * Convert url string to object
@@ -2589,38 +2859,9 @@ var app = (window.app = {
 			if (typeof value === 'object' || (typeof value === 'string' && value.startsWith('<'))) {
 				return;
 			}
-			url += key + '=' + value + '&';
+			url += key + '=' + encodeURIComponent(value) + '&';
 		});
-		return url;
-	},
-	showConfirmation: function (data, element) {
-		var params = {};
-		if (data) {
-			params = $.extend(params, data);
-		}
-		if (element) {
-			element = $(element);
-			if (!params.title) {
-				params.title = element.html() + ' ' + (element.data('content') ? element.data('content') : '');
-			}
-			if (!params.message) {
-				params.message = element.data('confirm');
-			}
-			if (!params.url) {
-				params.url = element.data('url');
-			}
-		}
-		Vtiger_Helper_Js.showConfirmationBox(params).done(function () {
-			if (params.type == 'href') {
-				AppConnector.request(params.url).done(function (data) {
-					app.openUrl(data.result);
-				});
-			} else if (params.type == 'reloadTab') {
-				AppConnector.request(params.url).done(function (data) {
-					Vtiger_Detail_Js.getInstance().reloadTabContent();
-				});
-			}
-		});
+		return url.slice(0, -1);
 	},
 	formatToHourText: function (decTime, type = 'short', withSeconds = false, withMinutes = true) {
 		const short = type === 'short';
@@ -2778,47 +3019,76 @@ var app = (window.app = {
 		PNotify.defaultModules.set(PNotifyFontAwesome5, {});
 		PNotify.defaultModules.set(PNotifyMobile, {});
 	},
-	showConfirmModal: function (text, callback) {
-		return this.showNotify({
-			icon: 'fas fa-question-circle',
-			title: text,
-			closer: false,
-			sticker: false,
-			destroy: false,
-			modules: new Map([
-				...PNotify.defaultModules,
-				[
-					PNotifyConfirm,
-					{
-						confirm: true,
-						buttons: [
+	showConfirmModal: function (params) {
+		let confirmButtonLabel = 'JS_OK';
+		let rejectedButtonLabel = 'JS_CANCEL';
+		if (typeof params.confirmButtonLabel !== 'undefined') {
+			confirmButtonLabel = params.confirmButtonLabel;
+		}
+		if (typeof params.rejectedButtonLabel !== 'undefined') {
+			rejectedButtonLabel = params.rejectedButtonLabel;
+		}
+		return this.showNotify(
+			$.extend(
+				{
+					icon: 'fas fa-question-circle',
+					closer: false,
+					sticker: false,
+					destroy: false,
+					hide: false,
+					width: 'auto',
+					animateSpeed: 'fast',
+					addModalClass: 'c-confirm-modal',
+					modules: new Map([
+						...PNotify.defaultModules,
+						[
+							PNotifyConfirm,
 							{
-								text: app.vtranslate('JS_OK'),
-								primary: true,
-								promptTrigger: true,
-								click: function (notice) {
-									notice.close();
-									callback(true);
-								}
-							},
-							{
-								text: app.vtranslate('JS_CANCEL'),
-								click: function (notice) {
-									notice.close();
-									callback(false);
-								}
+								confirm: true,
+								prompt: 'showDialog' in params ? params['showDialog'] : false,
+								promptMultiLine: 'multiLineDialog' in params ? params['multiLineDialog'] : false,
+								buttons: [
+									{
+										text: '<span class="fas fa-check mr-2"></span>' + app.vtranslate(confirmButtonLabel),
+										textTrusted: true,
+										primary: true,
+										promptTrigger: true,
+										click: function (notice, value, e) {
+											if (params['showDialog'] && !value) {
+												return;
+											}
+											if (typeof params.confirmedCallback !== 'undefined') {
+												params.confirmedCallback(notice, value, e);
+											}
+											notice.close();
+										}
+									},
+									{
+										text: '<span class="fas fa-times mr-2"></span>' + app.vtranslate(rejectedButtonLabel),
+										textTrusted: true,
+										click: function (notice) {
+											if (typeof params.rejectedCallback !== 'undefined') {
+												params.rejectedCallback(notice);
+											}
+											notice.close();
+										}
+									}
+								]
 							}
 						]
-					}
-				]
-			]),
-			stack: new PNotify.Stack({
-				dir1: 'down',
-				modal: true,
-				firstpos1: 25,
-				overlayClose: false
-			})
-		});
+					]),
+					stack: new PNotify.Stack({
+						dir1: 'down',
+						firstpos1: 50,
+						spacing1: 0,
+						push: 'top',
+						modal: true,
+						overlayClose: false
+					})
+				},
+				params
+			)
+		);
 	},
 	registesterScrollbar(container) {
 		container.find('.js-scrollbar').each(function () {
@@ -2842,9 +3112,6 @@ var app = (window.app = {
 			'.js-popover-tooltip, .js-popover-tooltip--record, .js-popover-tooltip--ellipsis, [data-field-type="reference"], [data-field-type="multireference"]',
 			(e) => {
 				let currentTarget = $(e.currentTarget);
-				if (currentTarget.find('.js-popover-tooltip--record').length) {
-					return;
-				}
 				if (!currentTarget.hasClass('popover-triggered')) {
 					if (currentTarget.hasClass('js-popover-tooltip--record')) {
 						app.registerPopoverRecord(currentTarget, {}, container);
@@ -2902,10 +3169,181 @@ var app = (window.app = {
 		container.find('.js-fab__container').on('clickoutside', (e) => {
 			$(e.currentTarget).removeClass('u-hidden-block__opened');
 		});
+	},
+	processEvents: false,
+	registerAfterLoginEvents: function () {
+		if (this.processEvents === false) {
+			let processEvents = $('#processEvents');
+			if (processEvents.length === 0) {
+				return;
+			}
+			this.processEvents = JSON.parse(processEvents.val());
+		}
+		if (this.processEvents.length === 0) {
+			return;
+		}
+		let event = this.processEvents.shift();
+		switch (event.type) {
+			case 'modal':
+				AppConnector.request(event.url)
+					.done(function (requestData) {
+						app.showModalWindow(requestData).one('hidden.bs.modal', function () {
+							app.registerAfterLoginEvents();
+						});
+					})
+					.fail(function (textStatus, errorThrown) {
+						app.showNotify({
+							title: app.vtranslate('JS_ERROR'),
+							text: errorThrown,
+							type: 'error'
+						});
+					});
+				break;
+			case 'notify':
+				app.showNotify(event.notify);
+				app.registerAfterLoginEvents();
+				break;
+			default:
+				return;
+		}
+	},
+	/**
+	 * Function to reload view after save event
+	 *
+	 * @param {object} responseData - Save responses data.
+	 * @param {object} params - Save params.
+	 * @param {jQuery} form - Jquery form container.
+	 * @param {jQuery} element - Jquery trigger element.
+	 */
+	reloadAfterSave: function (responseData, params, form, element) {
+		const moduleName = params['module'];
+		const parentModuleName = app.getModuleName();
+		const viewName = app.getViewName();
+		if ('List' === viewName) {
+			if (moduleName === parentModuleName) {
+				app.pageController.getListViewRecords();
+			}
+		} else if ('Kanban' === viewName) {
+			app.pageController.loadKanban(false);
+		} else if ('Detail' === viewName) {
+			if (form && app.getRecordId() === form.find('[name="record"]').val()) {
+				if (responseData.result._isViewable == false) {
+					if (window !== window.parent) {
+						window.parent.location.href = 'index.php?module=' + moduleName + '&view=ListPreview';
+					} else {
+						window.location.href = 'index.php?module=' + moduleName + '&view=List';
+					}
+				} else if (params && params.removeFromUrl) {
+					let searchParams = new URLSearchParams(window.location.search);
+					searchParams.delete('step');
+					window.location.href = 'index.php?' + searchParams.toString();
+				} else {
+					window.location.reload();
+				}
+			} else {
+				let widget, block;
+				if (responseData.result._reload) {
+					window.location.reload();
+				} else if (app.getUrlVar('mode') === 'showRelatedList') {
+					app.pageController.loadRelatedList();
+				} else if (element && (widget = element.closest('.widgetContentBlock')) && widget.length !== 0) {
+					app.pageController.loadWidget(widget);
+				} else if (element && (block = element.closest('.detailViewBlockLink')) && block.length !== 0) {
+					app.pageController.reloadDetailViewBlock(block);
+				} else if (params && params.data) {
+					window.location.reload();
+				} else {
+					app.pageController.reloadTabContent();
+				}
+			}
+		}
+	},
+	/**
+	 * Function to register the records events
+	 * @param {jQuery} container - Jquery container.
+	 */
+	registerRecordActionsEvents: function (container) {
+		container.on('click', '.js-action-confirm', function (event) {
+			event.stopPropagation();
+			let target = $(this),
+				sourceView = target.data('sourceView'),
+				addBtnIcon = target.data('addBtnIcon');
+			let params = {
+				icon: false,
+				title: target.data('content'),
+				confirmedCallback: () => {
+					let progressIndicatorElement = $.progressIndicator({
+						position: 'html',
+						blockInfo: {
+							enabled: true
+						}
+					});
+					let url = target.data('url') + '&sourceView=' + sourceView;
+					AppConnector.request(url).done(function (data) {
+						progressIndicatorElement.progressIndicator({
+							mode: 'hide'
+						});
+						if (data && data.success) {
+							if (data.result.notify) {
+								app.showNotify(data.result.notify);
+							}
+							if (sourceView === 'Href') {
+								app.openUrl(data.result);
+							} else {
+								app.reloadAfterSave(data, app.convertUrlToObject(url), null, target);
+							}
+						} else {
+							app.showNotify({
+								text: app.vtranslate(data.error.message),
+								title: app.vtranslate('JS_LBL_PERMISSION'),
+								type: 'error'
+							});
+						}
+					});
+				}
+			};
+			if (target.data('confirm')) {
+				params.text = target.data('confirm');
+				addBtnIcon = 1;
+			}
+			if (addBtnIcon == 1) {
+				params.title = target.html() + ' ' + params.title;
+			}
+			app.showConfirmModal(params);
+		});
+	},
+	/**
+	 * Register keyboard shortcuts events
+	 * @param {jQuery} container
+	 */
+	registerKeyboardShortcutsEvent: function (container) {
+		if (app.getUrlVar('parent') !== 'Settings') {
+			document.addEventListener('keydown', (event) => {
+				if (CONFIG['isEntityModule'] && event.shiftKey && event.ctrlKey && event.code === 'KeyL') {
+					window.location.href = 'index.php?module=' + app.getModuleName() + '&view=List';
+				}
+				if (CONFIG['isQuickCreateSupported'] && event.shiftKey && event.ctrlKey && event.code === 'KeyQ') {
+					App.Components.QuickCreate.createRecord(app.getModuleName());
+				}
+			});
+		}
+	},
+	/**
+	 * Register POST action
+	 * @param {jQuery} container
+	 */
+	registerPostActionEvent: function (container) {
+		container.on('click', '.js-post-action', function (e) {
+			e.preventDefault();
+			let element = $(this);
+			if (element.attr('href')) {
+				AppConnector.requestForm(element.attr('href'));
+			}
+		});
 	}
 });
 CKEDITOR.disableAutoInline = true;
-$(document).ready(function () {
+$(function () {
 	Quasar.iconSet.set(Quasar.iconSet.mdiV3);
 	let document = $(this);
 	app.registerToggleIconClick(document);
@@ -2924,9 +3362,14 @@ $(document).ready(function () {
 	app.registesterScrollbar(document);
 	app.registerHtmlToImageDownloader(document);
 	app.registerShowHideBlock(document);
+	app.registerAfterLoginEvents(document);
 	app.registerFormsEvents(document);
+	app.registerRecordActionsEvents(document);
+	app.registerKeyboardShortcutsEvent(document);
+	app.registerPostActionEvent(document);
 	App.Components.QuickCreate.register(document);
 	App.Components.Scrollbar.initPage();
+	App.Clipboard.register(document);
 	String.prototype.toCamelCase = function () {
 		let value = this.valueOf();
 		return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
@@ -2936,9 +3379,9 @@ $(document).ready(function () {
 		$('textarea').resizable();
 	}
 	// Instantiate Page Controller
-	let pageController = app.getPageController();
-	if (pageController) {
-		pageController.registerEvents();
+	app.pageController = app.getPageController();
+	if (app.pageController) {
+		app.pageController.registerEvents();
 	}
 });
 (function ($) {
@@ -2962,7 +3405,7 @@ $(document).ready(function () {
 		this.removeAttr('disabled');
 	};
 	$.fn.serializeFormData = function () {
-		let form = $(this);
+		let form = this;
 		for (var instance in CKEDITOR.instances) {
 			CKEDITOR.instances[instance].updateElement();
 		}
@@ -3003,5 +3446,4 @@ $(document).ready(function () {
 			})
 			.remove();
 	};
-	bootbox.setLocale(CONFIG.langKey);
 })($);

@@ -6,11 +6,20 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 
 class Settings_Workflows_EditTask_View extends Settings_Vtiger_Index_View
 {
+	/** {@inheritdoc} */
+	public function checkPermission(App\Request $request)
+	{
+		parent::checkPermission($request);
+		if (!$request->isEmpty('task_id') && !Settings_Workflows_TaskRecord_Model::getInstance($request->getInteger('task_id'))->isEditable()) {
+			throw new \App\Exceptions\NoPermittedForAdmin('LBL_PERMISSION_DENIED');
+		}
+	}
+
 	public function process(App\Request $request)
 	{
 		$viewer = $this->getViewer($request);
@@ -21,14 +30,10 @@ class Settings_Workflows_EditTask_View extends Settings_Vtiger_Index_View
 		$workflowId = $request->getInteger('for_workflow');
 
 		$workflowModel = Settings_Workflows_Record_Model::getInstance($workflowId);
-		$taskTypes = $workflowModel->getTaskTypes();
 		if ($recordId) {
 			$taskModel = Settings_Workflows_TaskRecord_Model::getInstance($recordId);
 		} else {
 			$taskType = $request->getByType('type', 'Alnum');
-			if (empty($taskType)) {
-				$taskType = !empty($taskTypes[0]) ? $taskTypes[0]->getName() : 'VTEmailTask';
-			}
 			$taskModel = Settings_Workflows_TaskRecord_Model::getCleanInstance($workflowModel, $taskType);
 		}
 		$taskTypeModel = $taskModel->getTaskType();
@@ -44,6 +49,7 @@ class Settings_Workflows_EditTask_View extends Settings_Vtiger_Index_View
 			$handlerClass = Vtiger_Loader::getComponentClassName('Model', 'MappedFields', $sourceModule);
 			$mfModel = new $handlerClass();
 			$viewer->assign('TEMPLATES_MAPPING', $mfModel->getTemplatesByModule($sourceModule));
+			$viewer->assign('REFERENCE_FIELD_NAME', $taskObject->reference_field ?? '');
 			if (!empty($taskObject->entity_type) && $taskObject->field_value_mapping) {
 				$relationModuleModel = Vtiger_Module_Model::getInstance($taskObject->entity_type);
 				$ownerFieldModels = $relationModuleModel->getFieldsByType('owner');
@@ -122,7 +128,6 @@ class Settings_Workflows_EditTask_View extends Settings_Vtiger_Index_View
 		$viewer->assign('WORKFLOW_ID', $workflowId);
 		$viewer->assign('DATETIME_FIELDS', $dateTimeFields);
 		$viewer->assign('WORKFLOW_MODEL', $workflowModel);
-		$viewer->assign('TASK_TYPES', $taskTypes);
 		$viewer->assign('TASK_MODEL', $taskModel);
 		$viewer->assign('CURRENTDATE', date('Y-n-j'));
 		// Adding option Line Item block for Individual tax mode

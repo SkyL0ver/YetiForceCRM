@@ -2,10 +2,10 @@
 /**
  * Connector to find routing. Connector based on service YOURS.
  *
- * @package   App
+ * @package App
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  *
  * @see      https://wiki.openstreetmap.org/wiki/YOURS
@@ -18,9 +18,7 @@ namespace App\Map\Routing;
  */
 class Yours extends Base
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function calculate()
 	{
 		if (!\App\RequestUtil::isNetConnection()) {
@@ -56,9 +54,7 @@ class Yours extends Base
 		$this->description = $description;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function parsePoints(): array
 	{
 		$tracks = [];
@@ -82,7 +78,7 @@ class Yours extends Base
 			'startLat' => $startLat,
 			'startLon' => $startLon,
 			'endLat' => $this->end['lat'],
-			'endLon' => $this->end['lon']
+			'endLon' => $this->end['lon'],
 		];
 		return $tracks;
 	}

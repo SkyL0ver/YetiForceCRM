@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce Sp. z o.o
+ * Contributor(s): YetiForce S.A.
  * ****************************************************************************** */
 
 class PriceBooks extends CRMEntity
@@ -21,11 +21,7 @@ class PriceBooks extends CRMEntity
 	 */
 	public $customFieldTable = ['vtiger_pricebookcf', 'pricebookid'];
 	public $column_fields = [];
-	// This is the list of fields that are in the lists.
-	public $list_fields = [
-		'Price Book Name' => ['pricebook' => 'bookname'],
-		'Active' => ['pricebook' => 'active'],
-	];
+
 	public $list_fields_name = [
 		'Price Book Name' => 'bookname',
 		'Active' => 'active',
@@ -35,7 +31,6 @@ class PriceBooks extends CRMEntity
 	 * @var string[] List of fields in the RelationListView
 	 */
 	public $relationFields = [];
-	public $list_link_field = 'bookname';
 	public $search_fields = [
 		'Price Book Name' => ['pricebook' => 'bookname'],
 	];

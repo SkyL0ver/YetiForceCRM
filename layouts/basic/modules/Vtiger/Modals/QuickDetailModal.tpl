@@ -1,16 +1,18 @@
-{*<!-- {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} -->*}
+{*<!-- {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} -->*}
 {strip}
 	<div class="tpl-Base-Modals-QuickDetailModal modal js-modal-data {if $LOCK_EXIT}static{/if}" tabindex="-1" data-js="data"
-		 role="dialog" {foreach from=$MODAL_VIEW->modalData key=KEY item=VALUE} data-{$KEY}="{$VALUE}"{/foreach}>
+		role="dialog" {foreach from=$MODAL_VIEW->modalData key=KEY item=VALUE} data-{$KEY}="{$VALUE}" {/foreach}>
 		<div class="modal-dialog {$MODAL_VIEW->modalSize}" role="document">
 			<div class="modal-content">
 				{foreach item=MODEL from=$MODAL_CSS}
-					<link rel="{$MODEL->getRel()}" href="{$MODEL->getHref()}"/>
+					<link rel="{$MODEL->getRel()}" href="{$MODEL->getHref()}" />
 				{/foreach}
 				{foreach item=MODEL from=$MODAL_SCRIPTS}
 					<script type="{$MODEL->getType()}" src="{$MODEL->getSrc()}"></script>
 				{/foreach}
-				<script type="text/javascript">app.registerModalController();</script>
+				<script type="text/javascript">
+					app.registerModalController();
+				</script>
 				<div class="modal-body col-md-12 js-scrollbar" data-js="perfectscrollbar">
 					<div class="float-right text-xl-right">
 						{foreach item=LINK from=$LINKS}
@@ -32,15 +34,15 @@
 									</h4>
 									{if $MODULE_NAME}
 										<div class="paddingLeft5px">
-								<span class="muted">
-									{\App\Language::translate('Assigned To',$MODULE_NAME)}
-									: {$RECORD->getDisplayValue('assigned_user_id')}
-									{assign var=SHOWNERS value=$RECORD->getDisplayValue('shownerid')}
-									{if $SHOWNERS != ''}
-										<br/>
-										{\App\Language::translate('Share with users',$MODULE_NAME)} {$SHOWNERS}
-									{/if}
-								</span>
+											<span class="muted">
+												{\App\Language::translate('Assigned To',$MODULE_NAME)}
+												: {$RECORD->getDisplayValue('assigned_user_id')}
+												{assign var=SHOWNERS value=$RECORD->getDisplayValue('shownerid')}
+												{if $SHOWNERS != ''}
+													<br />
+													{\App\Language::translate('Share with users',$MODULE_NAME)} {$SHOWNERS}
+												{/if}
+											</span>
 										</div>
 									{/if}
 								</div>
@@ -52,7 +54,7 @@
 									<div class="quickDetailWidget">
 										{if !empty($WIDGET['title'])}
 											{assign var=WIDGET_UID value="id-{\App\Layout::getUniqueId($WIDGET['widgetData']['id']|cat:_)}"}
-											<div class="c-detail-widget js-detail-widget" data-name="{$WIDGET['title']}" data-module-name="{$RELATED_MODULE_NAME}" {if isset($WIDGET['widgetData']['data']['relation_id'])} data-relation-id="{$WIDGET['widgetData']['data']['relation_id']}" {/if} data-type="{$WIDGET['widgetData']['type']}" data-id="{$WIDGET['widgetData']['id']}" data-js="container">
+											<div class="c-detail-widget js-detail-widget" data-name="{$WIDGET['title']}" {if isset($WIDGET['widgetData']['data']['relation_id'])} data-relation-id="{$WIDGET['widgetData']['data']['relation_id']}" {/if} data-type="{$WIDGET['widgetData']['type']}" data-id="{$WIDGET['widgetData']['id']}" data-js="container">
 												<div class="widgetContainer_{$key} widgetContentBlock" data-url="{\App\Purifier::encodeHtml($WIDGET['widgetData']['url'])}" data-name="{$WIDGET['title']}" data-type="{$WIDGET['widgetData']['type']}" data-id="{$WIDGET['widgetData']['id']}">
 													<div class="c-detail-widget__header js-detail-widget-header collapsed border-bottom-0" data-js="container|value">
 														<div class="c-detail-widget__header__container d-flex align-items-center py-1">
@@ -79,7 +81,7 @@
 										{else}
 											<div>{$WIDGET['content']}</div>
 										{/if}
-									 </div>
+									</div>
 								{/foreach}
 							</div>
 						</div>

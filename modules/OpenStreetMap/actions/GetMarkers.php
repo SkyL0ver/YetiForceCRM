@@ -3,13 +3,13 @@
 /**
  * Action to get markers.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Tomasz Kur <t.kur@yetiforce.com>
  */
 class OpenStreetMap_GetMarkers_Action extends Vtiger_BasicAjax_Action
 {
-	/**  {@inheritdoc} */
+	/** {@inheritdoc} */
 	public function checkPermission(App\Request $request)
 	{
 		$currentUserPrivilegesModel = Users_Privileges_Model::getCurrentUserPrivilegesModel();
@@ -21,7 +21,7 @@ class OpenStreetMap_GetMarkers_Action extends Vtiger_BasicAjax_Action
 		}
 	}
 
-	/**  {@inheritdoc} */
+	/** {@inheritdoc} */
 	public function process(App\Request $request)
 	{
 		$data = [];

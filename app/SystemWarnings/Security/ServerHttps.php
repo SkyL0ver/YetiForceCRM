@@ -1,24 +1,35 @@
 <?php
 
+/**
+ * Https system warnings file.
+ *
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @author    Sławomir Kłos <s.klos@yetiforce.com>
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ */
+
 namespace App\SystemWarnings\Security;
 
 /**
  * Https system warnings class.
- *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
- * @author    Sławomir Kłos <s.klos@yetiforce.com>
- * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 class ServerHttps extends \App\SystemWarnings\Template
 {
+	/** {@inheritdoc} */
 	protected $title = 'LBL_SERVER_HTTPS';
+
+	/** {@inheritdoc} */
 	protected $priority = 7;
 
 	/**
 	 * Checking whether there is a https connection.
+	 *
+	 * @return void
 	 */
-	public function process()
+	public function process(): void
 	{
 		if ('WebUI' !== \App\Process::$requestMode) {
 			$this->status = 1;

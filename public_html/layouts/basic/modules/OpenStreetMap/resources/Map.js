@@ -1,4 +1,4 @@
-/* {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
+/* {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
 'use strict';
 
 jQuery.Class(
@@ -333,7 +333,7 @@ jQuery.Class(
 				source: function (request, response) {
 					AppConnector.request({
 						module: searchModule.val(),
-						curentModule: app.getModuleName(),
+						currentModule: app.getModuleName(),
 						searchModule: searchModule.val(),
 						view: 'BasicAjax',
 						mode: 'showSearchResults',
@@ -660,7 +660,7 @@ jQuery.Class(
 							.find('.descriptionContent .travelTime')
 							.html(App.Fields.Double.formatToDisplay(response.result.properties.traveltime / 60));
 					})
-					.fail(function (error, title, fff) {
+					.fail(function (error, title) {
 						progressIndicatorElement.progressIndicator({ mode: 'hide' });
 						app.showNotify({
 							title: title,

@@ -1,4 +1,4 @@
-/* {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
+/* {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
 'use strict';
 
 $.Class(
@@ -48,16 +48,20 @@ $.Class(
 				totalCount: this.container.find('.js-total-count').val(),
 				noOfEntries: this.container.find('.js-no-entries').val(),
 				filterFields: JSON.parse(this.container.find('.js-filter-fields').val()),
+				lockedFields: this.container.find('.js-locked-fields').val(),
+				lockedEmptyFields: this.container.find('.js-empty-fields').val(),
 				onlyBody: true,
 				cvId: this.getFilterSelectElement().val()
 			};
 			let searchValue = this.listSearchInstance.getAlphabetSearchValue();
-			params['search_params'] = JSON.stringify(this.listSearchInstance.getListSearchParams(true));
+			params['search_params'] = this.listSearchInstance.getListSearchParams(true);
 			if (typeof searchValue !== 'undefined' && searchValue.length > 0) {
 				params['search_key'] = this.listSearchInstance.getAlphabetSearchField();
 				params['search_value'] = searchValue;
 				params['operator'] = 's';
 			}
+			this.listSearchInstance.parseConditions(params);
+			params.search_params = JSON.stringify(params.search_params);
 			return params;
 		},
 		/**

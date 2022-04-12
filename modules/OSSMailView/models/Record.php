@@ -3,8 +3,8 @@
 /**
  * OSSMailView record model class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  */
 class OSSMailView_Record_Model extends Vtiger_Record_Model
 {
@@ -95,7 +95,7 @@ class OSSMailView_Record_Model extends Vtiger_Record_Model
 			} else {
 				$subject = \App\Purifier::encodeHtml($row['subject']);
 			}
-			$firstLetterBg = self::TYPE_COLORS[$row['type']];
+			$firstLetterBg = self::TYPE_COLORS[$row['type']] ?? '';
 			$firstLetter = strtoupper(App\TextParser::textTruncate(trim(strip_tags($from)), 1, false));
 			if ($row['orginal_mail'] && '-' !== $row['orginal_mail']) {
 				$rblInstance = \App\Mail\Rbl::getInstance([]);
@@ -351,7 +351,7 @@ class OSSMailView_Record_Model extends Vtiger_Record_Model
 				'id' => $row['crmid'],
 				'module' => $module,
 				'label' => \App\Record::getLabel($row['crmid']),
-				'is_related_to_documents' => false !== Vtiger_Relation_Model::getInstance(Vtiger_Module_Model::getInstance($module), $moduleDocuments)
+				'is_related_to_documents' => false !== Vtiger_Relation_Model::getInstance(Vtiger_Module_Model::getInstance($module), $moduleDocuments),
 			];
 		}
 		$dataReader->close();
@@ -411,7 +411,7 @@ class OSSMailView_Record_Model extends Vtiger_Record_Model
 	 *
 	 * @return bool
 	 */
-	public function isEditable()
+	public function isEditable(): bool
 	{
 		return false;
 	}

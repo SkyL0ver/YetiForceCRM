@@ -3,13 +3,18 @@
 /**
  * UIType sharedOwner Field Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package   UIType
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 class Vtiger_SharedOwner_UIType extends Vtiger_Base_UIType
 {
+	/** @var bool Purify type */
+	protected $purifyType = \App\Purifier::TEXT;
+
 	/** {@inheritdoc} */
 	public function getDBValue($value, $recordModel = false)
 	{
@@ -49,10 +54,10 @@ class Vtiger_SharedOwner_UIType extends Vtiger_Base_UIType
 		}
 		foreach ($value as $shownerid) {
 			if (!is_numeric($shownerid)) {
-				throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getFieldName() . '||' . $this->getFieldModel()->getModuleName() . '||' . $shownerid, 406);
+				throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getName() . '||' . $this->getFieldModel()->getModuleName() . '||' . $shownerid, 406);
 			}
 			if ($rangeValues && (($rangeValues[1] ?? $rangeValues[0]) < $shownerid || (isset($rangeValues[1]) ? $rangeValues[0] : 0) > $shownerid)) {
-				throw new \App\Exceptions\Security('ERR_VALUE_IS_TOO_LONG||' . $this->getFieldModel()->getFieldName() . '||' . $this->getFieldModel()->getModuleName() . '||' . $shownerid, 406);
+				throw new \App\Exceptions\Security('ERR_VALUE_IS_TOO_LONG||' . $this->getFieldModel()->getName() . '||' . $this->getFieldModel()->getModuleName() . '||' . $shownerid, 406);
 			}
 		}
 		$this->validate[$hashValue] = true;
@@ -164,6 +169,31 @@ class Vtiger_SharedOwner_UIType extends Vtiger_Base_UIType
 		return implode(', ', $display);
 	}
 
+	/** {@inheritdoc} */
+	public function getValueFromImport($value, $defaultValue = null)
+	{
+		$values = [];
+		if ($value) {
+			$owners = explode(',', $value);
+			foreach ($owners as $owner) {
+				$ownerId = \App\User::getUserIdByName(trim($owner));
+				if (empty($ownerId)) {
+					$ownerId = \App\User::getUserIdByFullName(trim($owner));
+				}
+				if (empty($ownerId)) {
+					$ownerId = \App\Fields\Owner::getGroupId($owner);
+				}
+				if (empty($ownerId) && null !== $defaultValue) {
+					$ownerId = $defaultValue;
+				}
+				if (!empty($ownerId)) {
+					$values[] = $ownerId;
+				}
+			}
+		}
+		return implode(',', $values);
+	}
+
 	/**
 	 * Get users and group for module list.
 	 *
@@ -239,7 +269,7 @@ class Vtiger_SharedOwner_UIType extends Vtiger_Base_UIType
 	/** {@inheritdoc} */
 	public function getOperatorTemplateName(string $operator = '')
 	{
-		return 'ConditionBuilder/Owner.tpl';
+		return 'ConditionBuilder/SharedOwner.tpl';
 	}
 
 	/** {@inheritdoc} */
@@ -250,5 +280,44 @@ class Vtiger_SharedOwner_UIType extends Vtiger_Base_UIType
 			$values[] = \App\Fields\Owner::getLabel($owner);
 		}
 		return implode(',', $values);
+	}
+
+	/**
+	 * Include value from mass edit into exists one.
+	 *
+	 * @param App\Request         $request
+	 * @param Vtiger_Record_Model $recordModel
+	 *
+	 * @return bool
+	 */
+	public function setValueFromMassEdit(App\Request $request, Vtiger_Record_Model $recordModel): bool
+	{
+		$specialMassEditFieldName = 'shownerid';
+		if ($request->has("overwritten_{$specialMassEditFieldName}")) {
+			$newValue = $request->getByType($specialMassEditFieldName, $this->purifyType);
+			$oldValue = $recordModel->get($specialMassEditFieldName) ? explode(',', $recordModel->get($specialMassEditFieldName)) : [];
+			$newValue = $this->overwriteExistingValue($oldValue, $newValue);
+			$recordModel->set($specialMassEditFieldName, $this->getDBValue($newValue, $recordModel));
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Get value for overwritten based on old and new values for a field.
+	 *
+	 * @param array        $oldValue
+	 * @param string|array $newValue
+	 *
+	 * @return array
+	 */
+	public function overwriteExistingValue(array $oldValue, $newValue): array
+	{
+		if (!\is_array($newValue)) {
+			$newValue = explode(',', $newValue);
+		}
+		$value = array_unique(array_merge($oldValue, $newValue));
+		$this->validate($value, true);
+		return $value;
 	}
 }

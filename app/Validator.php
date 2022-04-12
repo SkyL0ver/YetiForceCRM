@@ -4,8 +4,8 @@
  *
  * @package   App
  *
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
- * @copyright YetiForce Sp. z o.o
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 
@@ -73,8 +73,7 @@ class Validator
 	 */
 	public static function date(string $input): bool
 	{
-		[$y, $m, $d] = Fields\Date::explode($input);
-		return checkdate($m, $d, $y) && is_numeric($y) && is_numeric($m) && is_numeric($d);
+		return Fields\Date::isValid($input);
 	}
 
 	/**
@@ -90,8 +89,7 @@ class Validator
 		if (null === $userId) {
 			$userId = User::getCurrentUserId();
 		}
-		[$y, $m, $d] = Fields\Date::explode($input, User::getUserModel($userId)->getDetail('date_format'));
-		return checkdate($m, $d, $y) && is_numeric($y) && is_numeric($m) && is_numeric($d);
+		return Fields\Date::isValid($input, User::getUserModel($userId)->getDetail('date_format'));
 	}
 
 	/**
@@ -153,8 +151,8 @@ class Validator
 		if (($arrInput = \explode(' ', $input)) && 2 === \count($arrInput)) {
 			[$dateInput, $timeInput] = $arrInput;
 			[$y, $m, $d] = Fields\Date::explode($dateInput);
-			$result = checkdate($m, $d, $y) && is_numeric($y) && is_numeric($m) && is_numeric($d) &&
-				preg_match('/(2[0-3]|[0][0-9]|1[0-9]):([0-5][0-9]):([0-5][0-9])/', $timeInput);
+			$result = checkdate($m, $d, $y) && is_numeric($y) && is_numeric($m) && is_numeric($d)
+				&& preg_match('/(2[0-3]|[0][0-9]|1[0-9]):([0-5][0-9]):([0-5][0-9])/', $timeInput);
 		}
 		return $result;
 	}
@@ -457,5 +455,32 @@ class Validator
 	public static function text(string $input): bool
 	{
 		return Purifier::decodeHtml(Purifier::purify($input)) === $input;
+	}
+
+	/**
+	 * Check directory name.
+	 *
+	 * @param string $input
+	 *
+	 * @return bool
+	 */
+	public static function dirName(string $input): bool
+	{
+		return !preg_match('/[\\/:\*\?"<>|]/', $input) && false === strpos($input, '.', -1);
+	}
+
+	/**
+	 * Check path.
+	 *
+	 * @param string $input
+	 *
+	 * @return bool
+	 */
+	public static function path(string $input): bool
+	{
+		$parts = explode('/', trim(str_replace(\DIRECTORY_SEPARATOR, '/', $input), '/'));
+		return !array_filter($parts, function ($dir) {
+			return !self::dirName($dir);
+		});
 	}
 }

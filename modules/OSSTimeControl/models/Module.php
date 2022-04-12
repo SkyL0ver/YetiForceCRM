@@ -3,8 +3,8 @@
 /**
  * OSSTimeControl module model class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  */
 class OSSTimeControl_Module_Model extends Vtiger_Module_Model
 {
@@ -13,9 +13,7 @@ class OSSTimeControl_Module_Model extends Vtiger_Module_Model
 		return 'index.php?module=' . $this->getName() . '&view=Calendar';
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getSideBarLinks($linkParams)
 	{
 		$links = parent::getSideBarLinks($linkParams);
@@ -23,7 +21,7 @@ class OSSTimeControl_Module_Model extends Vtiger_Module_Model
 			'linktype' => 'SIDEBARLINK',
 			'linklabel' => 'LBL_CALENDAR_VIEW',
 			'linkurl' => $this->getCalendarViewUrl(),
-			'linkicon' => 'fas fa-calendar-alt'
+			'linkicon' => 'fas fa-calendar-alt',
 		]));
 		return $links;
 	}
@@ -51,9 +49,7 @@ class OSSTimeControl_Module_Model extends Vtiger_Module_Model
 		$totalTime = $query->limit(null)->orderBy('')->sum('vtiger_osstimecontrol.sum_time');
 		// Calculate total working time divided into users
 		$dataReader = $query->select(['sumtime' => new \yii\db\Expression('SUM(vtiger_osstimecontrol.sum_time)'), 'vtiger_crmentity.smownerid'])
-			->groupBy('vtiger_crmentity.smownerid')
-			->orderBy(['vtiger_crmentity.smownerid' => SORT_ASC])
-			->createCommand()
+			->groupBy('vtiger_crmentity.smownerid')->orderBy(['vtiger_crmentity.smownerid' => SORT_ASC])->createCommand()
 			->query();
 
 		$userTime = [
@@ -80,7 +76,6 @@ class OSSTimeControl_Module_Model extends Vtiger_Module_Model
 			$userTime['datasets'][0]['borderColor'][] = $color;
 		}
 		$dataReader->close();
-
 		return ['totalTime' => $totalTime, 'userTime' => $userTime];
 	}
 
@@ -127,9 +122,7 @@ class OSSTimeControl_Module_Model extends Vtiger_Module_Model
 		return $chartData;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getFieldsForSave(Vtiger_Record_Model $recordModel)
 	{
 		$fields = parent::getFieldsForSave($recordModel);
@@ -139,9 +132,7 @@ class OSSTimeControl_Module_Model extends Vtiger_Module_Model
 		return $fields;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getLayoutTypeForQuickCreate(): string
 	{
 		return 'standard';

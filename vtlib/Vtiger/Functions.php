@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 
 namespace vtlib;
@@ -159,40 +159,6 @@ class Functions
 		$label = \App\Record::getLabel($id);
 
 		return empty($label) ? $default : $label;
-	}
-
-	/**
-	 * Function get module field infos.
-	 *
-	 * @param int|string $module
-	 * @param bool       $returnByColumn
-	 *
-	 * @return mixed[]
-	 */
-	public static function getModuleFieldInfos($module, $returnByColumn = false)
-	{
-		if (is_numeric($module)) {
-			$module = \App\Module::getModuleName($module);
-		}
-		$cacheName = 'getModuleFieldInfosByName';
-		if (!\App\Cache::has($cacheName, $module)) {
-			$dataReader = (new \App\Db\Query())
-				->from('vtiger_field')
-				->leftJoin('s_#__fields_anonymization', 'vtiger_field.fieldid = s_#__fields_anonymization.field_id')
-				->where(['tabid' => \App\Module::getModuleId($module)])
-				->createCommand()->query();
-			$fieldInfoByName = $fieldInfoByColumn = [];
-			while ($row = $dataReader->read()) {
-				$fieldInfoByName[$row['fieldname']] = $row;
-				$fieldInfoByColumn[$row['columnname']] = $row;
-			}
-			\App\Cache::save($cacheName, $module, $fieldInfoByName);
-			\App\Cache::save('getModuleFieldInfosByColumn', $module, $fieldInfoByColumn);
-		}
-		if ($returnByColumn) {
-			return \App\Cache::get('getModuleFieldInfosByColumn', $module);
-		}
-		return \App\Cache::get($cacheName, $module);
 	}
 
 	/**
@@ -381,7 +347,7 @@ class Functions
 			} else {
 				$trace = '';
 				if (\App\Config::debug('DISPLAY_EXCEPTION_BACKTRACE') && \is_object($e)) {
-					$trace = str_replace(ROOT_DIRECTORY . \DIRECTORY_SEPARATOR, '', "{$e->getFile()}({$e->getLine()})\n{$e->getTraceAsString()}");
+					$trace = str_replace(ROOT_DIRECTORY . \DIRECTORY_SEPARATOR, '', "->{$e->getFile()}:{$e->getLine()}\n{$e->getTraceAsString()}");
 				}
 				$response->setError($code, $message, $trace);
 			}
@@ -391,18 +357,18 @@ class Functions
 				if (\App\Config::debug('DISPLAY_EXCEPTION_BACKTRACE') && \is_object($e)) {
 					$message = [
 						'message' => $message,
-						'trace' => str_replace(ROOT_DIRECTORY . \DIRECTORY_SEPARATOR, '', "{$e->getFile()}({$e->getLine()})\n{$e->getTraceAsString()}")
+						'trace' => str_replace(ROOT_DIRECTORY . \DIRECTORY_SEPARATOR, '', "-> {$e->getFile()}:{$e->getLine()}\n{$e->getTraceAsString()}"),
 					];
 					$code = $e->getCode();
 				}
 				http_response_code($code);
 				$viewer = new \Vtiger_Viewer();
-				$viewer->assign('MESSAGE', $message);
+				$viewer->assign('MESSAGE', \Config\Debug::$EXCEPTION_ERROR_TO_SHOW ? $message : \App\Language::translate('ERR_OCCURRED_ERROR'));
 				$viewer->assign('MESSAGE_EXPANDED', \is_array($message));
 				$viewer->assign('HEADER_MESSAGE', \App\Language::translate($messageHeader));
-				$viewer->view('ExceptionError.tpl', 'Vtiger');
+				$viewer->view('Exceptions/ExceptionError.tpl', 'Vtiger');
 			} else {
-				echo $message . PHP_EOL;
+				echo(\Config\Debug::$EXCEPTION_ERROR_TO_SHOW ? $message : \App\Language::translate('ERR_OCCURRED_ERROR')) . PHP_EOL;
 			}
 		}
 		if ($die) {
@@ -494,7 +460,14 @@ class Functions
 		return $i;
 	}
 
-	public static function parseBytes($str)
+	/**
+	 * Parse bytes.
+	 *
+	 * @param mixed $str
+	 *
+	 * @return float
+	 */
+	public static function parseBytes($str): float
 	{
 		if (is_numeric($str)) {
 			return (float) $str;
@@ -522,7 +495,15 @@ class Functions
 		return (float) $bytes;
 	}
 
-	public static function showBytes($bytes, &$unit = null)
+	/**
+	 * Show bytes.
+	 *
+	 * @param mixed       $bytes
+	 * @param string|null $unit
+	 *
+	 * @return string
+	 */
+	public static function showBytes($bytes, &$unit = null): string
 	{
 		$bytes = self::parseBytes($bytes);
 		if ($bytes >= 1073741824) {
@@ -627,10 +608,19 @@ class Functions
 		return $info;
 	}
 
-	public static function getQueryParams($url)
+	/**
+	 * Getting parameters from URL.
+	 *
+	 * @param string|null $url
+	 *
+	 * @return array
+	 */
+	public static function getQueryParams($url): array
 	{
-		$queryStr = parse_url(htmlspecialchars_decode($url), PHP_URL_QUERY);
-		parse_str($queryStr, $queryParams);
+		$queryParams = [];
+		if (!empty($url) && $queryStr = parse_url(htmlspecialchars_decode($url), PHP_URL_QUERY)) {
+			parse_str($queryStr, $queryParams);
+		}
 
 		return $queryParams;
 	}

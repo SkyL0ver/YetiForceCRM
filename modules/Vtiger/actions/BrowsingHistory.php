@@ -3,8 +3,10 @@
 /**
  * Browsing History Action Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package Action
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Michał Lorencik <m.lorencik@yetiforce.com>
  */
 class Vtiger_BrowsingHistory_Action extends \App\Controller\Action

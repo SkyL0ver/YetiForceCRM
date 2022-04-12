@@ -3,15 +3,15 @@
 /**
  * Mass records delete action class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package Action
+ *
+ * @copyright YetiForce S.A.
+ * @license YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 class Vtiger_MassDelete_Action extends Vtiger_Mass_Action
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function checkPermission(App\Request $request)
 	{
 		$userPriviligesModel = Users_Privileges_Model::getCurrentUserPrivilegesModel();
@@ -20,9 +20,7 @@ class Vtiger_MassDelete_Action extends Vtiger_Mass_Action
 		}
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function process(App\Request $request)
 	{
 		$moduleName = $request->getModule();

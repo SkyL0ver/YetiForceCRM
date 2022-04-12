@@ -3,10 +3,10 @@
 /**
  * User record duplicate list class.
  *
- * @package 	App
+ * @package TextParser
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Arkadiusz Dudek <a.dudek@yetiforce.com>
  */
 
@@ -35,8 +35,8 @@ class UserRecordsDuplicateList extends Base
 	{
 		$html = '';
 		$moduleName = $this->params[0];
-		if (!empty($textParserParams = $this->textParser->getParam('textParserParams')) && isset($textParserParams['userId']) &&
-			!empty($userId = $textParserParams['userId']) && \App\User::isExists($userId) && \App\Module::isModuleActive($moduleName)
+		if (!empty($textParserParams = $this->textParser->getParam('textParserParams')) && isset($textParserParams['userId'])
+			&& !empty($userId = $textParserParams['userId']) && \App\User::isExists($userId) && \App\Module::isModuleActive($moduleName)
 		) {
 			$moduleModel = \Vtiger_Module_Model::getInstance($moduleName);
 			$duplicatesByFieldName = !empty($this->params[2]) ? explode(':', $this->params[2]) : [];

@@ -3,8 +3,8 @@
 /**
  * ChangesReviewedOn Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 class ModTracker_ChangesReviewedOn_Action extends \App\Controller\Action
@@ -86,7 +86,8 @@ class ModTracker_ChangesReviewedOn_Action extends \App\Controller\Action
 		$result = false;
 		$recordsList = Vtiger_Mass_Action::getRecordsListFromRequest($request);
 		if (\is_array($recordsList) && \count($recordsList) > App\Config::module($moduleName, 'REVIEW_CHANGES_LIMIT')) {
-			$params = 'all' === $request->getRaw('selected_ids') ? ['viewname', 'selected_ids', 'excluded_ids', 'search_key', 'search_value', 'operator', 'search_params', 'entityState'] : ['selected_ids'];
+			$selectedIds = $request->getArray('selected_ids', \App\Purifier::ALNUM);
+			$params = $selectedIds && 'all' === $selectedIds[0] ? ['viewname', 'selected_ids', 'excluded_ids', 'search_key', 'search_value', 'operator', 'search_params', 'entityState'] : ['selected_ids'];
 			foreach ($params as $variable) {
 				if ($request->has($variable)) {
 					$data[$variable] = $request->get($variable);

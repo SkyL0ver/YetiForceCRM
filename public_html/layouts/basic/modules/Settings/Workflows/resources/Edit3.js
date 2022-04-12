@@ -5,7 +5,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  *************************************************************************************/
 'use strict';
 
@@ -332,23 +332,22 @@ Settings_Workflows_Edit_Js(
 			var thisInstance = this;
 			var container = this.getContainer();
 			container.on('click', '.deleteTask', function (e) {
-				var message = app.vtranslate('LBL_DELETE_CONFIRMATION');
-				Vtiger_Helper_Js.showConfirmationBox({
-					message: message
-				}).done(function () {
-					var currentElement = $(e.currentTarget);
-					var deleteUrl = currentElement.data('deleteurl');
-					AppConnector.request(deleteUrl).done(function (data) {
-						if (data.result == 'ok') {
-							thisInstance.getTaskList();
-							var params = {
-								title: app.vtranslate('JS_MESSAGE'),
-								text: app.vtranslate('JS_TASK_DELETED_SUCCESSFULLY'),
-								type: 'success'
-							};
-							app.showNotify(params);
-						}
-					});
+				app.showConfirmModal({
+					title: app.vtranslate('LBL_DELETE_CONFIRMATION'),
+					confirmedCallback: () => {
+						var currentElement = $(e.currentTarget);
+						var deleteUrl = currentElement.data('deleteurl');
+						AppConnector.request(deleteUrl).done(function (data) {
+							if (data.result == 'ok') {
+								thisInstance.getTaskList();
+								app.showNotify({
+									title: app.vtranslate('JS_MESSAGE'),
+									text: app.vtranslate('JS_TASK_DELETED_SUCCESSFULLY'),
+									type: 'success'
+								});
+							}
+						});
+					}
 				});
 			});
 		},
@@ -448,12 +447,21 @@ Settings_Workflows_Edit_Js(
 				if (selectedElement.val() !== 'none' && selectedElement.val()) {
 					var moduleNameElement = conditionRow.find('[name="modulename"]');
 					if (moduleNameElement.length > 0) {
-						var selectedOptionFieldInfo = selectedElement.find('option:selected').data('fieldinfo');
+						let workflowModuleName = selectedElement.closest('form').find('#workflowModuleName').val();
+						let selectedOption = selectedElement.find('option:selected');
+						var selectedOptionFieldInfo = selectedOption.data('fieldinfo');
 						var type = selectedOptionFieldInfo.type;
 						if (type == 'picklist' || type == 'multipicklist') {
 							var selectElement = $('select.createEntityModule:not(:disabled)');
 							var moduleName = selectElement.val();
 							moduleNameElement.val(moduleName).change().prop('disabled', true);
+						} else if (
+							selectedOption.data('reference') &&
+							moduleNameElement.find(`option[value="${workflowModuleName}"]`).length
+						) {
+							moduleNameElement.val(workflowModuleName).change().prop('disabled', true);
+						} else {
+							moduleNameElement.prop('disabled', false);
 						}
 					}
 					this.loadFieldSpecificUi(selectedElement);

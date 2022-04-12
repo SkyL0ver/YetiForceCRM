@@ -5,8 +5,8 @@
  *
  * @package   Action
  *
- * @copyright YetiForce Sp. z o.o.
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 /**
@@ -14,9 +14,7 @@
  */
 class Reservations_QuickCreateAjax_View extends Vtiger_QuickCreateAjax_View
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function checkPermission(App\Request $request)
 	{
 		parent::checkPermission($request);
@@ -25,9 +23,7 @@ class Reservations_QuickCreateAjax_View extends Vtiger_QuickCreateAjax_View
 		}
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function postProcessAjax(App\Request $request)
 	{
 		$viewer = $this->getViewer($request);
@@ -41,9 +37,7 @@ class Reservations_QuickCreateAjax_View extends Vtiger_QuickCreateAjax_View
 		$viewer->view('Calendar/QuickCreate.tpl', $request->getModule());
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getFooterScripts(App\Request $request)
 	{
 		$jsFiles = parent::getFooterScripts($request);
@@ -61,9 +55,7 @@ class Reservations_QuickCreateAjax_View extends Vtiger_QuickCreateAjax_View
 		]));
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getHeaderCss(App\Request $request)
 	{
 		return array_merge(parent::getHeaderCss($request), $this->checkAndConvertCssStyles([

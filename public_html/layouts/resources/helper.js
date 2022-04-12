@@ -5,7 +5,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  *************************************************************************************/
 'use strict';
 
@@ -106,7 +106,8 @@ $.Class(
 				month = splittedDate[splittedDateFormat.indexOf('mm')],
 				date = splittedDate[splittedDateFormat.indexOf('dd')],
 				dateInstance = Date.parse(year + '/' + month + '/' + date);
-			if (isNaN(dateInstance) || year.length > 4 || month.length > 2 || date.length > 2 || dateInstance == null) {
+
+			if (isNaN(dateInstance) || year.length !== 4 || month.length > 2 || date.length > 2 || dateInstance == null) {
 				throw app.vtranslate('JS_INVALID_DATE');
 			}
 
@@ -135,31 +136,6 @@ $.Class(
 			month = month - 1;
 			dateInstance = new Date(year, month, date, timeSections[0], timeSections[1], seconds);
 			return dateInstance;
-		},
-		/*
-		 * Function to show the confirmation messagebox
-		 */
-		showConfirmationBox: function (params) {
-			var aDeferred = $.Deferred();
-			var baseParams = {
-				callback: function (result) {
-					if (result) {
-						aDeferred.resolve();
-					} else {
-						aDeferred.reject();
-					}
-				}
-			};
-			var bootBoxModal = bootbox.confirm($.extend(baseParams, params));
-			bootBoxModal.on('hidden', function (e) {
-				//In Case of multiple modal. like mass edit and quick create, if bootbox is shown and hidden , it will remove
-				// modal open
-				if ($('#' + Window.lastModalId).length > 0) {
-					// Mimic bootstrap modal action body state change
-					$('body').addClass('modal-open');
-				}
-			});
-			return aDeferred.promise();
 		},
 		showMessage: function (params) {
 			if (typeof params.type === 'undefined') {

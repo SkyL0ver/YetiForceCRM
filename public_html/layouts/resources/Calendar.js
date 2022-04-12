@@ -1,4 +1,4 @@
-/* {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
+/* {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
 'use strict';
 
 /** Class representing a calendar. */
@@ -19,7 +19,7 @@ window.Calendar_Js = class {
 		this.sidebarView = {
 			length: 0
 		};
-		this.browserHistoryConfig = this.browserHistory ? {} : this.setBrowserHistoryOptions();
+		this.browserHistoryConfig = this.browserHistory ? this.setBrowserHistoryOptions() : {};
 		this.calendarOptions = this.setCalendarOptions();
 		this.eventTypeKeyName = false;
 		this.module = app.getModuleName();
@@ -134,13 +134,10 @@ window.Calendar_Js = class {
 		switch (partOfDate) {
 			case 'month':
 				return parseMonthFormat[formatDate];
-				break;
 			case 'week':
 				return parseWeekAndDayFormat[formatDate];
-				break;
 			case 'day':
 				return parseWeekAndDayFormat[formatDate];
-				break;
 		}
 	}
 
@@ -310,16 +307,14 @@ window.Calendar_Js = class {
 			options = {
 				start: historyParams.start,
 				end: historyParams.end,
-				user: historyParams.user.split(',').map((x) => {
-					return parseInt(x);
-				}),
 				time: historyParams.time,
 				hiddenDays: historyParams.hiddenDays.split(',').map((x) => {
 					let parsedValue = parseInt(x);
 					return isNaN(parsedValue) ? '' : parsedValue;
 				}),
 				cvid: historyParams.cvid,
-				defaultView: historyParams.viewType
+				defaultView: historyParams.viewType,
+				user: historyParams.user
 			};
 			let dateFormat = CONFIG.dateFormat.toUpperCase();
 			let s = moment(options.start, dateFormat).valueOf();
@@ -346,28 +341,21 @@ window.Calendar_Js = class {
 	registerFilters() {
 		const thisInstance = this;
 		let aDeferred = jQuery.Deferred();
-
 		let sideBar = thisInstance.getSidebarView();
 		if (!sideBar || sideBar.length <= 0) {
 			aDeferred.resolve(true);
 			return aDeferred.promise();
 		}
 		sideBar.find('.js-sidebar-filter-container').each((_, row) => {
-			if (row.dataset.url) {
-				AppConnector.request(row.dataset.url).done(function (data) {
-					if (data) {
-						let formContainer = $(row).find('.js-sidebar-filter-body');
-						formContainer.html(data);
-						thisInstance.registerUsersChange(formContainer);
-						App.Fields.Picklist.showSelect2ElementView(formContainer.find('select'));
-						app.showNewScrollbar(formContainer, {
-							suppressScrollX: true
-						});
-						thisInstance.registerFilterForm(formContainer);
-					}
-				});
-			}
+			let formContainer = $(row);
+			thisInstance.registerUsersChange(formContainer);
+			App.Fields.Picklist.showSelect2ElementView(formContainer.find('select'));
+			app.showNewScrollbar(formContainer, {
+				suppressScrollX: true
+			});
+			thisInstance.registerFilterForm(formContainer);
 		});
+		thisInstance.registerSelectAll(sideBar);
 		return aDeferred.promise();
 	}
 	/**
@@ -386,7 +374,13 @@ window.Calendar_Js = class {
 				if (element.prop('tagName') == 'SELECT') {
 					element.val(cachedValue);
 				}
-			} else if (name && element.length > 0 && cachedValue === undefined && !element.find(':selected').length) {
+			} else if (
+				name &&
+				element.length > 0 &&
+				cachedValue === undefined &&
+				!element.find(':selected').length &&
+				element.data('selected') !== 0
+			) {
 				let allOptions = [];
 				element.find('option').each((i, option) => {
 					allOptions.push($(option).val());
@@ -421,6 +415,26 @@ window.Calendar_Js = class {
 	registerUsersChange(formContainer) {
 		formContainer.find('.js-input-user-owner-id-ajax, .js-input-user-owner-id').on('change', () => {
 			this.getCalendarView().fullCalendar('getCalendar').view.options.loadView();
+		});
+	}
+	/**
+	 * Register change on select all checkbox
+	 * @param {jQuery} formContainer
+	 */
+	registerSelectAll(formContainer) {
+		formContainer.find('.js-select-all').on('change', (e) => {
+			let checkboxSelectAll = $(e.currentTarget);
+			let checkboxes = formContainer.find('.js-input-user-owner-id-ajax, .js-input-user-owner-id');
+			if (checkboxSelectAll.is(':checked')) {
+				checkboxes.prop('checked', true);
+			} else {
+				checkboxes.prop('checked', false);
+				formContainer.find('#ownerId' + CONFIG.userId).prop('checked', true);
+			}
+			let calendar = this.getCalendarView().fullCalendar('getCalendar');
+			if (calendar) {
+				calendar.view.options.loadView();
+			}
 		});
 	}
 	/**
@@ -784,9 +798,7 @@ window.Calendar_Js = class {
  *  Class representing a calendar with creating events by day click instead of selecting days.
  * @extends Calendar_Js
  */
-window.Calendar_Unselectable_Js = class extends (
-	Calendar_Js
-) {
+window.Calendar_Unselectable_Js = class extends Calendar_Js {
 	/**
 	 * Set calendar module options.
 	 * @returns {{allDaySlot: boolean, dayClick: object, selectable: boolean}}

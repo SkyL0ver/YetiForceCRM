@@ -2,10 +2,10 @@
 /**
  * YetiForce shop YetiForceGeocoder file.
  *
- * @package   App
+ * @package App
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -38,16 +38,21 @@ class YetiForceGeocoder extends \App\YetiForce\Shop\AbstractBaseProduct
 	public $featured = true;
 
 	/** {@inheritdoc} */
-	public function verify(): bool
+	public function verify(): array
 	{
+		$message = $status = true;
 		if (\App\YetiForce\Register::getProducts('YetiForceGeocoder')) {
-			return \App\YetiForce\Shop::check('YetiForceGeocoder');
+			[$status, $message] = \App\YetiForce\Shop::checkWithMessage('YetiForceGeocoder');
+		} else {
+			$pwnedPassword = \App\Extension\PwnedPassword::getDefaultProvider();
+			if ('\App\Extension\PwnedPassword\YetiForce' === \get_class($pwnedPassword)) {
+				if ($pwnedPassword->isActive()) {
+					$message = 'LBL_PAID_FUNCTIONALITY_ACTIVATED';
+					$status = false;
+				}
+			}
 		}
-		$pwnedPassword = \App\Extension\PwnedPassword::getDefaultProvider();
-		if ('\App\Extension\PwnedPassword\YetiForce' === \get_class($pwnedPassword)) {
-			return !$pwnedPassword->isActive();
-		}
-		return true;
+		return ['status' => $status, 'message' => $message];
 	}
 
 	/** {@inheritdoc} */
@@ -57,7 +62,7 @@ class YetiForceGeocoder extends \App\YetiForce\Shop\AbstractBaseProduct
 			\Vtiger_Link_Model::getInstanceFromValues([
 				'linklabel' => 'Website',
 				'relatedModuleName' => '_Base',
-				'linkicon' => 'fas fa-globe',
+				'linkicon' => 'fas fa-globe mr-2',
 				'linkhref' => true,
 				'linkExternal' => true,
 				'linktarget' => '_blank',

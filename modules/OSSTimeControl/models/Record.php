@@ -3,8 +3,8 @@
 /**
  * OSSTimeControl record model class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  */
 class OSSTimeControl_Record_Model extends Vtiger_Record_Model
 {
@@ -23,9 +23,7 @@ class OSSTimeControl_Record_Model extends Vtiger_Record_Model
 			. $currDate . '&due_date=' . $currDate . '&time_start=' . $time . '&time_end=' . $time;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function changeState($state)
 	{
 		parent::changeState($state);

@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class SMSNotifier_ListView_Model extends Vtiger_ListView_Model
@@ -44,9 +44,9 @@ class SMSNotifier_ListView_Model extends Vtiger_ListView_Model
 		if (\App\Privilege::isPermitted($moduleName, 'QuickExportToExcel')) {
 			$advancedLinks[] = [
 				'linktype' => 'LISTVIEWMASSACTION',
-				'linklabel' => 'LBL_QUICK_EXPORT_TO_EXCEL',
-				'linkurl' => 'javascript:Vtiger_List_Js.triggerQuickExportToExcel("' . $moduleName . '")',
-				'linkicon' => 'fas fa-file-excel',
+				'linklabel' => 'LBL_QUICK_EXPORT',
+				'linkurl' => 'javascript:Vtiger_List_Js.triggerQuickExport("' . $moduleName . '")',
+				'linkicon' => 'fas fa-file-export',
 			];
 		}
 		return $advancedLinks;

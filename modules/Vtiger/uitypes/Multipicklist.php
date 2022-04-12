@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Vtiger_Multipicklist_UIType extends Vtiger_Base_UIType
@@ -44,14 +44,14 @@ class Vtiger_Multipicklist_UIType extends Vtiger_Base_UIType
 			$value = explode(' |##| ', $value);
 		}
 		if (!\is_array($value)) {
-			throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getFieldName() . '||' . $this->getFieldModel()->getModuleName() . '||' . $value, 406);
+			throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getName() . '||' . $this->getFieldModel()->getModuleName() . '||' . $value, 406);
 		}
 		foreach ($value as $item) {
 			if (!\is_string($item)) {
-				throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getFieldName() . '||' . $this->getFieldModel()->getModuleName() . '||' . $value, 406);
+				throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getName() . '||' . $this->getFieldModel()->getModuleName() . '||' . $value, 406);
 			}
 			if ($item != strip_tags($item)) {
-				throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getFieldName() . '||' . $this->getFieldModel()->getModuleName() . '||' . $value, 406);
+				throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getName() . '||' . $this->getFieldModel()->getModuleName() . '||' . $value, 406);
 			}
 		}
 		$this->validate[$hashValue] = true;
@@ -67,7 +67,7 @@ class Vtiger_Multipicklist_UIType extends Vtiger_Base_UIType
 		$values = explode(' |##| ', $value);
 		$trValueRaw = $trValue = [];
 		$moduleName = $this->getFieldModel()->getModuleName();
-		$fieldName = App\Colors::sanitizeValue($this->getFieldModel()->getFieldName());
+		$fieldName = App\Colors::sanitizeValue($this->getFieldModel()->getName());
 		foreach ($values as $value) {
 			$displayValue = App\Language::translate($value, $moduleName);
 			$value = App\Colors::sanitizeValue($value);
@@ -94,7 +94,22 @@ class Vtiger_Multipicklist_UIType extends Vtiger_Base_UIType
 		if (\is_array($value)) {
 			return $value;
 		}
-		return explode(' |##| ', \App\Purifier::encodeHtml($value));
+
+		return $value ? explode(' |##| ', \App\Purifier::encodeHtml($value)) : [];
+	}
+
+	/** {@inheritdoc} */
+	public function getValueFromImport($value, $defaultValue = null)
+	{
+		$trimmedValue = trim($value);
+		if ('' === $trimmedValue) {
+			return $defaultValue ?? '';
+		}
+		$explodedValue = explode(' |##| ', $trimmedValue);
+		foreach ($explodedValue as $key => $value) {
+			$explodedValue[$key] = trim($value);
+		}
+		return implode(' |##| ', $explodedValue);
 	}
 
 	/** {@inheritdoc} */
@@ -118,7 +133,7 @@ class Vtiger_Multipicklist_UIType extends Vtiger_Base_UIType
 	/** {@inheritdoc} */
 	public function getQueryOperators()
 	{
-		return ['e', 'n', 'c', 'k', 'y', 'ny'];
+		return ['e', 'n', 'c', 'k', 'y', 'ny', 'ef', 'nf'];
 	}
 
 	/**

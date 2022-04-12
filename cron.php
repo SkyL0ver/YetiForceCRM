@@ -34,13 +34,14 @@ if (PHP_SAPI === 'cli' || $user || App\Config::main('application_unique_key') ==
 	$cronInstance::$cronTimeStart = microtime(true);
 	vtlib\Cron::setCronAction(true);
 	if (\App\Request::_has('service')) {
-		// Run specific service
-		$cronTasks = [vtlib\Cron::getInstance(\App\Request::_get('service'))];
+		$cronTask = vtlib\Cron::getInstance(\App\Request::_get('service'));
+		if (!$cronTask) {
+			throw new \App\Exceptions\AppException('ERR_SERVICE_NOT_FOUND');
+		}
+		$cronTasks = [$cronTask];
 	} else {
-		// Run all service
 		$cronTasks = vtlib\Cron::listAllActiveInstances();
 	}
-	//set global current user permissions
 	App\User::setCurrentUserId(Users::getActiveAdminId());
 	if ($user) {
 		$response .= '<pre>';
@@ -113,7 +114,7 @@ if (PHP_SAPI === 'cli' || $user || App\Config::main('application_unique_key') ==
 			}
 			// Mark the status - finished
 			$cronTask->markFinished();
-			$response .= sprintf('%s | %s - End task (%s s)', date('Y-m-d H:i:s'), $cronTask->getName(), $taskTime) . PHP_EOL;
+			$response .= sprintf('%s | %s - End task (%s s) | %s', date('Y-m-d H:i:s'), $cronTask->getName(), $taskTime, $cronHandler->getTaskLog()) . PHP_EOL;
 			\App\Log::trace($cronTask->getName() . ' - End', 'Cron');
 			$cronInstance->log('End task, time: ' . $taskTime);
 		} catch (\Throwable $e) {

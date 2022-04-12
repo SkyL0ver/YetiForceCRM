@@ -3,8 +3,8 @@
 /**
  * Save Action Class for PDF Settings.
  *
- * @copyright YetiForce Sp. z o.o
- * @license YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author Maciej Stencel <m.stencel@yetiforce.com>
  * @author Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
@@ -64,7 +64,7 @@ class Settings_PDF_Save_Action extends Settings_Vtiger_Index_Action
 		$stepFields = Settings_PDF_Module_Model::getFieldsByStep($step);
 		foreach ($stepFields as $field) {
 			if ('body_content' === $field || 'header_content' === $field || 'footer_content' === $field || 'watermark_text' === $field) {
-				$value = $request->getForHtml($field);
+				$value = $request->getByType($field, \App\Purifier::HTML_TEXT_PARSER);
 			} else {
 				$value = $request->get($field);
 			}

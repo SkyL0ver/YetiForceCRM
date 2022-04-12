@@ -2,8 +2,8 @@
 /**
  * Announcements CRMEntity Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 include_once 'modules/Vtiger/CRMEntity.php';
@@ -32,22 +32,11 @@ class Announcements extends Vtiger_CRMEntity
 		'u_yf_announcementcf' => 'announcementid'
 	];
 
-	/**
-	 * Mandatory for Listing (Related listview).
-	 */
-	public $list_fields = [
-		// Format: Field Label => Array(tablename, columnname)
-		// tablename should not have prefix 'vtiger_'
-		'LBL_SUBJECT' => ['announcement', 'subject'],
-		'Assigned To' => ['crmentity', 'smownerid'],
-	];
 	public $list_fields_name = [
 		// Format: Field Label => fieldname
 		'LBL_SUBJECT' => 'subject',
 		'Assigned To' => 'assigned_user_id',
 	];
-	// Make the field link to detail view
-	public $list_link_field = 'subject';
 	// For Popup listview and UI type support
 	public $search_fields = [
 		// Format: Field Label => Array(tablename, columnname)

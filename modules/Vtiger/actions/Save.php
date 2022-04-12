@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce Sp. z o.o.
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Vtiger_Save_Action extends \App\Controller\Action
@@ -19,9 +19,7 @@ class Vtiger_Save_Action extends \App\Controller\Action
 	 */
 	protected $record;
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function __construct()
 	{
 		parent::__construct();
@@ -39,18 +37,18 @@ class Vtiger_Save_Action extends \App\Controller\Action
 	public function checkPermission(App\Request $request)
 	{
 		$moduleName = $request->getModule();
-		if (!$request->isEmpty('record', true)) {
+		if ($request->isEmpty('record', true)) {
+			$this->record = Vtiger_Record_Model::getCleanInstance($moduleName);
+			if (!$this->record->isCreateable()) {
+				throw new \App\Exceptions\NoPermittedToRecord('ERR_NO_PERMISSIONS_FOR_THE_RECORD', 406);
+			}
+		} else {
 			$recordId = $request->getInteger('record');
 			if (!\App\Privilege::isPermitted($moduleName, 'DetailView', $recordId)) {
 				throw new \App\Exceptions\NoPermittedToRecord('ERR_NO_PERMISSIONS_FOR_THE_RECORD', 406);
 			}
 			$this->record = Vtiger_Record_Model::getInstanceById($recordId, $moduleName);
 			if ('recordChanger' !== $request->getMode() && !$this->record->isEditable()) {
-				throw new \App\Exceptions\NoPermittedToRecord('ERR_NO_PERMISSIONS_FOR_THE_RECORD', 406);
-			}
-		} else {
-			$this->record = Vtiger_Record_Model::getCleanInstance($moduleName);
-			if (!$this->record->isCreateable()) {
 				throw new \App\Exceptions\NoPermittedToRecord('ERR_NO_PERMISSIONS_FOR_THE_RECORD', 406);
 			}
 		}
@@ -97,8 +95,11 @@ class Vtiger_Save_Action extends \App\Controller\Action
 	{
 		$this->getRecordModelFromRequest($request);
 		$eventHandler = $this->record->getEventHandler();
+		$skipHandlers = $request->getArray('skipHandlers', \App\Purifier::ALNUM, [], \App\Purifier::INTEGER);
 		foreach ($eventHandler->getHandlers(\App\EventHandler::EDIT_VIEW_PRE_SAVE) as $handler) {
-			if (!(($response = $eventHandler->triggerHandler($handler))['result'] ?? null)) {
+			$handlerId = $handler['eventhandler_id'];
+			$response = $eventHandler->triggerHandler($handler);
+			if (!($response['result'] ?? null) && (!isset($response['hash'], $skipHandlers[$handlerId]) || $skipHandlers[$handlerId] !== $response['hash'])) {
 				throw new \App\Exceptions\NoPermittedToRecord($response['message'], 406);
 			}
 		}
@@ -164,9 +165,12 @@ class Vtiger_Save_Action extends \App\Controller\Action
 		$this->getRecordModelFromRequest($request);
 		$eventHandler = $this->record->getEventHandler();
 		$result = [];
+		$skipHandlers = $request->getArray('skipHandlers', \App\Purifier::ALNUM, [], \App\Purifier::INTEGER);
 		foreach ($eventHandler->getHandlers(\App\EventHandler::EDIT_VIEW_PRE_SAVE) as $handler) {
-			if (!(($response = $eventHandler->triggerHandler($handler))['result'] ?? null)) {
-				$result[] = $response;
+			$handlerId = $handler['eventhandler_id'];
+			$response = $eventHandler->triggerHandler($handler);
+			if (!($response['result'] ?? null) && (!isset($response['hash'], $skipHandlers[$handlerId]) || $skipHandlers[$handlerId] !== $response['hash'])) {
+				$result[$handlerId] = $response;
 			}
 		}
 		$response = new Vtiger_Response();

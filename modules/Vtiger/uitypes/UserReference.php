@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Vtiger_UserReference_UIType extends Vtiger_Base_UIType
@@ -82,7 +82,7 @@ class Vtiger_UserReference_UIType extends Vtiger_Base_UIType
 	/** {@inheritdoc} */
 	public function getQueryOperators()
 	{
-		return ['e', 'n', 'y', 'ny', 'om'];
+		return ['e', 'n', 'y', 'ny', 'om', 'ef', 'nf'];
 	}
 
 	/** {@inheritdoc} */

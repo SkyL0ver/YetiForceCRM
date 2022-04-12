@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 
 class Settings_LayoutEditor_Index_View extends Settings_Vtiger_Index_View
@@ -33,6 +33,10 @@ class Settings_LayoutEditor_Index_View extends Settings_Vtiger_Index_View
 
 	public function showFieldLayout(App\Request $request)
 	{
+		$activeTab = 'detailViewLayout';
+		if ($request->has('tab')) {
+			$activeTab = $request->getByType('tab', \App\Purifier::ALNUM);
+		}
 		$sourceModule = $request->getByType('sourceModule', 2);
 		$supportedModulesList = Settings_LayoutEditor_Module_Model::getSupportedModules();
 		if (empty($sourceModule)) {
@@ -46,7 +50,18 @@ class Settings_LayoutEditor_Index_View extends Settings_Vtiger_Index_View
 		$blockIdFieldMap = [];
 		$inactiveFields = [];
 		foreach ($fieldModels as $fieldModel) {
-			$blockIdFieldMap[$fieldModel->getBlockId()][$fieldModel->getName()] = $fieldModel;
+			$fieldName = $fieldModel->getName();
+			$lastItem = strrchr($fieldName, '_');
+			$firstItem = '';
+			if($lastItem === '_extra'){
+				$firstItem = str_replace($lastItem, '', $fieldName);
+			}
+			if((!empty($firstItem) && !empty($firstItemModuleModal = \Vtiger_Field_Model::getInstance($firstItem, \Vtiger_Module_Model::getInstance($sourceModule))) && $firstItemModuleModal->isActiveField() && $fieldModel->isActiveField()) && ($firstItemModuleModal->getUIType() == 11) && ($fieldModel->getUIType() == 1)){
+				unset($fieldName);
+			}
+			if(isset($fieldName)){
+				$blockIdFieldMap[$fieldModel->getBlockId()][$fieldName] = $fieldModel;
+			}
 			if (!$fieldModel->isActiveField()) {
 				$inactiveFields[$fieldModel->getBlockId()][$fieldModel->getId()] = \App\Language::translate($fieldModel->get('label'), $sourceModule);
 			}
@@ -61,9 +76,10 @@ class Settings_LayoutEditor_Index_View extends Settings_Vtiger_Index_View
 		$type = $moduleModel->isInventory() ? Vtiger_Module_Model::STANDARD_TYPE : Vtiger_Module_Model::ADVANCED_TYPE;
 		$batchMethod = (new \App\BatchMethod([
 			'method' => '\App\Module::changeType',
-			'params' => ['module' => $sourceModule, 'type' => $type]
+			'params' => [$sourceModule, $type],
 		]));
 		$viewer = $this->getViewer($request);
+		$viewer->assign('ACTIVE_TAB', $activeTab);
 		$viewer->assign('SELECTED_MODULE_NAME', $sourceModule);
 		$viewer->assign('SUPPORTED_MODULES', $supportedModulesList);
 		$viewer->assign('SELECTED_MODULE_MODEL', $moduleModel);

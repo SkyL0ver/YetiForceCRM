@@ -1,12 +1,18 @@
 <?php
 
 /**
- * UIType multi email Field Class.
+ * UIType multi email field file.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package   UIType
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Arkadiusz Adach <a.adach@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ */
+/**
+ * UIType multi email field class.
  */
 class Vtiger_MultiEmail_UIType extends Vtiger_Email_UIType
 {
@@ -76,13 +82,17 @@ class Vtiger_MultiEmail_UIType extends Vtiger_Email_UIType
 		}
 		$emails = [];
 		foreach ($value as $item) {
+			if ($rawText) {
+				$emails[] = parent::getDisplayValue($item['e'], $record, $recordModel, $rawText, $length);
+				continue;
+			}
 			if ($item['o']) {
 				$emails[] = parent::getDisplayValue($item['e'], $record, $recordModel, $rawText, $length) . '<span class="fas fa-check text-success ml-2" title="' . \App\Language::translate('LBL_CONSENT_TO_SEND') . '"></span>';
 			} else {
 				$emails[] = parent::getDisplayValue($item['e'], $record, $recordModel, true, $length) . '<span class="fas fa-ban text-danger ml-2"></span>';
 			}
 		}
-		return implode('<br>', $emails);
+		return implode($rawText ? ', ' : '<br>', $emails);
 	}
 
 	/** {@inheritdoc} */
@@ -113,7 +123,7 @@ class Vtiger_MultiEmail_UIType extends Vtiger_Email_UIType
 	/** {@inheritdoc} */
 	public function getQueryOperators()
 	{
-		return ['c', 'k', 'y', 'ny'];
+		return ['c', 'k', 'y', 'ny', 'ef', 'nf'];
 	}
 
 	/** {@inheritdoc} */

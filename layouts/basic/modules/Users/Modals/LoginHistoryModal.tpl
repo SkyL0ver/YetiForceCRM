@@ -1,6 +1,6 @@
-{*<!-- {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} -->*}
+{*<!-- {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} -->*}
 {strip}
-	<!-- tpl-Users-PasswordModal -->
+	<!-- tpl-Users-Modals-LoginHistoryModal -->
 	<div class="modal-body pb-3">
 		<table class="table table-bordered u-fs-13px">
 			<thead>
@@ -13,19 +13,22 @@
 				</tr>
 			</thead>
 			<tbody>
+				<div class="alert alert-info">
+					{\App\Language::translateArgs('LBL_LIMIT_INFO', $MODULE_NAME, 30)}
+				</div>
 				{foreach item="LISTVIEW_ENTRY" from=$LOGIN_HISTORY_ENTRIES}
 					<tr class="listViewEntries">
 						{foreach key="LISTVIEW_ENTRY_COLUMN_NAME" item="LISTVIEW_ENTRY_COLUMN" from=$TABLE_COLUMNS}
 							<td class="noWrap {$WIDTHTYPE}">
-							{if $LISTVIEW_ENTRY_COLUMN_NAME === 'status'}
-								{\App\Language::translate($LISTVIEW_ENTRY[$LISTVIEW_ENTRY_COLUMN_NAME])}
-							{else}
-								{if isset($LISTVIEW_ENTRY[$LISTVIEW_ENTRY_COLUMN_NAME]) && !empty($LISTVIEW_ENTRY[$LISTVIEW_ENTRY_COLUMN_NAME])}
-									{$LISTVIEW_ENTRY[$LISTVIEW_ENTRY_COLUMN_NAME]}
+								{if !empty($LISTVIEW_ENTRY[$LISTVIEW_ENTRY_COLUMN_NAME])}
+									{if $LISTVIEW_ENTRY_COLUMN_NAME === 'status'}
+										{\App\Language::translate($LISTVIEW_ENTRY[$LISTVIEW_ENTRY_COLUMN_NAME], $MODULE_NAME)}
+									{else}
+										{$LISTVIEW_ENTRY[$LISTVIEW_ENTRY_COLUMN_NAME]}
+									{/if}
 								{else}
 									--
 								{/if}
-							{/if}
 							</td>
 						{/foreach}
 					</tr>
@@ -33,5 +36,5 @@
 			</tbody>
 		</table>
 	</div>
-	<!-- /tpl-Users-PasswordModal -->
+	<!-- /tpl-Users-Modals-LoginHistoryModal -->
 {/strip}

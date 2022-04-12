@@ -5,7 +5,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  *************************************************************************************/
 'use strict';
 
@@ -413,6 +413,7 @@ jQuery.Class(
 				'greaterthannow',
 				'ny',
 				'om',
+				'nom',
 				'wr',
 				'nwr'
 			];
@@ -815,7 +816,7 @@ Vtiger_Categorymultipicklist_Field_Js(
 				multiple +
 				'" data-value="value" data-treetemplate="' +
 				this.getTreeTemplate() +
-				'" data-modulename="' +
+				'" data-module-name="' +
 				this.getModuleName() +
 				'"><div class="input-group"><span class="input-group-prepend clearTreeSelection u-cursor-pointer"><span class="input-group-text"><span id="' +
 				this.getModuleName() +

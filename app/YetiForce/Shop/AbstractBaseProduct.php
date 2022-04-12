@@ -3,10 +3,10 @@
 /**
  * YetiForce shop AbstractBaseProduct file.
  *
- * @package   App
+ * @package App
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -105,11 +105,11 @@ abstract class AbstractBaseProduct
 	/**
 	 * Verify the product.
 	 *
-	 * @return bool
+	 * @return array
 	 */
-	public function verify(): bool
+	public function verify(): array
 	{
-		return true;
+		return ['status' => true];
 	}
 
 	/**
@@ -255,7 +255,7 @@ abstract class AbstractBaseProduct
 			'p3' => 1,
 			'item_name' => $this->name,
 			'currency_code' => $this->currencyCode,
-			'on0' => 'Package'
+			'on0' => 'Package',
 		];
 		if (!$productSelection) {
 			$data['os0'] = \App\Company::getSize();
@@ -302,6 +302,11 @@ abstract class AbstractBaseProduct
 			} elseif ($analyze = $this->analyzeConfiguration()) {
 				$return = array_merge(['status' => true], $analyze);
 			}
+		} else {
+			$check = $this->verify();
+			if (!$check['status']) {
+				$return = ['status' => true, 'type' => 'LBL_SHOP_RENEW', 'message' => $check['message']];
+			}
 		}
 		return $return;
 	}
@@ -324,5 +329,25 @@ abstract class AbstractBaseProduct
 	public function getAdditionalButtons(): array
 	{
 		return [];
+	}
+
+	/**
+	 * Switch button to activate/deactivate service.
+	 *
+	 * @return \Vtiger_Link_Model|null
+	 */
+	public function getSwitchButton(): ?\Vtiger_Link_Model
+	{
+		return null;
+	}
+
+	/**
+	 * Check if the service is active.
+	 *
+	 * @return bool
+	 */
+	public function isActive(): bool
+	{
+		return false;
 	}
 }

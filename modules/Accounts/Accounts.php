@@ -21,6 +21,7 @@
  * All Rights Reserved.
  * Contributor(s): ______________________________________..
  * ****************************************************************************** */
+// Contributor(s): YetiForce S.A.
 
 class Accounts extends CRMEntity
 {
@@ -35,14 +36,7 @@ class Accounts extends CRMEntity
 	public $customFieldTable = ['vtiger_accountscf', 'accountid'];
 	public $entity_table = 'vtiger_crmentity';
 	public $column_fields = [];
-	// This is the list of vtiger_fields that are in the lists.
-	public $list_fields = [
-		'Account Name' => ['vtiger_account' => 'accountname'],
-		'Assigned To' => ['vtiger_crmentity' => 'smownerid'],
-		'FL_STATUS' => ['vtiger_account' => 'accounts_status'],
-		'Type' => ['vtiger_account' => 'accounttype'],
-		'Vat ID' => ['vtiger_account' => 'vat_id'],
-	];
+
 	public $list_fields_name = [
 		'Account Name' => 'accountname',
 		'Assigned To' => 'assigned_user_id',
@@ -50,7 +44,6 @@ class Accounts extends CRMEntity
 		'Type' => 'accounttype',
 		'Vat ID' => 'vat_id',
 	];
-	public $list_link_field = 'accountname';
 	public $search_fields = [
 		'Account Name' => ['vtiger_account' => 'accountname'],
 		'Assigned To' => ['vtiger_crmentity' => 'smownerid'],
@@ -113,7 +106,7 @@ class Accounts extends CRMEntity
 
 		$listViewHeader = [];
 		$listViewEntries = [];
-		$listColumns = $listColumns ? $listColumns : App\Config::module('Accounts', 'COLUMNS_IN_HIERARCHY');
+		$listColumns = $listColumns ?: App\Config::module('Accounts', 'COLUMNS_IN_HIERARCHY');
 		if (empty($listColumns)) {
 			$listColumns = $this->list_fields_name;
 		}
@@ -276,7 +269,7 @@ class Accounts extends CRMEntity
 			->innerJoin('vtiger_accountaddress', 'vtiger_account.accountid = vtiger_accountaddress.accountaddressid')
 			->leftJoin('vtiger_groups', 'vtiger_crmentity.smownerid = vtiger_groups.groupid')
 			->leftJoin('vtiger_users', 'vtiger_crmentity.smownerid = vtiger_users.id')
-			->where(['vtiger_crmentity.deleted' => 0, 'parentid' => $id])->createCommand()->query();
+			->where(['vtiger_crmentity.deleted' => 0, 'vtiger_account.parentid' => $id])->createCommand()->query();
 		if ($dataReader->count() > 0) {
 			$depth = $depthBase + 1;
 			while ($row = $dataReader->read()) {

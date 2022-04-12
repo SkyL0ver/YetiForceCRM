@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Vtiger_DetailView_Model extends \App\Base
@@ -112,7 +112,8 @@ class Vtiger_DetailView_Model extends \App\Base
 					]);
 				}
 			}
-			if ($moduleModel->isPermitted('WorkflowTrigger') && $recordModel->isEditable()) {
+			if ($moduleModel->isPermitted('WorkflowTrigger')
+			 || ($recordModel->isEditable() || ($recordModel->isPermitted('EditView') && $moduleModel->isPermitted('WorkflowTriggerWhenRecordIsBlocked') && $recordModel->isBlocked()))) {
 				Vtiger_Loader::includeOnce('~~modules/com_vtiger_workflow/include.php');
 				Vtiger_Loader::includeOnce('~~modules/com_vtiger_workflow/VTEntityMethodManager.php');
 				$wfs = new VTWorkflowManager();
@@ -210,7 +211,7 @@ class Vtiger_DetailView_Model extends \App\Base
 					'linklabel' => 'BTN_RECORD_EDIT',
 					'linkurl' => $recordModel->getEditViewUrl(),
 					'linkicon' => 'yfi yfi-full-editing-view',
-					'linkclass' => 'btn btn-outline-dark btn-sm',
+					'linkclass' => 'js-edit-btn btn btn-outline-dark btn-sm',
 					'linkhint' => 'BTN_RECORD_EDIT',
 				]);
 			} elseif ($recordModel->isUnlockByFields()) {
@@ -220,7 +221,17 @@ class Vtiger_DetailView_Model extends \App\Base
 					'linkdata' => ['url' => 'index.php?module=' . $recordModel->getModuleName() . '&view=RecordUnlock&record=' . $recordModel->getId()],
 					'linkicon' => 'fas fa-lock-open',
 					'linkclass' => 'js-show-modal btn-outline-dark btn-sm',
-					'linkhint' => 'BTN_RECORD_OPEN'
+					'linkhint' => 'BTN_RECORD_OPEN',
+				]);
+			}
+			if ($recordModel->isPermitted('AutoAssignRecord') && \App\AutoAssign::getAutoAssignForRecord($recordModel, \App\AutoAssign::MODE_MANUAL)) {
+				$linkModelList['DETAIL_VIEW_BASIC'][] = Vtiger_Link_Model::getInstanceFromValues([
+					'linktype' => 'DETAIL_VIEW_BASIC',
+					'linklabel' => 'BTN_ASSIGN_TO',
+					'linkdata' => ['url' => 'index.php?module=' . $recordModel->getModuleName() . '&view=AutoAssignRecord&record=' . $recordModel->getId()],
+					'linkicon' => 'yfi yfi-automatic-assignment',
+					'linkclass' => 'js-show-modal btn-outline-dark btn-sm',
+					'linkhint' => 'BTN_ASSIGN_TO',
 				]);
 			}
 			$stateColors = App\Config::search('LIST_ENTITY_STATE_COLOR');
@@ -229,13 +240,10 @@ class Vtiger_DetailView_Model extends \App\Base
 					'linktype' => 'DETAIL_VIEW_EXTENDED',
 					'linklabel' => 'LBL_ACTIVATE_RECORD',
 					'title' => \App\Language::translate('LBL_ACTIVATE_RECORD'),
-					'linkurl' => 'javascript:app.showConfirmation({type: "href"},this)',
-					'linkdata' => [
-						'url' => 'index.php?module=' . $recordModel->getModuleName() . '&action=State&state=Active&record=' . $recordModel->getId(),
-						'confirm' => \App\Language::translate('LBL_ACTIVATE_RECORD_DESC'),
-					],
+					'dataUrl' => 'index.php?module=' . $recordModel->getModuleName() . '&action=State&state=Active&record=' . $recordModel->getId(),
+					'linkdata' => ['confirm' => \App\Language::translate('LBL_ACTIVATE_RECORD_DESC'), 'source-view' => 'Href'],
 					'linkicon' => 'fas fa-undo-alt',
-					'linkclass' => 'entityStateBtn btn-outline-dark btn-sm',
+					'linkclass' => 'entityStateBtn btn-outline-dark btn-sm js-action-confirm',
 					'style' => empty($stateColors['Active']) ? '' : "background: {$stateColors['Active']};",
 				]);
 			}
@@ -244,13 +252,10 @@ class Vtiger_DetailView_Model extends \App\Base
 					'linktype' => 'DETAIL_VIEW_EXTENDED',
 					'linklabel' => 'LBL_ARCHIVE_RECORD',
 					'title' => \App\Language::translate('LBL_ARCHIVE_RECORD'),
-					'linkurl' => 'javascript:app.showConfirmation({type: "href"},this)',
-					'linkdata' => [
-						'url' => 'index.php?module=' . $recordModel->getModuleName() . '&action=State&state=Archived&record=' . $recordModel->getId(),
-						'confirm' => \App\Language::translate('LBL_ARCHIVE_RECORD_DESC'),
-					],
+					'dataUrl' => 'index.php?module=' . $recordModel->getModuleName() . '&action=State&state=Archived&record=' . $recordModel->getId(),
+					'linkdata' => ['confirm' => \App\Language::translate('LBL_ARCHIVE_RECORD_DESC'), 'source-view' => 'Href'],
 					'linkicon' => 'fas fa-archive',
-					'linkclass' => 'entityStateBtn btn-outline-dark btn-sm',
+					'linkclass' => 'entityStateBtn btn-outline-dark btn-sm js-action-confirm',
 					'style' => empty($stateColors['Archived']) ? '' : "background: {$stateColors['Archived']};",
 				]);
 			}
@@ -259,13 +264,10 @@ class Vtiger_DetailView_Model extends \App\Base
 					'linktype' => 'DETAIL_VIEW_EXTENDED',
 					'linklabel' => 'LBL_MOVE_TO_TRASH',
 					'title' => \App\Language::translate('LBL_MOVE_TO_TRASH'),
-					'linkurl' => 'javascript:app.showConfirmation({type: "href"},this)',
-					'linkdata' => [
-						'url' => 'index.php?module=' . $recordModel->getModuleName() . '&action=State&state=Trash&record=' . $recordModel->getId(),
-						'confirm' => \App\Language::translate('LBL_MOVE_TO_TRASH_DESC'),
-					],
+					'dataUrl' => 'index.php?module=' . $recordModel->getModuleName() . '&action=State&state=Trash&record=' . $recordModel->getId(),
+					'linkdata' => ['confirm' => \App\Language::translate('LBL_MOVE_TO_TRASH_DESC'), 'source-view' => 'Href'],
 					'linkicon' => 'fas fa-trash-alt',
-					'linkclass' => 'entityStateBtn btn-outline-dark btn-sm',
+					'linkclass' => 'entityStateBtn btn-outline-dark btn-sm js-action-confirm',
 					'style' => empty($stateColors['Trash']) ? '' : "background: {$stateColors['Trash']};",
 				]);
 			}
@@ -274,13 +276,10 @@ class Vtiger_DetailView_Model extends \App\Base
 					'linktype' => 'DETAIL_VIEW_EXTENDED',
 					'linklabel' => 'LBL_DELETE_RECORD_COMPLETELY',
 					'title' => \App\Language::translate('LBL_DELETE_RECORD_COMPLETELY'),
-					'linkurl' => 'javascript:app.showConfirmation({type: "href"},this)',
-					'linkdata' => [
-						'url' => 'index.php?module=' . $recordModel->getModuleName() . '&action=Delete&record=' . $recordModel->getId(),
-						'confirm' => \App\Language::translate('LBL_DELETE_RECORD_COMPLETELY_DESC'),
-					],
+					'dataUrl' => 'index.php?module=' . $recordModel->getModuleName() . '&action=Delete&record=' . $recordModel->getId(),
+					'linkdata' => ['confirm' => \App\Language::translate('LBL_DELETE_RECORD_COMPLETELY_DESC'), 'source-view' => 'Href'],
 					'linkicon' => 'fas fa-eraser',
-					'linkclass' => 'btn-dark btn-sm',
+					'linkclass' => 'btn-dark btn-sm js-action-confirm',
 				]);
 			}
 			if ($moduleModel->isPermitted('DuplicateRecord')) {
@@ -289,7 +288,7 @@ class Vtiger_DetailView_Model extends \App\Base
 					'linklabel' => 'LBL_DUPLICATE',
 					'linkurl' => $recordModel->getDuplicateRecordUrl(),
 					'linkicon' => 'fas fa-clone',
-					'linkclass' => 'btn-outline-dark btn-sm',
+					'linkclass' => 'js-duplicate-btn btn-outline-dark btn-sm',
 					'title' => \App\Language::translate('LBL_DUPLICATE_RECORD'),
 				]);
 			}
@@ -390,9 +389,9 @@ class Vtiger_DetailView_Model extends \App\Base
 			];
 		}
 		if (
-			\App\User::getCurrentUserId() === \App\User::getCurrentUserRealId() &&
-			\App\Module::isModuleActive('Chat') && !\App\RequestUtil::getBrowserInfo()->ie &&
-			false !== \App\ModuleHierarchy::getModuleLevel($parentModuleModel->getName())
+			\App\User::getCurrentUserId() === \App\User::getCurrentUserRealId()
+			&& \App\Module::isModuleActive('Chat') && !\App\RequestUtil::getBrowserInfo()->ie
+			&& false !== \App\ModuleHierarchy::getModuleLevel($parentModuleModel->getName())
 		) {
 			$relatedLinks[] = [
 				'linktype' => 'DETAILVIEWTAB',
@@ -456,7 +455,7 @@ class Vtiger_DetailView_Model extends \App\Base
 						$this->widgetsList[] = $widget['type'];
 						$widgetInstance = new $widgetName($moduleName, $moduleModel, $recordId, $widget);
 						$widgetObject = $widgetInstance->getWidget();
-						if (\count($widgetObject) > 0) {
+						if (\count($widgetObject) > 0 && (!method_exists($widgetInstance, 'isPermitted') || $widgetInstance->isPermitted())) {
 							$this->widgets[$widgetObject['wcol']][] = $widgetObject;
 						}
 					}

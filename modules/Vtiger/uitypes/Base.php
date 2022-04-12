@@ -6,11 +6,23 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Vtiger_Base_UIType extends \App\Base
 {
+	/** @var bool Search allowed */
+	protected $search = true;
+
+	/** @var bool Sorting allowed */
+	protected $sortable = true;
+
+	/** @var bool Field is editable from Detail View */
+	protected $ajaxEditable = true;
+
+	/** @var bool Field is writable */
+	protected $writable = true;
+
 	/**
 	 * Verify the value.
 	 *
@@ -72,7 +84,7 @@ class Vtiger_Base_UIType extends \App\Base
 	 */
 	public function setValueFromRequest(App\Request $request, Vtiger_Record_Model $recordModel, $requestFieldName = false)
 	{
-		$fieldName = $this->getFieldModel()->getFieldName();
+		$fieldName = $this->getFieldModel()->getName();
 		if (!$requestFieldName) {
 			$requestFieldName = $fieldName;
 		}
@@ -125,11 +137,11 @@ class Vtiger_Base_UIType extends \App\Base
 			$value = \App\Purifier::decodeHtml($value);
 		}
 		if (!is_numeric($value) && (\is_string($value) && $value !== \App\Purifier::decodeHtml(\App\Purifier::purify($value)))) {
-			throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getFieldName() . '||' . $this->getFieldModel()->getModuleName() . '||' . $value, 406);
+			throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getName() . '||' . $this->getFieldModel()->getModuleName() . '||' . $value, 406);
 		}
 		$maximumLength = $this->getFieldModel()->get('maximumlength');
 		if ($maximumLength && App\TextParser::getTextLength($value) > $maximumLength) {
-			throw new \App\Exceptions\Security('ERR_VALUE_IS_TOO_LONG||' . $this->getFieldModel()->getFieldName() . '||' . $this->getFieldModel()->getModuleName() . '||' . $value, 406);
+			throw new \App\Exceptions\Security('ERR_VALUE_IS_TOO_LONG||' . $this->getFieldModel()->getName() . '||' . $this->getFieldModel()->getModuleName() . '||' . $value, 406);
 		}
 		$this->validate[$value] = true;
 	}
@@ -189,7 +201,7 @@ class Vtiger_Base_UIType extends \App\Base
 	 */
 	public function getEditViewDisplayValue($value, $recordModel = false)
 	{
-		return \App\Purifier::encodeHtml($value);
+		return null !== $value ? \App\Purifier::encodeHtml($value) : '';
 	}
 
 	/**
@@ -258,7 +270,7 @@ class Vtiger_Base_UIType extends \App\Base
 	 */
 	public function getHistoryDisplayValue($value, Vtiger_Record_Model $recordModel, $rawText = false)
 	{
-		if (\in_array('modTrackerDisplay', $this->getFieldModel()->getAnonymizationTarget())) {
+		if (\in_array(\App\Anonymization::MODTRACKER_DISPLAY, $this->getFieldModel()->getAnonymizationTarget())) {
 			return '****';
 		}
 		return $this->getDisplayValue($value, $recordModel->getId(), $recordModel, $rawText, App\Config::module('ModTracker', 'TEASER_TEXT_LENGTH'));
@@ -275,7 +287,7 @@ class Vtiger_Base_UIType extends \App\Base
 	 */
 	public function getTextParserDisplayValue($value, Vtiger_Record_Model $recordModel, $params)
 	{
-		$params = \App\TextParser::parseFieldParam($params);
+		$params = $params ? \App\TextParser::parseFieldParam($params) : [];
 		$this->fullUrl = true;
 		return $this->getDisplayValue($value, $recordModel->getId(), $recordModel, isset($params['raw']) ? ((bool) $params['raw']) : true);
 	}
@@ -294,6 +306,21 @@ class Vtiger_Base_UIType extends \App\Base
 	}
 
 	/**
+	 * Function to get edit value for Web Service API.
+	 *
+	 * @param $value
+	 *
+	 * @return mixed
+	 */
+	public function getApiEditValue($value)
+	{
+		return [
+			'value' => \App\Purifier::decodeHtml($this->getEditViewDisplayValue($value)),
+			'raw' => $value,
+		];
+	}
+
+	/**
 	 * Duplicate value from record.
 	 *
 	 * @param Vtiger_Record_Model $recordModel
@@ -302,7 +329,7 @@ class Vtiger_Base_UIType extends \App\Base
 	 */
 	public function getDuplicateValue(Vtiger_Record_Model $recordModel)
 	{
-		return $recordModel->get($this->getFieldModel()->getFieldName());
+		return $recordModel->get($this->getFieldModel()->getName());
 	}
 
 	/**
@@ -375,14 +402,24 @@ class Vtiger_Base_UIType extends \App\Base
 		return $this->get('field');
 	}
 
+	/**
+	 * The function determines whether sorting on this field is allowed.
+	 *
+	 * @return bool
+	 */
 	public function isActiveSearchView()
 	{
-		return true;
+		return $this->search;
 	}
 
+	/**
+	 * The function determines whether quick field editing is allowed (Detail View).
+	 *
+	 * @return bool
+	 */
 	public function isAjaxEditable()
 	{
-		return true;
+		return $this->ajaxEditable;
 	}
 
 	/**
@@ -390,7 +427,17 @@ class Vtiger_Base_UIType extends \App\Base
 	 */
 	public function isListviewSortable()
 	{
-		return true;
+		return $this->sortable;
+	}
+
+	/**
+	 * Function to check whether the current field is writable.
+	 *
+	 * @return bool
+	 */
+	public function isWritable(): bool
+	{
+		return $this->writable;
 	}
 
 	/**
@@ -420,7 +467,7 @@ class Vtiger_Base_UIType extends \App\Base
 	 */
 	public function getQueryOperators()
 	{
-		return ['e', 'n', 's', 'ew', 'c', 'k', 'y', 'ny'];
+		return ['e', 'n', 's', 'ew', 'c', 'k', 'y', 'ny', 'ef', 'nf'];
 	}
 
 	/**
@@ -462,11 +509,31 @@ class Vtiger_Base_UIType extends \App\Base
 	 * Gets value from import.
 	 *
 	 * @param mixed $value
+	 * @param mixed $defaultValue
 	 *
 	 * @return mixed
 	 */
-	public function getValueFromImport($value)
+	public function getValueFromImport($value, $defaultValue = null)
 	{
-		return $value;
+		return ('' === $value && null !== $defaultValue) ? $defaultValue : $value;
+	}
+
+	/**
+	 * Function for deleting specific data for uiType.
+	 *
+	 * @return void
+	 */
+	public function delete()
+	{
+	}
+
+	/**
+	 * Function to get the field details.
+	 *
+	 * @return array
+	 */
+	public function getFieldInfo(): array
+	{
+		return $this->getFieldModel()->loadFieldInfo();
 	}
 }

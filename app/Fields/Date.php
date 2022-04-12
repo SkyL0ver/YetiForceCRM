@@ -2,8 +2,10 @@
 /**
  * Tools for datetime class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -124,7 +126,7 @@ class Date
 			if (!empty($range[0]) && !empty($range[1])) {
 				return [
 					static::formatToDisplay($range[0]),
-					static::formatToDisplay($range[1])
+					static::formatToDisplay($range[1]),
 				];
 			}
 			return false;
@@ -181,31 +183,31 @@ class Date
 		}
 		switch ($format) {
 			case 'dd-mm-yyyy':
-				[$d, $m, $y] = explode('-', $date, 3);
+				[$d, $m, $y] = array_pad(explode('-', $date, 3), 3, null);
 				break;
 			case 'mm-dd-yyyy':
-				[$m, $d, $y] = explode('-', $date, 3);
+				[$m, $d, $y] = array_pad(explode('-', $date, 3), 3, null);
 				break;
 			case 'yyyy-mm-dd':
-				[$y, $m, $d] = explode('-', $date, 3);
+				[$y, $m, $d] = array_pad(explode('-', $date, 3), 3, null);
 				break;
 			case 'dd.mm.yyyy':
-				[$d, $m, $y] = explode('.', $date, 3);
+				[$d, $m, $y] = array_pad(explode('.', $date, 3), 3, null);
 				break;
 			case 'mm.dd.yyyy':
-				[$m, $d, $y] = explode('.', $date, 3);
+				[$m, $d, $y] = array_pad(explode('.', $date, 3), 3, null);
 				break;
 			case 'yyyy.mm.dd':
-				[$y, $m, $d] = explode('.', $date, 3);
+				[$y, $m, $d] = array_pad(explode('.', $date, 3), 3, null);
 				break;
 			case 'dd/mm/yyyy':
-				[$d, $m, $y] = explode('/', $date, 3);
+				[$d, $m, $y] = array_pad(explode('/', $date, 3), 3, null);
 				break;
 			case 'mm/dd/yyyy':
-				[$m, $d, $y] = explode('/', $date, 3);
+				[$m, $d, $y] = array_pad(explode('/', $date, 3), 3, null);
 				break;
 			case 'yyyy/mm/dd':
-				[$y, $m, $d] = explode('/', $date, 3);
+				[$y, $m, $d] = array_pad(explode('/', $date, 3), 3, null);
 				break;
 			default:
 				break;
@@ -256,9 +258,9 @@ class Date
 	 * @param string $start
 	 * @param string $end
 	 *
-	 * @return void
+	 * @return array
 	 */
-	public static function getHolidays(string $start = '', string $end = '')
+	public static function getHolidays(string $start = '', string $end = ''): array
 	{
 		if (\App\Cache::has('Date::getHolidays', $start . $end)) {
 			return \App\Cache::get('Date::getHolidays', $start . $end);
@@ -374,5 +376,21 @@ class Date
 		}
 
 		return $dbDate;
+	}
+
+	/**
+	 * Check if the date is correct.
+	 *
+	 * @param string      $date
+	 * @param string|null $format
+	 *
+	 * @return bool
+	 */
+	public static function isValid(string $date, ?string $format = null): bool
+	{
+		return (false !== strpos($date, '-') || false !== strpos($date, '.') || false !== strpos($date, '/'))
+		&& ([$y, $m, $d] = self::explode($date, $format))
+		&& is_numeric($m) && is_numeric($d) && is_numeric($y)
+		&& checkdate($m, $d, $y) && strtotime("{$y}-{$m}-{$d}");
 	}
 }

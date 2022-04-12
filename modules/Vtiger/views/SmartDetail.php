@@ -1,5 +1,15 @@
 <?php
-
+/**
+ * Smart detail view file.
+ *
+ * @package View
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
+ */
+/**
+ * Smart detail view class.
+ */
 class Vtiger_SmartDetail_View extends Vtiger_IndexAjax_View
 {
 	/**

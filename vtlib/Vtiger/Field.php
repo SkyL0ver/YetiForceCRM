@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com.
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 
 namespace vtlib;
@@ -29,8 +29,6 @@ class Field extends FieldBasic
 	 *
 	 * @param array List of values to add
 	 * @param mixed $values
-	 *
-	 * @internal Creates picklist base if it does not exists
 	 */
 	public function setPicklistValues($values)
 	{
@@ -53,6 +51,7 @@ class Field extends FieldBasic
 			]);
 			$db->createCommand()->insert('vtiger_picklist', ['name' => $this->name])->execute();
 			$newPicklistId = $db->getLastInsertID('vtiger_picklist_picklistid_seq');
+			$db->createCommand()->createIndex("{$this->name}_valueid_idx", $picklistTable, 'picklist_valueid', true)->execute();
 			\App\Log::trace("Creating table $picklistTable ... DONE", __METHOD__);
 		} else {
 			$newPicklistId = (new \App\Db\Query())->select(['picklistid'])->from('vtiger_picklist')->where(['name' => $this->name])->scalar();
@@ -82,6 +81,9 @@ class Field extends FieldBasic
 			$db->createCommand()
 				->batchInsert('vtiger_role2picklist', ['roleid', 'picklistvalueid', 'picklistid', 'sortid'], $insertedData)
 				->execute();
+			if (isset($this->picklistValues)) {
+				$this->picklistValues[$value] = $value;
+			}
 		}
 		\App\Fields\Picklist::clearCache($this->name, $this->getModuleName());
 	}
@@ -91,8 +93,6 @@ class Field extends FieldBasic
 	 *
 	 * @param array List of values to add
 	 * @param mixed $values
-	 *
-	 * @internal Creates picklist base if it does not exists
 	 */
 	public function setNoRolePicklistValues($values)
 	{
@@ -127,6 +127,9 @@ class Field extends FieldBasic
 			];
 			$dbCommand->insert($picklistTable, $data)->execute();
 			++$sortId;
+			if (isset($this->picklistValues)) {
+				$this->picklistValues[$value] = $value;
+			}
 		}
 		\App\Fields\Picklist::clearCache($this->name, $this->getModuleName());
 	}
@@ -256,7 +259,7 @@ class Field extends FieldBasic
 				->all();
 			\App\Cache::save('AllFieldForModule', $moduleId, $rows);
 		}
-		$instances = false;
+		$instances = [];
 		foreach ($rows as $row) {
 			$instance = new self();
 			$instance->initialize($row, $moduleId);
@@ -277,6 +280,7 @@ class Field extends FieldBasic
 		$db = \App\Db::getInstance();
 		$db->createCommand()->delete('vtiger_field', ['tabid' => $moduleInstance->id])->execute();
 		$db->createCommand()->delete('vtiger_fieldmodulerel', ['or', "module = '$moduleInstance->name'", "relmodule = '$moduleInstance->name'"])->execute();
+		$db->createCommand()->delete('a_#__encryption', ['target' => $moduleInstance->id])->execute();
 		\App\Log::trace('Deleting fields of the module ... DONE', __METHOD__);
 	}
 

@@ -7,22 +7,18 @@ if (file_exists($path)) {
 	$content = str_replace('password = ', 'password = ' . getenv('DB_ROOT_PASS'), file_get_contents($path));
 	file_put_contents($path, $content);
 }
-
-$path = '/etc/php/' . getenv('PHP_VER') . '/fpm/pool.d/www.conf';
+$path = '/etc/php/' . getenv('PHP_VER') . '/fpm/php-fpm.conf';
 if (file_exists($path)) {
-	$conf = PHP_EOL . ';####' . PHP_EOL . ';# Best FastCGI Process Manager configuration for YetiForceCRM' . PHP_EOL . ';####' . PHP_EOL . PHP_EOL .
-	'env[PROVIDER] = docker' . PHP_EOL .
-	'php_admin_value[open_basedir] = /var/www/html/:/tmp/:/var/tmp/:/etc/nginx/ssl/:/etc/ssl/' . PHP_EOL .
-	'clear_env = no' . PHP_EOL .
-	'request_terminate_timeout = 600' . PHP_EOL .
-	'pm.max_requests = 5000' . PHP_EOL .
-	'pm.process_idle_timeout = 600s;';
-	file_put_contents($path, $conf, FILE_APPEND);
+	$content = str_replace(
+		['; Pool Definitions ;', ''],
+		["; Pool Definitions ;\nlog_level = warning\nerror_log = /var/log/fpm-php.www.log\n"],
+	 file_get_contents($path));
+	file_put_contents($path, $content);
 }
 
 if ('TEST' === getenv('INSTALL_MODE')) {
 	chdir(__DIR__ . '/../../');
-	include_once 'include/main/WebUI.php';
+	require_once 'include/main/WebUI.php';
 
 	$configFile = new \App\ConfigFile('db');
 	$configFile->set('db_server', 'localhost');
@@ -76,15 +72,24 @@ if ('TEST' === getenv('INSTALL_MODE')) {
 	$configFile->set('SHOW_RECORDS_COUNT', true);
 	$configFile->create();
 
+	$configFile = new \App\ConfigFile('api');
+	$configFile->set('enabledServices', ['dav', 'webservice']);
+	$configFile->set('enableCardDAV', true);
+	$configFile->set('enableCalDAV', true);
+	$configFile->create();
+
 	$configFile = new \App\ConfigFile('security');
 	$configFile->set('RESET_LOGIN_PASSWORD', true);
 	$configFile->set('PERMITTED_BY_PRIVATE_FIELD', false);
 	$configFile->set('loginSessionRegenerate', false);
 	$configFile->set('cookieForceHttpOnly', false);
 	$configFile->set('askAdminAboutVisitPurpose', false);
+	$configFile->set('askSuperUserAboutVisitPurpose', false);
 	$configFile->create();
 
 	\App\Config::set('module', 'OSSMail', 'root_directory', new \Nette\PhpGenerator\PhpLiteral('ROOT_DIRECTORY . DIRECTORY_SEPARATOR'));
+	\App\Config::set('component', 'Mail', 'MAILER_REQUIRED_ACCEPTATION_BEFORE_SENDING', true);
+
 	$skip = ['db', 'main', 'debug', 'developer', 'security', 'module', 'component'];
 	foreach (array_diff(\App\ConfigFile::TYPES, $skip) as $type) {
 		(new \App\ConfigFile($type))->create();

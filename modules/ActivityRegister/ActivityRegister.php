@@ -2,8 +2,8 @@
 /**
  * ActivityRegister crmentity class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Adrian Koń <a.kon@yetiforce.com>
  */
 include_once 'modules/Vtiger/CRMEntity.php';
@@ -75,12 +75,7 @@ class ActivityRegister extends Vtiger_CRMEntity
 		'FL_START_DATE' => 'start_date',
 		'FL_END_DATE' => 'end_date'
 	];
-	/**
-	 * Make the field link to detail view.
-	 *
-	 * @var string
-	 */
-	public $list_link_field = 'subject';
+
 	/**
 	 * For Popup listview and UI type support.
 	 *

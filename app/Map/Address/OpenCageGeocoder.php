@@ -5,8 +5,10 @@
  *
  * @see       https://geocoder.opencagedata.com/api Documentation  of OpenCage Geocoder API
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -17,9 +19,7 @@ namespace App\Map\Address;
  */
 class OpenCageGeocoder extends Base
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public $customFields = [
 		'country_codes' => [
 			'type' => 'text',
@@ -28,7 +28,7 @@ class OpenCageGeocoder extends Base
 		],
 		'key' => [
 			'type' => 'text',
-			'validator' => 'required,custom[onlyLetterNumber]'
+			'validator' => 'required,custom[onlyLetterNumber]',
 		],
 	];
 	/**
@@ -38,14 +38,10 @@ class OpenCageGeocoder extends Base
 	 */
 	protected static $url = 'https://api.opencagedata.com/geocode/v1/';
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public $docUrl = 'https://opencagedata.com/api/';
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function find($value)
 	{
 		if (empty($value) || !\App\RequestUtil::isNetConnection()) {
@@ -82,7 +78,7 @@ class OpenCageGeocoder extends Base
 					}
 					$rows[] = [
 						'label' => $row['formatted'],
-						'address' => \call_user_func_array($mappingFunction, [$row])
+						'address' => \call_user_func_array($mappingFunction, [$row]),
 					];
 				}
 			}

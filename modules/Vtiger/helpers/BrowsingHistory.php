@@ -3,8 +3,8 @@
 /**
  * Browsing history.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Michał Lorencik <m.lorencik@yetiforce.com>
  */
 class Vtiger_BrowsingHistory_Helper
@@ -49,7 +49,7 @@ class Vtiger_BrowsingHistory_Helper
 				}
 			}
 			if ($value['hour']) {
-				$value['date'] = (new DateTimeField($userDate))->getDisplayTime();
+				$value['date'] = (new DateTimeField($userDate))->getDisplayTime(null, false);
 			} else {
 				$value['date'] = DateTimeField::convertToUserFormat($userDate);
 			}
@@ -68,7 +68,11 @@ class Vtiger_BrowsingHistory_Helper
 			return false;
 		}
 		$url = App\RequestUtil::getBrowserInfo()->requestUri;
-		parse_str(parse_url(\App\Purifier::decodeHtml($url), PHP_URL_QUERY), $urlQuery);
+		$parsedUrl = parse_url(\App\Purifier::decodeHtml($url), PHP_URL_QUERY);
+		if (empty($parsedUrl)) {
+			return false;
+		}
+		parse_str($parsedUrl, $urlQuery);
 		$validViews = ['Index', 'List', 'Detail', 'Edit', 'DashBoard', 'ListPreview', 'TreeRecords', 'Tree'];
 		if (!empty($urlQuery['module']) && !empty($urlQuery['view']) && \in_array($urlQuery['view'], $validViews)) {
 			if (!empty($urlQuery['record'])) {

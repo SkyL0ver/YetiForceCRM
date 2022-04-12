@@ -3,8 +3,8 @@
 /**
  * OSSPasswords CRMEntity class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  */
 class OSSPasswords extends CRMEntity
 {
@@ -33,18 +33,6 @@ class OSSPasswords extends CRMEntity
 		'vtiger_osspasswords' => 'osspasswordsid',
 		'vtiger_osspasswordscf' => 'osspasswordsid', ];
 
-	/**
-	 * Mandatory for Listing (Related listview).
-	 */
-	public $list_fields = [
-		// Format: Field Label => Array(tablename, columnname)
-		// tablename should not have prefix 'vtiger_'
-		'OSSPassword No' => ['osspasswords' => 'osspassword_no'],
-		'Key name' => ['osspasswords' => 'passwordname'],
-		'Username' => ['osspasswords' => 'username'],
-		'Password' => ['osspasswords' => 'password'],
-		'WWW page' => ['osspasswords' => 'link_adres'],
-	];
 	public $list_fields_name = [
 		// Format: Field Label => fieldname
 		'OSSPassword No' => 'osspassword_no',
@@ -58,8 +46,7 @@ class OSSPasswords extends CRMEntity
 	 * @var string[] List of fields in the RelationListView
 	 */
 	public $relationFields = [];
-	// Make the field link to detail view
-	public $list_link_field = 'passwordname';
+
 	// For Popup listview and UI type support
 	public $search_fields = [
 		// Format: Field Label => Array(tablename, columnname)
@@ -96,11 +83,13 @@ class OSSPasswords extends CRMEntity
 			$registerLink = true;
 			App\EventHandler::setActive('OSSPasswords_Secure_Handler');
 		} elseif ('module.preuninstall' === $eventType) {
-			\App\Log::trace('Before starting uninstall script...');
-			require_once 'modules/Settings/' . $moduleName . '/views/uninstall.php';
-			\App\Log::trace('After uninstall script.');
-
-			header('location: index.php?module=Vtiger&parent=Settings&view=Index');
+			\App\EventHandler::deleteHandler('OSSPasswords_Secure_Handler');
+			$tablesName = ['vtiger_passwords_config'];
+			foreach ($tablesName as $tableName) {
+				if ($db->isTableExists($tableName)) {
+					$db->createCommand()->dropTable($tableName)->execute();
+				}
+			}
 		}
 
 		$displayLabel = 'OSSPassword Configuration';

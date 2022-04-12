@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 
 class SMSNotifier extends Vtiger_CRMEntity
@@ -37,22 +37,12 @@ class SMSNotifier extends Vtiger_CRMEntity
 		'vtiger_smsnotifiercf' => 'smsnotifierid',
 	];
 
-	/**
-	 * Mandatory for Listing (Related listview).
-	 */
-	public $list_fields = [
-		// Format: Field Label => Array(tablename, columnname)
-		// tablename should not have prefix 'vtiger_'
-		'Message' => ['smsnotifier', 'message'],
-		'Assigned To' => ['crmentity', 'smownerid'],
-	];
 	public $list_fields_name = [
 		// Format: Field Label => fieldname
 		'Message' => 'message',
 		'Assigned To' => 'assigned_user_id',
 	];
-	// Make the field link to detail view
-	public $list_link_field = 'message';
+
 	// For Popup listview and UI type support
 	public $search_fields = [
 		// Format: Field Label => Array(tablename, columnname)

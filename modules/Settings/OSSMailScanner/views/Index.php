@@ -1,8 +1,8 @@
 <?php
 
 /**
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -10,13 +10,11 @@ class Settings_OSSMailScanner_Index_View extends Settings_Vtiger_Index_View
 {
 	private $prefixesForModules = ['Project', 'HelpDesk', 'SSalesProcesses', 'Campaigns'];
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getFooterScripts(App\Request $request)
 	{
 		return array_merge(parent::getFooterScripts($request), $this->checkAndConvertJsScripts([
-			'~layouts/resources/libraries/jstree.checkbox.js'
+			'~layouts/resources/libraries/jstree.checkbox.js',
 		]));
 	}
 
@@ -27,12 +25,11 @@ class Settings_OSSMailScanner_Index_View extends Settings_Vtiger_Index_View
 		$mailScannerRecordModel = Vtiger_Record_Model::getCleanInstance('OSSMailScanner');
 		$identityList = [];
 		if ($mailModuleActive) {
-			$accountsList = OSSMail_Record_Model::getAccountsList();
+			$accountsList = OSSMail_Record_Model::getAccountsList(false, false, false, false);
 			foreach ($accountsList as $account) {
 				$identityList[$account['user_id']] = OSSMailScanner_Record_Model::getIdentities($account['user_id']);
 			}
 		}
-
 		$actionsList = OSSMailScanner_Record_Model::getActionsList();
 		$ConfigFolderList = OSSMailScanner_Record_Model::getConfigFolderList();
 		$emailSearch = OSSMailScanner_Record_Model::getEmailSearch(false, false);

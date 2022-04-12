@@ -1,7 +1,7 @@
 <?php
 /**
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 include_once 'modules/Vtiger/CRMEntity.php';
@@ -53,18 +53,6 @@ class Competition extends Vtiger_CRMEntity
 	];
 
 	/**
-	 * Mandatory for Listing (Related listview).
-	 *
-	 * @var array
-	 */
-	public $list_fields = [
-		// Format: Field Label => Array(tablename, columnname)
-		// tablename should not have prefix 'vtiger_'
-		'LBL_SUBJECT' => ['competition', 'subject'],
-		'Assigned To' => ['crmentity', 'smownerid'],
-	];
-
-	/**
 	 * List fields name.
 	 *
 	 * @var array
@@ -81,13 +69,6 @@ class Competition extends Vtiger_CRMEntity
 	 * @var string[]
 	 */
 	public $relationFields = [];
-
-	/**
-	 * Make the field link to detail view.
-	 *
-	 * @var string
-	 */
-	public $list_link_field = 'subject';
 
 	/**
 	 * For Popup listview and UI type support.

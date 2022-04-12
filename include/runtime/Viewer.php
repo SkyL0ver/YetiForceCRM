@@ -6,10 +6,10 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 
-class Vtiger_Viewer extends SmartyBC
+class Vtiger_Viewer extends \Smarty
 {
 	const DEFAULTLAYOUT = 'basic';
 	const DEFAULTTHEME = 'twilight';
@@ -165,7 +165,7 @@ class Vtiger_Viewer extends SmartyBC
 	 * @param string $moduleName
 	 * @param bool   $fetch
 	 *
-	 * @return html data
+	 * @return string html data
 	 */
 	public function view($templateName, $moduleName = '', $fetch = false)
 	{

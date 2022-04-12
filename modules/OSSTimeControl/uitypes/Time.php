@@ -3,14 +3,12 @@
 /**
  * OSSTimeControl time uitype class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  */
 class OSSTimeControl_Time_UIType extends Vtiger_Time_UIType
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getEditViewDisplayValue($value, $recordModel = false)
 	{
 		if (!empty($value)) {

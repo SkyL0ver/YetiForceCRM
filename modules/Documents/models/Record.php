@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 /**
@@ -33,6 +33,23 @@ class Documents_Record_Model extends Vtiger_Record_Model
 			return 'file.php?module=' . $this->getModuleName() . '&action=DownloadFile&record=' . $this->getId() . '&fileid=' . $fileDetails['attachmentsid'];
 		}
 		return $this->get('filename');
+	}
+
+	/** {@inheritdoc} */
+	public function getRecordListViewLinksLeftSide()
+	{
+		$links = [];
+		if (!$this->isReadOnly() && \in_array($this->getValueByField('filetype'), $this->filePreview)) {
+			$links['LBL_PREVIEW_FILE'] = Vtiger_Link_Model::getInstanceFromValues([
+				'linklabel' => 'LBL_PREVIEW_FILE',
+				'linkhref' => true,
+				'linkurl' => $this->getDownloadFileURL() . '&show=1',
+				'linkicon' => 'fas fa-binoculars',
+				'linkclass' => 'btn-sm btn-light',
+				'linktarget' => '_blank',
+			]);
+		}
+		return array_merge($links, parent::getRecordListViewLinksLeftSide());
 	}
 
 	/** {@inheritdoc} */
@@ -228,9 +245,7 @@ class Documents_Record_Model extends Vtiger_Record_Model
 		return \App\Layout\Icon::getIconByFileType($fileType);
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function isMandatorySave()
 	{
 		return parent::isMandatorySave() || $_FILES;
@@ -267,7 +282,7 @@ class Documents_Record_Model extends Vtiger_Record_Model
 			} else {
 				$file = $_FILES[$fileNameByField] ?? [];
 			}
-			if (!empty($file['name']) && isset($file['error'])) {
+			if (!empty($file['name']) && isset($file['error']) && $file['size'] > 0) {
 				if (UPLOAD_ERR_OK === $file['error'] && ($fileInstance = \App\Fields\File::loadFromRequest($file)) && $fileInstance->validateAndSecure()) {
 					$this->setFieldValue('filename', \App\Purifier::decodeHtml(App\Purifier::purify($file['name'])))
 						->setFieldValue('filetype', $fileInstance->getMimeType())
@@ -275,7 +290,10 @@ class Documents_Record_Model extends Vtiger_Record_Model
 						->setFieldValue('filedownloadcount', 0);
 				} else {
 					\App\Log::error("Error while saving a file, saving failed. | ID: {$this->getId()} | File: {$file['name']} | Error: " . \App\Fields\File::getErrorMessage($file['error']));
+					$file = [];
 				}
+			} else {
+				$file = [];
 			}
 		} elseif ('E' === $this->get('filelocationtype')) {
 			$fileName = $this->get($fileNameByField);
@@ -292,9 +310,11 @@ class Documents_Record_Model extends Vtiger_Record_Model
 		parent::saveToDb();
 		//Inserting into attachments table
 		if ('I' === $this->get('filelocationtype')) {
-			if ($file && '' !== $file['name'] && $file['size'] > 0) {
+			if ($file) {
 				$file['original_name'] = \App\Request::_get('0_hidden');
-				$this->uploadAndSaveFile($file);
+				if ($this->uploadAndSaveFile($file) && isset($this->file)) {
+					$this->file = [];
+				}
 			}
 		} else {
 			$db->createCommand()->delete('vtiger_seattachmentsrel', ['crmid' => $this->getId()])->execute();
@@ -315,11 +335,6 @@ class Documents_Record_Model extends Vtiger_Record_Model
 		$result = false;
 		\App\Log::trace("Entering into uploadAndSaveFile($id,$moduleName) method.");
 		$fileInstance = \App\Fields\File::loadFromRequest($fileDetails);
-		if (!$fileInstance->validateAndSecure()) {
-			\App\Log::trace('Skip the save attachment process.');
-			return $result;
-		}
-
 		$this->ext['attachmentsName'] = $fileName = empty($fileDetails['original_name']) ? $fileDetails['name'] : $fileDetails['original_name'];
 		$db = \App\Db::getInstance();
 		$uploadFilePath = \App\Fields\File::initStorageFileDirectory($moduleName);
@@ -329,7 +344,12 @@ class Documents_Record_Model extends Vtiger_Record_Model
 			'path' => $uploadFilePath
 		])->execute();
 		$currentId = $db->getLastInsertID('vtiger_attachments_attachmentsid_seq');
-		if ($fileInstance->moveFile(ROOT_DIRECTORY . DIRECTORY_SEPARATOR . $uploadFilePath . $currentId)) {
+		if (\App\Config::module($this->getModuleName(), 'storagePath')) {
+			$destinyFilePath = $uploadFilePath . $currentId;
+		} else {
+			$destinyFilePath = ROOT_DIRECTORY . DIRECTORY_SEPARATOR . $uploadFilePath . $currentId;
+		}
+		if ($fileInstance->moveFile($destinyFilePath)) {
 			$db->createCommand()->delete('vtiger_seattachmentsrel', ['crmid' => $id])->execute();
 			$db->createCommand()->insert('vtiger_seattachmentsrel', ['crmid' => $id, 'attachmentsid' => $currentId])->execute();
 			$this->ext['attachmentsId'] = $currentId;
@@ -337,13 +357,11 @@ class Documents_Record_Model extends Vtiger_Record_Model
 		} else {
 			$db->createCommand()->delete('vtiger_attachments', ['attachmentsid' => $currentId])->execute();
 		}
-		\App\Log::trace('Skip the save attachment process.');
+		\App\Log::trace('Exiting uploadAndSaveFile');
 		return $result;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function delete()
 	{
 		parent::delete();

@@ -3,10 +3,10 @@
 /**
  * Meeting Service.
  *
- * @package   App
+ * @package App
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 
@@ -68,7 +68,6 @@ class MeetingService extends Base
 			$result = (new \App\Db\Query())->from(self::TABLE_NAME)->orderBy(['status' => SORT_DESC])->indexBy('id')->all();
 			Cache::save($cacheName, '', $result, Cache::LONG);
 		}
-
 		return Cache::get($cacheName, '');
 	}
 
@@ -114,7 +113,7 @@ class MeetingService extends Base
 				'avatar' => '',
 				'name' => $userModel->getName(),
 				'email' => $userModel->getDetail('email1'),
-				'id' => $userId
+				'id' => $userId,
 			];
 		}
 		$data['room'] = $data['room'] ?? $this->generateRoomName();
@@ -141,7 +140,7 @@ class MeetingService extends Base
 			},
 			'/[\s]/' => function () {
 				return '';
-			}
+			},
 		], strtolower(\App\Utils::sanitizeSpecialChars($prefix, ' ')));
 		[$msec, $sec] = explode(' ', microtime());
 		return $prefix . 'ID' . str_replace('.', '', $sec . $msec) . random_int(0, 1000);
@@ -157,7 +156,7 @@ class MeetingService extends Base
 	public function getRoomFromUrl(string $url): string
 	{
 		$path = parse_url($url, PHP_URL_PATH);
-		return  \substr($path, 1);
+		return \substr($path, 1);
 	}
 
 	/**

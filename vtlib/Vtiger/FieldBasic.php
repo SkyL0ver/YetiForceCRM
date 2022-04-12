@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 
 namespace vtlib;
@@ -48,6 +48,7 @@ class FieldBasic
 	public $block;
 	public $fieldparams = '';
 	public $color = '';
+	public $icon = '';
 	/**
 	 * @var string[] Anonymization targets form field ex. logs.
 	 */
@@ -89,6 +90,7 @@ class FieldBasic
 		$this->fieldparams = $valuemap['fieldparams'];
 		$this->visible = (int) $valuemap['visible'];
 		$this->color = $valuemap['color'];
+		$this->icon = $valuemap['icon'];
 		$this->block = $blockInstance ?: Block::getInstance($valuemap['block'], $module);
 		if (!empty($valuemap['anonymization_target'])) {
 			$this->anonymizationTarget = \App\Json::decode($valuemap['anonymization_target']);
@@ -205,6 +207,7 @@ class FieldBasic
 			'fieldparams' => $this->fieldparams,
 			'masseditable' => $this->masseditable,
 			'visible' => $this->visible,
+			'icon' => $this->icon,
 		])->execute();
 		$this->id = (int) $db->getLastInsertID('vtiger_field_fieldid_seq');
 		Profile::initForField($this);
@@ -373,10 +376,18 @@ class FieldBasic
 
 	/**
 	 * Clear cache.
+	 *
+	 * @return void
 	 */
-	protected function clearCache()
+	protected function clearCache(): void
 	{
 		\App\Cache::staticDelete('ModuleFields', $this->getModuleId());
+		\App\Cache::delete('AllFieldForModule', $this->getModuleId());
 		\App\Cache::staticDelete('module', $this->getModuleName());
+		\App\Cache::delete('BlocksForModule', $this->getModuleId());
+		\App\Cache::delete('ModuleFieldInfosByName', $this->getModuleName());
+		\App\Cache::delete('ModuleFieldInfosByColumn', $this->getModuleName());
+		\App\Cache::delete('App\Field::getFieldsPermissions' . \App\User::getCurrentUserId(), $this->getModuleName());
+		\Vtiger_Module_Model::getInstance($this->getModuleName())->clearCache();
 	}
 }

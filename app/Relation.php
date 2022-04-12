@@ -4,8 +4,8 @@
  *
  * @package App
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -90,6 +90,8 @@ class Relation
 			$row['favorites'] = (int) $row['favorites'];
 			$row['creator_detail'] = (int) $row['creator_detail'];
 			$row['relation_comment'] = (int) $row['relation_comment'];
+		} else {
+			$row = [];
 		}
 		Cache::save('App\Relation::getById', $relationId, $row, Cache::LONG);
 		return $row;
@@ -143,12 +145,10 @@ class Relation
 	 *
 	 * @return void
 	 */
-	public static function clearCacheById(string $relationId, bool $parent = true): void
+	public static function clearCacheById(int $relationId, bool $parent = true): void
 	{
-		if ($parent) {
-			if ($relation = self::getById($relationId)) {
-				self::clearCacheByModule($relation['related_modulename'], false);
-			}
+		if ($parent && ($relation = self::getById($relationId)) && ($moduleName = \App\Module::getModuleName($relation['tabid']))) {
+			self::clearCacheByModule($moduleName, false);
 		}
 		Cache::delete('App\Relation::getById', $relationId);
 		Cache::delete('getFieldsFromRelation', $relationId);

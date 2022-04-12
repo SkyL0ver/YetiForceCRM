@@ -3,8 +3,10 @@
 /**
  * Actions to pagination.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package Action
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Tomasz Kur <t.kur@yetiforce.com>
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
@@ -42,7 +44,7 @@ class Vtiger_Pagination_Action extends Vtiger_BasicAjax_Action
 		if (empty($searchParmams) || !\is_array($searchParmams)) {
 			$searchParmams = [];
 		}
-		$listViewModel->set('search_params', $listViewModel->get('query_generator')->parseBaseSearchParamsToCondition($searchParmams));
+		$listViewModel->set('search_params', $listViewModel->getQueryGenerator()->parseBaseSearchParamsToCondition($searchParmams));
 		$totalCount = (int) $listViewModel->getListViewCount();
 		$data = [
 			'totalCount' => $totalCount,

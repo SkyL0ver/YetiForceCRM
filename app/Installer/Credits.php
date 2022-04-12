@@ -5,9 +5,12 @@ namespace App\Installer;
 /**
  * Get info about libraries.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Adrian Koń <a.kon@yetiforce.com>
+ * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 class Credits
 {
@@ -23,12 +26,10 @@ class Credits
 	 * @var array
 	 */
 	public static $licenses = [
-		'yetiforce/yetiforcepdf' => 'YetiForce Public License v3',
 		'bootstrap-tabdrop' => 'Apache-2.0',
 		'color-convert' => 'MIT',
 		'@fortawesome/fontawesome-free' => 'MIT',
 		'fontawesome-web' => 'MIT',
-		'jquery-ui-touch-punch' => 'MIT',
 		'ckeditor/ckeditor' => 'MPL-1.1+',
 		'block-ui' => 'MIT',
 		'jquery-slimscroll' => 'MIT',
@@ -37,48 +38,53 @@ class Credits
 		'nette/php-generator' => 'BSD-3-Clause',
 		'nette/utils' => 'BSD-3-Clause',
 		'@mdi/font' => 'MIT',
+		'domhandler' => 'BSD-2-Clause',
+		'domutils' => 'BSD-2-Clause',
 	];
+
 	/**
 	 * Information about forks CRM.
 	 *
-	 * @var array
+	 * @return array
 	 */
-	public static $libraries = [
-		'YetiForce' => [
-			'name' => 'Yetiforce',
-			'version' => '4.4',
-			'license' => 'YetiForce Public License v3',
-			'homepage' => 'https://yetiforce.com/en/yetiforce/license',
-			'notPackageFile' => true,
-			'showLicenseModal' => true
-		],
-		'Vtiger' => [
-			'name' => 'Vtiger',
-			'version' => '6.4.0 rev. 14548',
-			'license' => 'VPL 1.1', 'homepage' => 'https://www.vtiger.com/',
-			'notPackageFile' => true,
-			'showLicenseModal' => true,
-			'description' => 'LBL_VTIGER_DESCRIPTION'
-		],
-		'Sugar' => [
-			'name' => 'Sugar CRM',
-			'version' => '',
-			'license' => 'SPL-1.1.2',
-			'homepage' => 'https://www.sugarcrm.com/',
-			'notPackageFile' => true,
-			'showLicenseModal' => true,
-			'description' => 'LBL_SUGAR_DESCRIPTION'
-		],
-		'ChatSound' => [
-			'name' => 'Notification Sounds - Time Is Now',
-			'version' => '',
-			'license' => 'CC-BY-4.0',
-			'homepage' => 'https://notificationsounds.com/notification-sounds/time-is-now-585',
-			'notPackageFile' => true,
-			'showLicenseModal' => false,
-			'description' => 'LBL_CHAT_SOUND_DESCRIPTION'
-		],
-	];
+	public static function getBasicLibraries(): array
+	{
+		return [
+			'YetiForce' => [
+				'name' => 'YetiForce',
+				'version' => \App\Version::get(),
+				'license' => 'YetiForce Public License 5.0',
+				'homepage' => 'https://yetiforce.com/en/yetiforce/license',
+				'notPackageFile' => true,
+				'showLicenseModal' => true,
+			],
+			'Vtiger' => [
+				'name' => 'Vtiger',
+				'version' => '6.4.0 rev. 14548',
+				'license' => 'VPL 1.1', 'homepage' => 'https://www.vtiger.com/',
+				'notPackageFile' => true,
+				'showLicenseModal' => true,
+				'description' => 'LBL_VTIGER_DESCRIPTION',
+			],
+			'Sugar' => [
+				'name' => 'Sugar CRM',
+				'version' => '',
+				'license' => 'SPL-1.1.2',
+				'homepage' => 'https://www.sugarcrm.com/',
+				'notPackageFile' => true,
+				'showLicenseModal' => true,
+				'description' => 'LBL_SUGAR_DESCRIPTION',
+			],
+			'ChatSound' => [
+				'name' => 'Notification Sounds - Time Is Now',
+				'version' => '',
+				'license' => 'CC-BY-4.0',
+				'homepage' => 'https://notificationsounds.com/notification-sounds/time-is-now-585',
+				'notPackageFile' => true,
+				'showLicenseModal' => false,
+				'description' => 'LBL_CHAT_SOUND_DESCRIPTION',
+			], ];
+	}
 
 	/**
 	 * Function gets libraries from vendor.
@@ -337,6 +343,6 @@ class Credits
 	 */
 	public static function getCredits()
 	{
-		return ['static' => static::$libraries, 'vendor' => self::getVendorLibraries(), 'public' => self::getPublicLibraries(), 'vue' => self::getVueLibs()];
+		return ['static' => self::getBasicLibraries(), 'vendor' => self::getVendorLibraries(), 'public' => self::getPublicLibraries(), 'vue' => self::getVueLibs()];
 	}
 }

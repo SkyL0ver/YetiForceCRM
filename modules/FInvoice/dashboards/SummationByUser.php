@@ -3,8 +3,8 @@
 /**
  * FInvoice Summation By User Dashboard Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -66,20 +66,20 @@ class FInvoice_SummationByUser_Dashboard extends Vtiger_IndexAjax_View
 				[
 					'data' => [],
 					'backgroundColor' => [],
-					'tooltips' => []
+					'tooltips' => [],
 				],
 			],
-			'show_chart' => false
+			'show_chart' => false,
 		];
-		if (!empty($widgetParam['showUser'])) {
+		if (!empty($widgetParam['showUsers'])) {
 			$chartData['fullLabels'] = [];
 		}
 		while ($row = $dataReader->read()) {
 			$label = \App\Fields\Owner::getLabel($row['assigned_user_id']);
-			$chartData['datasets'][0]['data'][] = (int) $row['s'];
+			$chartData['datasets'][0]['data'][] = round((float) $row['s'], 2);
 			$chartData['datasets'][0]['backgroundColor'][] = $currentUserId === (int) $row['assigned_user_id'] ? \App\Fields\Owner::getColor($row['assigned_user_id']) : 'rgba(0,0,0,0.25)';
-			$chartData['labels'][] = $widgetParam['showUser'] ? \App\Utils::getInitials($label) : '';
-			if ($widgetParam['showUser'] || $currentUserId === (int) $row['assigned_user_id']) {
+			$chartData['labels'][] = empty($widgetParam['showUsers']) ? '' : \App\Utils::getInitials($label);
+			if (!empty($widgetParam['showUsers']) || $currentUserId === (int) $row['assigned_user_id']) {
 				$chartData['fullLabels'][] = $label;
 			} else {
 				$chartData['fullLabels'][] = '';

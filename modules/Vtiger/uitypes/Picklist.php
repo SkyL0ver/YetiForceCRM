@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Vtiger_Picklist_UIType extends Vtiger_Base_UIType
@@ -38,7 +38,7 @@ class Vtiger_Picklist_UIType extends Vtiger_Base_UIType
 	/** {@inheritdoc} */
 	public function getDisplayValue($value, $record = false, $recordModel = false, $rawText = false, $length = false)
 	{
-		if ('' === $value) {
+		if (null === $value || '' === $value) {
 			return '';
 		}
 		$moduleName = $this->getFieldModel()->getModuleName();
@@ -57,6 +57,27 @@ class Vtiger_Picklist_UIType extends Vtiger_Base_UIType
 	/** {@inheritdoc} */
 	public function getEditViewDisplayValue($value, $recordModel = false)
 	{
+		return $value ?? '';
+	}
+
+	/** {@inheritdoc} */
+	public function getValueFromImport($value, $defaultValue = null)
+	{
+		$value = trim($value);
+		if ('' === $value) {
+			return $defaultValue ?? '';
+		}
+		$picklistValues = array_keys($this->getFieldModel()->getPicklistValues());
+		$picklistValueInLowerCase = mb_strtolower(htmlentities($value, ENT_QUOTES, \App\Config::main('default_charset', 'UTF-8')));
+		$allPicklistValuesInLowerCase = array_map('mb_strtolower', $picklistValues);
+		$picklistDetails = array_combine($allPicklistValuesInLowerCase, $picklistValues);
+		if (\in_array($picklistValueInLowerCase, $allPicklistValuesInLowerCase)) {
+			$value = $picklistDetails[$picklistValueInLowerCase];
+		} else {
+			if (\App\Config::module('Import', 'ADD_PICKLIST_VALUE')) {
+				$this->getFieldModel()->setPicklistValues([$value]);
+			}
+		}
 		return $value;
 	}
 
@@ -87,13 +108,13 @@ class Vtiger_Picklist_UIType extends Vtiger_Base_UIType
 	/** {@inheritdoc} */
 	public function getQueryOperators()
 	{
-		return ['e', 'n', 'y', 'ny'];
+		return ['e', 'n', 'y', 'ny', 'ef', 'nf'];
 	}
 
 	/** {@inheritdoc} */
 	public function getRecordOperators(): array
 	{
-		if ($this->getFieldModel()->getFieldParams()['isProcessStatusField'] ?? false) {
+		if ($this->getFieldModel() && ($this->getFieldModel()->getFieldParams()['isProcessStatusField'] ?? false)) {
 			return array_merge($this->getQueryOperators(), ['hs', 'ro', 'rc']);
 		}
 		return parent::getRecordOperators();
@@ -109,5 +130,44 @@ class Vtiger_Picklist_UIType extends Vtiger_Base_UIType
 	public function getOperatorTemplateName(string $operator = '')
 	{
 		return 'ConditionBuilder/Picklist.tpl';
+	}
+
+	/**
+	 * Get progress header type.
+	 *
+	 * @param Vtiger_Record_Model $recordModel
+	 *
+	 * @return array
+	 */
+	public function getProgressHeader(Vtiger_Record_Model $recordModel): array
+	{
+		$fieldModel = $this->getFieldModel();
+		$fieldName = $fieldModel->getName();
+		$moduleName = $this->getFieldModel()->getModuleName();
+		if (!($fieldValue = $recordModel->get($fieldName))) {
+			return [];
+		}
+		$isEditable = $recordModel->isEditable() && App\Config::module($moduleName, 'headerProgressIsEditable', true) && $fieldModel->isAjaxEditable() && !$fieldModel->isEditableReadOnly();
+		if ($isEditable) {
+			$picklistOfField = $fieldModel->getPicklistValues();
+		}
+		$picklistDependency = \App\Fields\Picklist::getPicklistDependencyDatasource($moduleName);
+		$dependentSourceField = \App\Fields\Picklist::getDependentSourceField($moduleName, $fieldName);
+		$closeStates = \App\RecordStatus::getLockStatus($moduleName, false);
+		$values = [];
+		foreach (\App\Fields\Picklist::getValues($fieldModel->getName()) as $value) {
+			if ($dependentSourceField && isset($picklistDependency[$dependentSourceField][$recordModel->get($dependentSourceField)][$fieldName]) && !\in_array($value['picklistValue'], $picklistDependency[$dependentSourceField][$recordModel->get($dependentSourceField)][$fieldName])) {
+				continue;
+			}
+			$values[$value[$fieldName]] = [
+				'label' => \App\Language::translate($value['picklistValue'], $moduleName),
+				'isActive' => $value['picklistValue'] === $fieldValue,
+				'isLocked' => isset($value['picklist_valueid']) && isset($closeStates[$value['picklist_valueid']]),
+				'isEditable' => $isEditable && $value['picklistValue'] !== $fieldValue && isset($picklistOfField[$value['picklistValue']]),
+				'description' => $value['description'] ?? null,
+				'color' => $value['color'] ?? null,
+			];
+		}
+		return $values;
 	}
 }

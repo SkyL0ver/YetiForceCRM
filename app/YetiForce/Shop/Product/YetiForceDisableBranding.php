@@ -2,10 +2,10 @@
 /**
  * YetiForce shop DisableBranding file.
  *
- * @package   App
+ * @package App
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -38,12 +38,13 @@ class YetiForceDisableBranding extends \App\YetiForce\Shop\AbstractBaseProduct
 	public $featured = true;
 
 	/** {@inheritdoc} */
-	public function verify(): bool
+	public function verify(): array
 	{
+		$message = $status = true;
 		if (\App\YetiForce\Register::getProducts('YetiForceDisableBranding')) {
-			return \App\YetiForce\Shop::check('YetiForceDisableBranding');
+			[$status, $message] = \App\YetiForce\Shop::checkWithMessage('YetiForceDisableBranding');
 		}
-		return true;
+		return ['status' => $status, 'message' => $message];
 	}
 
 	/** {@inheritdoc} */
@@ -53,7 +54,7 @@ class YetiForceDisableBranding extends \App\YetiForce\Shop\AbstractBaseProduct
 			\Vtiger_Link_Model::getInstanceFromValues([
 				'linklabel' => 'Website',
 				'relatedModuleName' => '_Base',
-				'linkicon' => 'fas fa-globe',
+				'linkicon' => 'fas fa-globe mr-2',
 				'linkhref' => true,
 				'linkExternal' => true,
 				'linktarget' => '_blank',

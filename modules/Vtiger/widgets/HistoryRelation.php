@@ -3,8 +3,10 @@
 /**
  * Class for history widget.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package Widget
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Tomasz Kur <t.kur@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -40,14 +42,14 @@ class Vtiger_HistoryRelation_Widget extends Vtiger_Basic_Widget
 		return $modules;
 	}
 
+	/**
+	 * Get URL.
+	 *
+	 * @return string
+	 */
 	public function getUrl()
 	{
-		$url = 'module=' . $this->Module . '&view=Detail&record=' . $this->Record . '&mode=showRecentRelation&page=1&limit=' . $this->Data['limit'];
-		foreach (self::getActions() as $type) {
-			$url .= '&type[]=' . $type;
-		}
-
-		return $url;
+		return 'module=' . $this->Module . '&view=Detail&record=' . $this->Record . '&mode=showRecentRelation&page=1&limit=' . $this->Data['limit'] . '&type=' . \App\Json::encode(self::getActions());
 	}
 
 	public function getWidget()
@@ -94,7 +96,7 @@ class Vtiger_HistoryRelation_Widget extends Vtiger_Basic_Widget
 				$row['userModel'] = $groups[$row['user']];
 			} else {
 				$row['isGroup'] = false;
-				$row['userModel'] = Users_Privileges_Model::getInstanceById($row['user']);
+				$row['userModel'] = Vtiger_Record_Model::getInstanceById($row['user'], 'Users');
 			}
 			$row['class'] = self::$colors[$row['type']];
 			if (false !== strpos($row['type'], 'OSSMailView')) {
@@ -154,15 +156,15 @@ class Vtiger_HistoryRelation_Widget extends Vtiger_Basic_Widget
 					'body' => new \yii\db\Expression($db->quoteValue('')),
 					'attachments_exist' => new \yii\db\Expression($db->quoteValue('')),
 					'type' => new \yii\db\Expression($db->quoteValue('ModComments')),
-					'id' => 'm.modcommentsid',
-					'content' => 'm.commentcontent',
+					'id' => 'vtiger_modcomments.modcommentsid',
+					'content' => 'vtiger_modcomments.commentcontent',
 					'user' => 'vtiger_crmentity.smownerid',
 					'time' => 'vtiger_crmentity.createdtime',
 				])
-				->from('vtiger_modcomments m')
-				->innerJoin('vtiger_crmentity', 'vtiger_crmentity.crmid = m.modcommentsid')
+				->from('vtiger_modcomments')
+				->innerJoin('vtiger_crmentity', 'vtiger_crmentity.crmid = vtiger_modcomments.modcommentsid')
 				->where(['vtiger_crmentity.deleted' => 0])
-				->andWhere(['=', 'related_to', $recordId]);
+				->andWhere(['=', 'vtiger_modcomments.related_to', $recordId]);
 			\App\PrivilegeQuery::getConditions($query, 'ModComments', false, $recordId);
 			$queries[] = $query;
 		}

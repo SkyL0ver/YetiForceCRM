@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 // Settings List View Model Class
@@ -170,7 +170,6 @@ class Settings_Vtiger_ListView_Model extends \App\Base
 	{
 		$modelClassName = Vtiger_Loader::getComponentClassName('Model', 'ListView', $name);
 		$instance = new $modelClassName();
-
 		return $instance->setModule($name);
 	}
 }

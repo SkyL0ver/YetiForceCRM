@@ -5,8 +5,10 @@ namespace App\Conditions\QueryFields;
 /**
  * String Query Field Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package UIType
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 class TreeField extends StringField
@@ -45,7 +47,7 @@ class TreeField extends StringField
 	 *
 	 * @return array
 	 */
-	public function getOrderBy($order = false)
+	public function getOrderBy($order = false): array
 	{
 		$this->queryGenerator->addJoin(['LEFT JOIN', 'vtiger_trees_templates_data', $this->getColumnName() . ' =  vtiger_trees_templates_data.tree AND vtiger_trees_templates_data.templateid = :template', [':template' => $this->fieldModel->getFieldParams()]]);
 		if ($order && 'DESC' === strtoupper($order)) {
@@ -69,8 +71,8 @@ class TreeField extends StringField
 				[
 					"%{$this->separator}{$value}{$this->separator}%",
 					"{$value}{$this->separator}%",
-					"%{$this->separator}{$value}"
-				], false
+					"%{$this->separator}{$value}",
+				], false,
 			]);
 		}
 		return $condition;

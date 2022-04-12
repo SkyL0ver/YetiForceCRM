@@ -7,7 +7,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 /**
@@ -15,6 +15,9 @@
  */
 class Calendar_Module_Model extends Vtiger_Module_Model
 {
+	/** {@inheritdoc} */
+	public $allowTypeChange = false;
+
 	/**
 	 * Function returns the default view for the Calendar module.
 	 *
@@ -59,9 +62,7 @@ class Calendar_Module_Model extends Vtiger_Module_Model
 		return false;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getSideBarLinks($linkParams)
 	{
 		$links = Vtiger_Link_Model::getAllByType($this->getId(), ['SIDEBARLINK', 'SIDEBARWIDGET'], $linkParams);
@@ -83,6 +84,14 @@ class Calendar_Module_Model extends Vtiger_Module_Model
 				'linklabel' => 'LBL_CALENDAR_LIST',
 				'linkurl' => 'javascript:Calendar_Calendar_Js.getInstanceByView().goToRecordsList("' . $this->getListViewUrl() . '&viewname=All");',
 				'linkicon' => 'far fa-calendar-minus',
+			]);
+		}
+		if ($this->isPermitted('Kanban') && \App\Utils\Kanban::getBoards($this->getName(), true)) {
+			$links['SIDEBARLINK'][] = Vtiger_Link_Model::getInstanceFromValues([
+				'linktype' => 'SIDEBARLINK',
+				'linklabel' => 'LBL_VIEW_KANBAN',
+				'linkurl' => 'index.php?module=' . $this->getName() . '&view=Kanban',
+				'linkicon' => 'yfi yfi-kanban',
 			]);
 		}
 		return $links;
@@ -203,9 +212,7 @@ class Calendar_Module_Model extends Vtiger_Module_Model
 		return $recordModels;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getFieldsByType($type, bool $active = false): array
 	{
 		$restrictedField = ['picklist' => ['activitystatus', 'visibility', 'duration_minutes']];
@@ -227,9 +234,7 @@ class Calendar_Module_Model extends Vtiger_Module_Model
 		return $fieldList;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getSettingLinks(): array
 	{
 		$currentUserModel = Users_Record_Model::getCurrentUserModel();
@@ -391,9 +396,7 @@ class Calendar_Module_Model extends Vtiger_Module_Model
 		return ['events' => $totalCount[$eventModule] - $skipCount[$eventModule], 'skipped_events' => $skipCount[$eventModule], 'task' => $totalCount[$todoModule] - $skipCount[$todoModule], 'skipped_task' => $skipCount[$todoModule]];
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getLayoutTypeForQuickCreate(): string
 	{
 		return 'standard';

@@ -1,4 +1,4 @@
-/* {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
+/* {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
 'use strict';
 
 /**
@@ -90,14 +90,6 @@ window.Reservations_CalendarModal_Js = class Reservations_CalendarModal_Js exten
 		this.container.find('.assigned_user_id').on('change', () => {
 			this.getCalendarView().fullCalendar('getCalendar').view.options.loadView();
 		});
-	}
-
-	/**
-	 * Function return user's id
-	 * @returns {int}
-	 */
-	getSelectedUsersCalendar() {
-		return this.container.find('.assigned_user_id').val();
 	}
 
 	/**

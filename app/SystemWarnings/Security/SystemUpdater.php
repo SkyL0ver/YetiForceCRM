@@ -3,10 +3,10 @@
 /**
  * Updater system warning class file.
  *
- * @package   App
+ * @package App
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -17,19 +17,18 @@ namespace App\SystemWarnings\Security;
  */
 class SystemUpdater extends \App\SystemWarnings\Template
 {
-	/**
-	 * @var string Warning title
-	 */
+	/** {@inheritdoc} */
 	protected $title = 'LBL_SYSTEM_UPDATER';
-	/**
-	 * @var int Warning priority
-	 */
+
+	/** {@inheritdoc} */
 	protected $priority = 8;
 
 	/**
 	 * Checking if registration is correct and display modal with info if not.
+	 *
+	 * @return void
 	 */
-	public function process()
+	public function process(): void
 	{
 		if (\App\YetiForce\Updater::getToInstall()) {
 			$this->status = 0;

@@ -6,13 +6,12 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 
 class Settings_Workflows_Save_Action extends Settings_Vtiger_Basic_Action
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function process(App\Request $request)
 	{
 		$summary = $request->get('summary');
@@ -62,11 +61,21 @@ class Settings_Workflows_Save_Action extends Settings_Vtiger_Basic_Action
 				sort($dates);
 				$annualDates = \App\Json::encode($dates);
 			}
+			$params = array_intersect_key($request->getMultiDimensionArray('params', [
+				'iterationOff' => \App\Purifier::BOOL,
+				'showTasks' => \App\Purifier::BOOL,
+				'enableTasks' => \App\Purifier::BOOL
+			]), array_flip(['iterationOff']));
+			$workflowModel->set('params', empty($params) ? null : \App\Json::encode($params));
 			$workflowModel->set('schdayofmonth', $dayOfMonth);
 			$workflowModel->set('schdayofweek', $dayOfWeek);
 			$workflowModel->set('schannualdates', $annualDates);
 		} elseif (\VTWorkflowManager::$TRIGGER === $executionCondition) {
-			$params = $request->getMultiDimensionArray('params', ['showTasks' => 'Bool', 'enableTasks' => 'Bool']);
+			$params = array_intersect_key($request->getMultiDimensionArray('params', [
+				'iterationOff' => \App\Purifier::BOOL,
+				'showTasks' => \App\Purifier::BOOL,
+				'enableTasks' => \App\Purifier::BOOL
+			]), array_flip(['showTasks', 'enableTasks']));
 			$workflowModel->set('params', empty($params) ? null : \App\Json::encode($params));
 		}
 		// Added to save the condition only when its changed from vtiger6

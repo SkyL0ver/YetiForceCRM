@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class SMSNotifier_Module_Model extends Vtiger_Module_Model
@@ -47,9 +47,7 @@ class SMSNotifier_Module_Model extends Vtiger_Module_Model
 		return \App\Privilege::isPermitted($this->getName(), $actionName);
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getSettingLinks(): array
 	{
 		Vtiger_Loader::includeOnce('~~modules/com_vtiger_workflow/VTWorkflowUtils.php');
@@ -166,5 +164,11 @@ class SMSNotifier_Module_Model extends Vtiger_Module_Model
 			'tonumbers' => \is_array($toNumbers) ? implode(',', $toNumbers) : $toNumbers,
 			'records' => \is_array($recordIds) ? implode(',', $recordIds) : $recordIds,
 			'module' => $ralModuleName, ])->execute();
+	}
+
+	/** {@inheritdoc} */
+	public function isListViewNameFieldNavigationEnabled()
+	{
+		return false;
 	}
 }

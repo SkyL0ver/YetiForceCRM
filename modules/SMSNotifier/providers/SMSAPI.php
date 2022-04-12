@@ -2,8 +2,8 @@
 /**
  * SMSAPI - sms provider.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 
@@ -50,9 +50,7 @@ class SMSNotifier_SMSAPI_Provider extends SMSNotifier_Basic_Provider
 		return ['from', 'encoding', 'format'];
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getResponse($request)
 	{
 		$response = \App\Json::decode($request->getBody());

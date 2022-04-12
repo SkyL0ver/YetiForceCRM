@@ -5,8 +5,8 @@
  *
  * @package Model
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 /**
@@ -56,23 +56,23 @@ abstract class Vtiger_Calendar_Model extends App\Base
 		return $this->getQuery()->count();
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getSideBarLinks($linkParams)
 	{
 		$links = Vtiger_Link_Model::getAllByType($this->getModule()->getId(), ['SIDEBARWIDGET'], $linkParams)['SIDEBARWIDGET'] ?? [];
 		$links[] = Vtiger_Link_Model::getInstanceFromValues([
 			'linktype' => 'SIDEBARWIDGET',
 			'linklabel' => 'LBL_USERS',
-			'linkurl' => "module={$this->getModuleName()}&view=RightPanel&mode=getUsersList",
-			'linkclass' => 'js-calendar__filter--users'
+			'linkclass' => 'js-calendar__filter--users',
+			'template' => 'Filters/Users.tpl',
+			'filterData' => Vtiger_CalendarRightPanel_Model::getUsersList($this->getModuleName()),
 		]);
 		$links[] = Vtiger_Link_Model::getInstanceFromValues([
 			'linktype' => 'SIDEBARWIDGET',
 			'linklabel' => 'LBL_GROUPS',
-			'linkurl' => "module={$this->getModuleName()}&view=RightPanel&mode=getGroupsList",
 			'linkclass' => 'js-calendar__filter--groups',
+			'template' => 'Filters/Groups.tpl',
+			'filterData' => Vtiger_CalendarRightPanel_Model::getGroupsList($this->getModuleName()),
 		]);
 		return $links;
 	}

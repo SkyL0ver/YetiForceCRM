@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 
 class VTJsonCondition
@@ -44,8 +44,10 @@ class VTJsonCondition
 					if (!empty($referenceFieldId)) {
 						$cond['fieldname'] = $fieldname;
 						if ('Users' !== $referenceModule) {
-							$referenceRecordModel = Vtiger_Record_Model::getInstanceById($referenceFieldId);
-							$result = $this->checkCondition($referenceRecordModel, $cond, $recordModel);
+							if (\App\Record::isExists($referenceFieldId)) {
+								$referenceRecordModel = Vtiger_Record_Model::getInstanceById($referenceFieldId);
+								$result = $this->checkCondition($referenceRecordModel, $cond, $recordModel);
+							}
 						} elseif ('Users' === \App\Fields\Owner::getType($referenceFieldId) && \App\User::getUserModel($referenceFieldId)->isActive()) {
 							$referenceRecordModel = Vtiger_Record_Model::getInstanceById($referenceFieldId, $referenceModule);
 							$result = $this->checkCondition($referenceRecordModel, $cond, $recordModel);
@@ -161,7 +163,7 @@ class VTJsonCondition
 		} else {
 			$fieldValue = $recordModel->get($cond['fieldname']);
 		}
-		$value = trim(html_entity_decode($cond['value']));
+		$value = trim(html_entity_decode($cond['value'] ?? ''));
 		$expressionType = $cond['valuetype'];
 		if ('fieldname' === $expressionType) {
 			if (null !== $referredRecordModel) {
@@ -181,6 +183,14 @@ class VTJsonCondition
 			}
 		}
 		switch ($dataType) {
+				case 'accountName':
+					$fieldValue = $recordModel->get($fieldInstance->getName());
+					$recordData = explode('|##|', $fieldValue);
+					if (\count($recordData) > 1) {
+						$fieldValue = trim("$recordData[0] $recordData[1]");
+					}
+					return $value === $fieldValue;
+					break;
 				case 'datetime':
 					$fieldValue = $recordModel->get($fieldInstance->getName());
 					break;
@@ -339,6 +349,8 @@ class VTJsonCondition
 					return false;
 				}
 				return $fieldValue != $hasChanged;
+			case 'not has changed':
+				return false === $recordModel->getPreviousValue($cond['fieldname']);
 			case 'is empty':
 				if (empty($fieldValue)) {
 					return true;
@@ -505,22 +517,28 @@ class VTJsonCondition
 					return false;
 				}
 				return true;
+			case 'om':
+				return (int) $value !== \App\User::getCurrentUserId() ? false : true;
+			case 'nom':
+				return (int) $value === \App\User::getCurrentUserId() ? false : true;
 			case 'is record open':
 				if (
-					($fieldName = App\RecordStatus::getFieldName($recordModel->getModule()->getName())) &&
-				\in_array($recordModel->get($fieldName), App\RecordStatus::getStates($recordModel->getModule()->getName(), \App\RecordStatus::RECORD_STATE_OPEN))
+					($fieldName = App\RecordStatus::getFieldName($recordModel->getModule()->getName()))
+				&& \in_array($recordModel->get($fieldName), App\RecordStatus::getStates($recordModel->getModule()->getName(), \App\RecordStatus::RECORD_STATE_OPEN))
 				) {
 					return true;
 				}
 				return false;
 			case 'is record closed':
 				if (
-					($fieldName = App\RecordStatus::getFieldName($recordModel->getModule()->getName())) &&
-				\in_array($recordModel->get($fieldName), App\RecordStatus::getStates($recordModel->getModule()->getName(), \App\RecordStatus::RECORD_STATE_CLOSED))
+					($fieldName = App\RecordStatus::getFieldName($recordModel->getModule()->getName()))
+				&& \in_array($recordModel->get($fieldName), App\RecordStatus::getStates($recordModel->getModule()->getName(), \App\RecordStatus::RECORD_STATE_CLOSED))
 				) {
 					return false;
 				}
 				return true;
+			case 'not created by owner':
+				return $recordModel->get($fieldInstance->getName()) !== $recordModel->get('created_user_id');
 			default:
 				//Unexpected condition
 				throw new \App\Exceptions\AppException('Found an unexpected condition: ' . $condition);

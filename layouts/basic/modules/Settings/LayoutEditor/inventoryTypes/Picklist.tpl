@@ -1,4 +1,4 @@
-{*<!-- {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} -->*}
+{*<!-- {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} -->*}
 {strip}
 	<!-- tpl-Settings-LayoutEditor-inventoryTypes-Picklist -->
 	{include file=\App\Layout::getTemplatePath('inventoryTypes/Base.tpl', $QUALIFIED_MODULE)}
@@ -9,9 +9,9 @@
 		</div>
 		<div class="col-md-7">
 			<select name="values" class="form-control select2" data-select="tags" multiple="multiple"
-					data-validation-engine="validate[required]">
+				data-validation-engine="validate[required]">
 				{foreach from=$FIELD_INSTANCE->getPicklistValues() item=VALUE}
-					<option value="{$VALUE}" selected>{$VALUE}</option>
+					<option value="{\App\Purifier::encodeHtml($VALUE)}" selected>{\App\Purifier::encodeHtml($VALUE)}</option>
 				{/foreach}
 			</select>
 		</div>

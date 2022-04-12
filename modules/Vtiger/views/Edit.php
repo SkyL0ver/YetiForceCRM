@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * ********************************************************************************** */
 
 class Vtiger_Edit_View extends Vtiger_Index_View
@@ -18,17 +18,13 @@ class Vtiger_Edit_View extends Vtiger_Index_View
 	 */
 	protected $record;
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function __construct()
 	{
 		parent::__construct();
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function checkPermission(App\Request $request)
 	{
 		$moduleName = $request->getModule();
@@ -64,21 +60,19 @@ class Vtiger_Edit_View extends Vtiger_Index_View
 		return $pageTitle;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function process(App\Request $request)
 	{
 		$viewer = $this->getViewer($request);
 		$moduleName = $request->getModule();
 		$recordId = $request->getInteger('record');
-		$viewer->assign('MODE', '');
+		$mode = '';
 		$viewer->assign('RECORD_ID', '');
 		if (!empty($recordId) && true === $request->getBoolean('isDuplicate')) {
-			$viewer->assign('MODE', 'duplicate');
+			$mode = 'duplicate';
 			$this->getDuplicate();
 		} elseif (!empty($recordId)) {
-			$viewer->assign('MODE', 'edit');
+			$mode = 'edit';
 			$viewer->assign('RECORD_ID', $recordId);
 		} elseif (!$request->isEmpty('recordConverter')) {
 			$convertInstance = \App\RecordConverter::getInstanceById($request->getInteger('recordConverter'), $request->getByType('sourceModule', 2));
@@ -93,9 +87,7 @@ class Vtiger_Edit_View extends Vtiger_Index_View
 			}
 		}
 		$editModel = Vtiger_EditView_Model::getInstance($moduleName, $recordId);
-		$editViewLinkParams = ['MODULE' => $moduleName, 'RECORD' => $recordId];
-		$detailViewLinks = $editModel->getEditViewLinks($editViewLinkParams);
-		$viewer->assign('EDITVIEW_LINKS', $detailViewLinks);
+		$viewLinks = $editModel->getEditViewLinks(['MODULE' => $moduleName, 'RECORD' => $recordId]);
 
 		$moduleModel = $this->record->getModule();
 		$fieldList = $moduleModel->getFields();
@@ -119,17 +111,29 @@ class Vtiger_Edit_View extends Vtiger_Index_View
 			$viewer->assign('SOURCE_MODULE', $request->getByType('sourceModule', 2));
 			$viewer->assign('SOURCE_RECORD', $request->getInteger('sourceRecord'));
 			$sourceRelatedField = $moduleModel->getValuesFromSource($request);
-			foreach ($recordStructure as &$block) {
+			foreach ($recordStructure as $block) {
 				foreach ($sourceRelatedField as $field => $value) {
-					if (isset($block[$field])) {
-						$fieldvalue = $block[$field]->get('fieldvalue');
-						if (empty($fieldvalue)) {
-							$block[$field]->set('fieldvalue', $value);
+					if (isset($block[$field]) && '' !== $value) {
+						$fieldModel = $block[$field];
+						if ($fieldModel->isEditable() && '' === $fieldModel->get('fieldvalue')) {
+							$fieldModel->set('fieldvalue', $value);
 						}
 					}
 				}
 			}
 		}
+
+		$eventHandler = new App\EventHandler();
+		$eventHandler->setRecordModel($this->record);
+		$eventHandler->setModuleName($moduleName);
+		$eventHandler->setParams([
+			'mode' => ucfirst($mode),
+			'viewLinks' => $viewLinks,
+			'viewInstance' => $this,
+		]);
+		$eventHandler->trigger('EditViewBefore');
+		['viewLinks' => $viewLinks] = $eventHandler->getParams();
+
 		if ($editViewLayout = ((1 === $moduleModel->getModuleType() || (\in_array($moduleName, \App\Config::performance('MODULES_SPLITTED_EDIT_VIEW_LAYOUT', [])))) && \App\Config::performance('INVENTORY_EDIT_VIEW_LAYOUT'))) {
 			$recordStructureRight = [];
 			foreach ($moduleModel->getFieldsByType('text') as $field) {
@@ -140,6 +144,9 @@ class Vtiger_Edit_View extends Vtiger_Index_View
 			}
 			$viewer->assign('RECORD_STRUCTURE_RIGHT', $recordStructureRight);
 		}
+
+		$viewer->assign('MODE', $mode);
+		$viewer->assign('EDITVIEW_LINKS', $viewLinks);
 		$viewer->assign('EDIT_VIEW_LAYOUT', $editViewLayout);
 		$viewer->assign('ADDRESS_BLOCK_LABELS', ['LBL_ADDRESS_INFORMATION', 'LBL_ADDRESS_MAILING_INFORMATION', 'LBL_ADDRESS_DELIVERY_INFORMATION', 'LBL_ADDRESS_BILLING', 'LBL_ADDRESS_SHIPPING']);
 		$viewer->assign('RECORD_STRUCTURE', $recordStructure);
@@ -155,6 +162,7 @@ class Vtiger_Edit_View extends Vtiger_Index_View
 		$viewer->assign('USER_MODEL', Users_Record_Model::getCurrentUserModel());
 		$viewer->assign('MAX_UPLOAD_LIMIT_MB', Vtiger_Util_Helper::getMaxUploadSize());
 		$viewer->assign('MAX_UPLOAD_LIMIT', \App\Config::main('upload_maxsize'));
+		$viewer->assign('RECORD_ACTIVITY_NOTIFIER', $recordId && \App\Config::performance('recordActivityNotifier', false) && $moduleModel->isTrackingEnabled() && $moduleModel->isPermitted('RecordActivityNotifier'));
 		$viewer->view('EditView.tpl', $moduleName);
 	}
 

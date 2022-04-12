@@ -1,4 +1,4 @@
-/* {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
+/* {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
 'use strict';
 
 jQuery.Class(
@@ -278,15 +278,17 @@ jQuery.Class(
 			return aDeferred.promise();
 		},
 		removeInventory: function (inventoryElement) {
-			var message = app.vtranslate('JS_DELETE_INVENTORY_CONFIRMATION');
-			Vtiger_Helper_Js.showConfirmationBox({ message: message }).done(function (e) {
-				var params = {};
-				params['view'] = app.getViewName();
-				params['id'] = inventoryElement.data('id');
-				app.saveAjax('deleteInventory', params).done(function (data) {
-					Settings_Vtiger_Index_Js.showMessage({ type: 'success', text: data.result.message });
-					inventoryElement.remove();
-				});
+			app.showConfirmModal({
+				text: app.vtranslate('JS_DELETE_INVENTORY_CONFIRMATION'),
+				confirmedCallback: () => {
+					var params = {};
+					params['view'] = app.getViewName();
+					params['id'] = inventoryElement.data('id');
+					app.saveAjax('deleteInventory', params).done(function (data) {
+						Settings_Vtiger_Index_Js.showMessage({ type: 'success', text: data.result.message });
+						inventoryElement.remove();
+					});
+				}
 			});
 		},
 		/*

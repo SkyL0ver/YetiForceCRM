@@ -3,8 +3,10 @@
 /**
  * UIType Tree Field Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package   UIType
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 class Vtiger_Tree_UIType extends Vtiger_Base_UIType
@@ -76,6 +78,61 @@ class Vtiger_Tree_UIType extends Vtiger_Base_UIType
 	}
 
 	/** {@inheritdoc} */
+	public function getValueToExport($value, int $recordId)
+	{
+		$parts = explode(',', trim($value, ', '));
+		$values = \App\Fields\Tree::getValuesById((int) $this->getFieldModel()->getFieldParams());
+		foreach ($parts as &$part) {
+			foreach ($values as $id => $treeRow) {
+				if ($part === $id) {
+					$part = $treeRow['name'];
+				}
+			}
+		}
+		return implode(' |##| ', $parts);
+	}
+
+	/** {@inheritdoc} */
+	public function getApiEditValue($value)
+	{
+		if (empty($value)) {
+			return ['value' => ''];
+		}
+		$tree = \App\Fields\Tree::getPicklistValueImage($this->getFieldModel()->getFieldParams(), $this->getFieldModel()->getModuleName(), $value);
+		return [
+			'value' => $tree['name'],
+			'raw' => $value,
+		];
+	}
+
+	/** {@inheritdoc} */
+	public function getValueFromImport($value, $defaultValue = null)
+	{
+		if ('' === $value && null !== $defaultValue) {
+			$value = $defaultValue;
+		}
+		$values = explode(' |##| ', trim($value));
+		$fieldValue = '';
+		$trees = \App\Fields\Tree::getValuesById((int) $this->getFieldModel()->getFieldParams());
+		foreach ($trees as $tree) {
+			foreach ($values as $value) {
+				if ($tree['name'] === $value) {
+					$fieldValue .= $tree['tree'] . ',';
+					break;
+				}
+			}
+		}
+		if ('tree' === $this->getFieldModel()->getFieldDataType()) {
+			$fieldValue = trim($fieldValue, ',');
+		} else {
+			if ($fieldValue) {
+				$fieldValue = ',' . $fieldValue;
+			}
+		}
+		return $fieldValue;
+	}
+
+	/** {@inheritdoc} */
 	public function getListSearchTemplateName()
 	{
 		return 'List/Field/Tree.tpl';
@@ -96,7 +153,7 @@ class Vtiger_Tree_UIType extends Vtiger_Base_UIType
 	/** {@inheritdoc} */
 	public function getQueryOperators()
 	{
-		return ['e', 'n', 'y', 'ny'];
+		return ['e', 'n', 'y', 'ny', 'ef', 'nf'];
 	}
 
 	/**

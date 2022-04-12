@@ -1,23 +1,22 @@
 <?php
+/**
+ * Abstract action controller file.
+ *
+ * @package   Controller
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
+ */
 
 namespace App\Controller;
 
 /**
  * Abstract action controller class.
- *
- * @package   Controller
- *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
- * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 abstract class Action extends Base
 {
-	/**
-	 * {@inheritdoc}
-	 */
-	public $csrfActive = false;
-
 	/**
 	 * Process action.
 	 *
@@ -28,9 +27,7 @@ abstract class Action extends Base
 		return true;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function validateRequest(\App\Request $request)
 	{
 		$request->validateWriteAccess();

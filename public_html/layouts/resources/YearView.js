@@ -1,4 +1,4 @@
-/* {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
+/* {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
 'use strict';
 var FC = $.fullCalendar, // a reference to FullCalendar's root namespace
 	View = FC.View; // the class that all views must inherit from
@@ -79,12 +79,9 @@ FC.views.year = View.extend({
 		let calendar = self.getCalendarView().fullCalendar('getCalendar'),
 			date = calendar.getDate().year(),
 			yearView = this.el.html(this.renderHtml(date)),
-			user = this.getSelectedUsersCalendar(),
+			user = JSON.stringify(this.getSelectedUsersCalendar()),
 			progressInstance = $.progressIndicator({ blockInfo: { enabled: true } }),
 			cvid = this.getCurrentCvId();
-		if (user.length === 0) {
-			user = [app.getMainParams('userId')];
-		}
 		let dateFormat = CONFIG.dateFormat.toUpperCase();
 		this.clearFilterButton(user, cvid);
 		let options = {

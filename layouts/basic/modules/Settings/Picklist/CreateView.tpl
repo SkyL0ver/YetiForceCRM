@@ -7,7 +7,7 @@
 * The Initial Developer of the Original Code is vtiger.
 * Portions created by vtiger are Copyright (C) vtiger.
 * All Rights Reserved.
-* Contributor(s): YetiForce.com
+* Contributor(s): YetiForce S.A.
 ********************************************************************************/
 -->*}
 {strip}
@@ -22,14 +22,14 @@
 					</button>
 				</div>
 				<form name="addItemForm" class="form-horizontal" method="post" action="index.php">
-					<input type="hidden" name="module" value="{$MODULE}"/>
-					<input type="hidden" name="parent" value="Settings"/>
-					<input type="hidden" name="source_module" value="{$SELECTED_MODULE_NAME}"/>
-					<input type="hidden" name="action" value="SaveAjax"/>
-					<input type="hidden" name="mode" value="add"/>
-					<input type="hidden" name="picklistName" value="{$SELECTED_PICKLIST_FIELDMODEL->get('name')}"/>
+					<input type="hidden" name="module" value="{$MODULE}" />
+					<input type="hidden" name="parent" value="Settings" />
+					<input type="hidden" name="source_module" value="{$SELECTED_MODULE_NAME}" />
+					<input type="hidden" name="action" value="SaveAjax" />
+					<input type="hidden" name="mode" value="add" />
+					<input type="hidden" name="picklistName" value="{$SELECTED_PICKLIST_FIELDMODEL->get('name')}" />
 					<input type="hidden" name="pickListValues"
-						   value='{\App\Purifier::encodeHtml(\App\Json::encode($SELECTED_PICKLISTFIELD_ALL_VALUES))}'/>
+						value='{\App\Purifier::encodeHtml(\App\Json::encode($SELECTED_PICKLISTFIELD_ALL_VALUES))}' />
 					{assign var=FIELD_INFO value=$SELECTED_PICKLIST_FIELDMODEL->getFieldInfo()}
 					<div class="modal-body tabbable">
 						<div class="form-group row align-items-center">
@@ -39,9 +39,9 @@
 							</div>
 							<div class="col-md-9 controls">
 								<input class="form-control" type="text"
-									   data-prompt-position="topLeft:70"
-									   data-validation-engine="validate[required, maxSize[{$FIELD_INFO['maximumlength']}], funcCall[Vtiger_Base_Validator_Js.invokeValidation]]"
-									   data-validator='{\App\Purifier::encodeHtml(\App\Json::encode([['name'=>'FieldLabel']]))}' name="newValue">
+									data-prompt-position="topLeft:70"
+									data-validation-engine="validate[required, maxSize[{$FIELD_INFO['maximumlength']}], funcCall[Vtiger_Base_Validator_Js.invokeValidation]]"
+									data-validator='{\App\Purifier::encodeHtml(\App\Json::encode([['name'=>'FieldLabel']]))}' name="newValue">
 							</div>
 						</div>
 						{if $SELECTED_PICKLIST_FIELDMODEL->isRoleBased()}
@@ -49,9 +49,9 @@
 								<div class="col-md-3 col-form-label text-right">{\App\Language::translate('LBL_ASSIGN_TO_ROLE',$QUALIFIED_MODULE)}</div>
 								<div class="col-md-9 controls">
 									<select class="rolesList form-control" name="rolesSelected[]" multiple="multiple"
-											data-placeholder="{\App\Language::translate('LBL_CHOOSE_ROLES',$QUALIFIED_MODULE)}">
+										data-placeholder="{\App\Language::translate('LBL_CHOOSE_ROLES',$QUALIFIED_MODULE)}">
 										<option value="all"
-												selected>{\App\Language::translate('LBL_ALL_ROLES',$QUALIFIED_MODULE)}</option>
+											selected>{\App\Language::translate('LBL_ALL_ROLES',$QUALIFIED_MODULE)}</option>
 										{foreach from=$ROLES_LIST item=ROLE}
 											<option value="{$ROLE->get('roleid')}">{$ROLE->get('rolename')}</option>
 										{/foreach}
@@ -62,22 +62,21 @@
 						<div class="form-group row align-items-center">
 							<div class="col-md-3 col-form-label text-right">
 								{\App\Language::translate('LBL_DESCRIPTION', $QUALIFIED_MODULE)}
-								<span class="js-popover-tooltip fas fa-info-circle ml-2" data-js="popover"  data-trigger="hover focus" data-content="{\App\Language::translate('LBL_DESCRIPTION_VALUE_LIST', $QUALIFIED_MODULE)}" data-original-title="" title=""></span>
+								<span class="js-popover-tooltip fas fa-info-circle ml-2" data-js="popover" data-trigger="hover focus" data-content="{\App\Language::translate('LBL_DESCRIPTION_VALUE_LIST', $QUALIFIED_MODULE)}" data-original-title="" title=""></span>
 							</div>
 							<div class="col-md-9 controls">
-								<textarea class="form-control js-editor" name="description"
-										  data-js="ckeditor"></textarea>
+								<textarea class="form-control js-editor" name="description" data-purify-mode="Html" data-js="ckeditor"></textarea>
 							</div>
 						</div>
 						<div class="form-group row align-items-center">
 							<div class="col-md-3 col-form-label text-right">
 								{\App\Language::translate('LBL_PREFIX',$QUALIFIED_MODULE)}
-								<span class="js-popover-tooltip fas fa-info-circle ml-2" data-js="popover"  data-trigger="hover focus" data-content="{\App\Language::translate('LBL_DESCRIPTION_PREFIXES', $QUALIFIED_MODULE)}" data-original-title="" title=""></span>
+								<span class="js-popover-tooltip fas fa-info-circle ml-2" data-js="popover" data-trigger="hover focus" data-content="{\App\Language::translate('LBL_DESCRIPTION_PREFIXES', $QUALIFIED_MODULE)}" data-original-title="" title=""></span>
 							</div>
 							<div class="col-md-9 controls">
 								<input name="prefix" type="text"
-									   class="form-control"
-									   value="">
+									class="form-control"
+									value="">
 							</div>
 						</div>
 					</div>

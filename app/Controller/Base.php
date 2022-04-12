@@ -1,30 +1,24 @@
 <?php
+/**
+ * Abstract base controller file.
+ *
+ * @package   Controller
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
+ */
 
 namespace App\Controller;
 
 /**
  * Abstract base controller class.
- *
- * @package   Controller
- *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
- * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 abstract class Base
 {
-	/**
-	 * Headers instance.
-	 *
-	 * @var \App\Headers
-	 */
+	/** @var \App\Headers Headers instance. */
 	public $headers;
-	/**
-	 * CSRF is active?.
-	 *
-	 * @var bool
-	 */
-	public $csrfActive = true;
 
 	/**
 	 * Activated language locale.
@@ -32,32 +26,28 @@ abstract class Base
 	 * @var bool
 	 */
 	protected static $activatedLocale = false;
+
 	/**
-	 * Activated csrf.
+	 * CSRF already initiated.
 	 *
 	 * @var bool
 	 */
-	protected static $activatedCsrf = false;
+	private static $csrfInitiated = false;
 
 	/**
 	 * Constructor.
 	 */
 	public function __construct()
 	{
-		$this->headers = \App\Headers::getInstance();
+		$this->headers = \App\Controller\Headers::getInstance();
 		if (!self::$activatedLocale && \App\Config::performance('CHANGE_LOCALE')) {
 			\App\Language::initLocale();
 			self::$activatedLocale = true;
 		}
-		if (!self::$activatedCsrf) {
-			if ($this->csrfActive && \App\Config::security('csrfActive')) {
-				require_once 'config/csrf_config.php';
-				\CsrfMagic\Csrf::init();
-				$this->csrfActive = true;
-			} else {
-				$this->csrfActive = false;
-			}
-			self::$activatedCsrf = true;
+		if (\App\Config::security('csrfActive') && !self::$csrfInitiated) {
+			require_once 'config/csrf_config.php';
+			\CsrfMagic\Csrf::init();
+			self::$csrfInitiated = true;
 		}
 	}
 
@@ -92,11 +82,11 @@ abstract class Base
 	 *
 	 * @param \App\Request $request
 	 *
-	 * @return bool
+	 * @return void
 	 */
 	public function validateRequest(\App\Request $request)
 	{
-		return $request->validateReadAccess();
+		$request->validateReadAccess();
 	}
 
 	/**
@@ -146,7 +136,7 @@ abstract class Base
 	}
 
 	/**
-	 * Function to check if session is extend.
+	 * Function to check if session is extended.
 	 *
 	 * @param \App\Request $request
 	 *

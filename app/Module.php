@@ -5,8 +5,10 @@ namespace App;
 /**
  * Modules basic class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @package App
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
@@ -24,7 +26,7 @@ class Module
 	 */
 	public static function init()
 	{
-		static::$tabdataCache = require \ROOT_DIRECTORY . '/user_privileges/tabdata.php';
+		static::$tabdataCache = require ROOT_DIRECTORY . '/user_privileges/tabdata.php';
 		static::$tabdataCache['tabName'] = array_flip(static::$tabdataCache['tabId']);
 	}
 
@@ -61,8 +63,8 @@ class Module
 			$entityInfos = [];
 			$dataReader = (new \App\Db\Query())->from('vtiger_entityname')->createCommand()->query();
 			while ($row = $dataReader->read()) {
-				$row['fieldnameArr'] = explode(',', $row['fieldname']);
-				$row['searchcolumnArr'] = explode(',', $row['searchcolumn']);
+				$row['fieldnameArr'] = $row['fieldname'] ? explode(',', $row['fieldname']) : [];
+				$row['searchcolumnArr'] = $row['searchcolumn'] ? explode(',', $row['searchcolumn']) : [];
 				$entityInfos[$row['modulename']] = $row;
 			}
 			return Cache::save($cacheName, '', $entityInfos);
@@ -83,20 +85,25 @@ class Module
 
 	protected static $isModuleActiveCache = [];
 
-	public static function isModuleActive($moduleName)
+	/**
+	 * Function to check whether the module is active.
+	 *
+	 * @param string $moduleName
+	 *
+	 * @return bool
+	 */
+	public static function isModuleActive(string $moduleName): bool
 	{
 		if (isset(static::$isModuleActiveCache[$moduleName])) {
 			return static::$isModuleActiveCache[$moduleName];
 		}
 		if (\in_array($moduleName, ['CustomView', 'Users', 'Import', 'com_vtiger_workflow', 'PickList'])) {
 			static::$isModuleActiveCache[$moduleName] = true;
-
 			return true;
 		}
 		$moduleId = static::getModuleId($moduleName);
 		$isActive = (isset(static::$tabdataCache['tabPresence'][$moduleId]) && 0 == static::$tabdataCache['tabPresence'][$moduleId]);
 		static::$isModuleActiveCache[$moduleName] = $isActive;
-
 		return $isActive;
 	}
 
@@ -278,7 +285,12 @@ class Module
 		}
 		static::initFromDb();
 		register_shutdown_function(function () {
-			YetiForce\Shop::generateCache();
+			try {
+				YetiForce\Shop::generateCache();
+			} catch (\Throwable $e) {
+				\App\Log::error($e->getMessage() . PHP_EOL . $e->__toString());
+				throw $e;
+			}
 		});
 	}
 
@@ -308,7 +320,7 @@ class Module
 	public static function getAllModuleNamesFilter($isEntityType = true, $showRestricted = false, $presence = false): array
 	{
 		$modules = [];
-		foreach (\vtlib\Functions::getAllModules($isEntityType, $showRestricted, $presence) as  $value) {
+		foreach (\vtlib\Functions::getAllModules($isEntityType, $showRestricted, $presence) as $value) {
 			$modules[$value['name']] = Language::translate($value['name'], $value['name']);
 		}
 		return $modules;

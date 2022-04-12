@@ -5,7 +5,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  *************************************************************************************/
 'use strict';
 
@@ -60,6 +60,152 @@ $.Class(
 				return instance;
 			}
 			return Vtiger_Edit_Js.editInstance;
+		},
+		/**
+		 * Record save ajax
+		 *
+		 * `Vtiger_Edit_Js.saveAjax({
+		 *		value: 'value',
+		 *		field: 'field'
+		 *	}).done(() => {})
+		 *	.fail((error, err) => {});`
+		 *
+		 * @param {object} params
+		 * @returns {Promise}
+		 */
+		saveAjax: function (params, progressIndicator = true) {
+			const aDeferred = $.Deferred();
+			if (typeof params === 'undefined' || $.isEmptyObject(params)) {
+				aDeferred.reject();
+				return aDeferred.promise();
+			}
+			if (!params['record'] && app.getRecordId()) {
+				params['record'] = app.getRecordId();
+			}
+			if (!params['module']) {
+				params['module'] = app.getModuleName();
+			}
+			params['action'] = 'SaveAjax';
+			params = {
+				data: params,
+				async: false,
+				dataType: 'json'
+			};
+			if (progressIndicator) {
+				document.progressLoader = $.progressIndicator({
+					message: app.vtranslate('JS_SAVE_LOADER_INFO'),
+					position: 'html',
+					blockInfo: {
+						enabled: true
+					}
+				});
+			}
+			this.saveAjaxValidation(params).then((response) => {
+				if (response === true) {
+					delete params.data.mode;
+					AppConnector.request(params)
+						.done(function (responseData) {
+							aDeferred.resolve(responseData);
+							if (progressIndicator) {
+								document.progressLoader.progressIndicator({ mode: 'hide' });
+							}
+						})
+						.fail((jqXHR, textStatus, errorThrown) => {
+							aDeferred.reject(jqXHR, textStatus, errorThrown);
+							if (progressIndicator) {
+								document.progressLoader.progressIndicator({ mode: 'hide' });
+							}
+							app.showNotify({
+								text: app.vtranslate('JS_ERROR'),
+								type: 'error'
+							});
+						});
+				} else {
+					aDeferred.resolve({ success: false });
+					if (progressIndicator) {
+						document.progressLoader.progressIndicator({ mode: 'hide' });
+					}
+				}
+			});
+			return aDeferred.promise();
+		},
+		/**
+		 * Record pre save validation
+		 * @param {object} params
+		 * @returns {Promise}
+		 */
+		saveAjaxValidation: function (params) {
+			const aDeferred = $.Deferred();
+			let validation = true;
+			if (
+				typeof app.pageController.getForm !== 'undefined' &&
+				app.pageController.getForm().find('#preSaveValidation').length !== 0
+			) {
+				validation = parseInt(app.pageController.getForm().find('#preSaveValidation').val());
+			}
+			if (validation) {
+				let paramsTemp = JSON.parse(JSON.stringify(params));
+				paramsTemp.data.mode = 'preSaveValidation';
+				AppConnector.request(paramsTemp)
+					.done((data) => {
+						const response = data.result;
+						let lock = false;
+						for (let i in response) {
+							if (response[i].result !== true) {
+								if (response[i].type === 'confirm' && typeof response[i].hash !== 'undefined') {
+									app.showConfirmModal({
+										text: response[i].message || '',
+										confirmedCallback: () => {
+											let handlers = {};
+											if (typeof params.data.skipHandlers !== 'undefined') {
+												handlers = JSON.parse(params.data.skipHandlers);
+											}
+											handlers[i] = response[i].hash;
+											params.data.skipHandlers = JSON.stringify(handlers);
+											this.saveAjaxValidation(params, form).then((responsePart) => {
+												aDeferred.resolve(responsePart);
+											});
+										},
+										rejectedCallback: () => {
+											aDeferred.resolve(false);
+										}
+									});
+									lock = true;
+									break;
+								} else if (
+									typeof response[i].showModal !== 'undefined' &&
+									typeof response[i].showModal.url !== 'undefined'
+								) {
+									app.showModalWindow(null, response[i].showModal.url, function (modalContainer) {
+										app.registerModalController(undefined, modalContainer, function (_, instance) {
+											instance.formContainer = form;
+										});
+									});
+								} else {
+									app.showNotify({
+										text: response[i].message ? response[i].message : app.vtranslate('JS_ERROR'),
+										type: 'error'
+									});
+								}
+							}
+						}
+						if (data.result.length <= 0) {
+							aDeferred.resolve(true);
+						} else if (!lock) {
+							aDeferred.resolve(false);
+						}
+					})
+					.fail((textStatus, errorThrown) => {
+						app.showNotify({
+							text: app.vtranslate('JS_ERROR'),
+							type: 'error'
+						});
+						aDeferred.resolve(false);
+					});
+			} else {
+				aDeferred.resolve(true);
+			}
+			return aDeferred.promise();
 		}
 	},
 	{
@@ -137,6 +283,10 @@ $.Class(
 			if (modalParamsElement.length > 0) {
 				params['modal_params'] = modalParamsElement.val();
 			}
+			let lockedFieldsElement = $('input[name="lockedFields"]', container);
+			if (lockedFieldsElement.length > 0) {
+				params['lockedFields'] = lockedFieldsElement.val();
+			}
 			$.each(['link', 'process'], function (index, value) {
 				let fieldElement = formElement.find('[name="' + value + '"]');
 				if (fieldElement.length && fieldElement.val() != '' && fieldElement.val() != 0) {
@@ -197,7 +347,7 @@ $.Class(
 				};
 				app.getRecordDetails(params).done(function (data) {
 					let response = (params.data = data['result']['data']);
-					app.event.trigger('EditView.SelectReference', params, formElement);
+					app.event.trigger('EditView.SelectReference', params, formElement, data);
 					$.each(mappingRelatedField, function (key, value) {
 						if (response[value[0]] != 0) {
 							let mapFieldElement = formElement.find('[name="' + key + '"]');
@@ -326,6 +476,7 @@ $.Class(
 		 */
 		registerAutoCompleteFields: function (container) {
 			let thisInstance = this;
+			let formElement = container.closest('form');
 			container.find('input.autoComplete').autocomplete({
 				delay: '600',
 				minLength: '3',
@@ -336,8 +487,10 @@ $.Class(
 					let searchValue = request.term;
 					let params = thisInstance.getReferenceSearchParams(inputElement);
 					params.search_value = searchValue;
-					//params.parent_id = app.getRecordId();
-					//params.parent_module = app.getModuleName();
+					let sourceRecordElement = $('input[name="record"]', formElement);
+					if (sourceRecordElement.length > 0 && sourceRecordElement.val()) {
+						params.src_record = sourceRecordElement.val();
+					}
 					thisInstance.searchModuleNames(params).done(function (data) {
 						let reponseDataList = [];
 						let serverDataFormat = data.result;
@@ -648,12 +801,10 @@ $.Class(
 		 * Function which will copy the address details
 		 */
 		copyAddressDetails: function (from, to, data, container) {
-			let thisInstance = this;
-			let sourceModule = data.module;
-			app.getRecordDetails(data).done(function (data) {
-				let response = data['result'];
-				thisInstance.addressFieldsData = response;
-				thisInstance.copyAddress(from, to, true, sourceModule);
+			app.getRecordDetails(data).done((response) => {
+				this.addressFieldsData = response['result'];
+				this.copyAddress(from, to, true, data['module']);
+				app.event.trigger('Edit.CopyAddress', this, from, to, response, data, container);
 			});
 		},
 		/**
@@ -780,13 +931,6 @@ $.Class(
 		registerMaskFields: function (container) {
 			container.find('[data-inputmask]').inputmask();
 		},
-		triggerDisplayTypeEvent: function () {
-			let widthType = app.cacheGet('widthType', 'narrowWidthType');
-			if (widthType) {
-				let elements = $('#EditView').find('.fieldValue,.fieldLabel');
-				elements.addClass(widthType);
-			}
-		},
 		registerSubmitEvent: function () {
 			let editViewForm = this.getForm();
 			editViewForm.on('submit', function (e) {
@@ -858,9 +1002,31 @@ $.Class(
 					.done((data) => {
 						document.progressLoader.progressIndicator({ mode: 'hide' });
 						let response = data.result;
-						for (let i = 0; i < response.length; i++) {
+						for (let i in response) {
 							if (response[i].result !== true) {
-								if (typeof response[i].showModal !== 'undefined' && typeof response[i].showModal.url !== 'undefined') {
+								if (response[i].type === 'confirm' && typeof response[i].hash !== 'undefined') {
+									app.showConfirmModal({
+										text: response[i].message || '',
+										confirmedCallback: () => {
+											let handlers = {},
+												handlerElement = form.find('input[name="skipHandlers"]');
+											if (handlerElement.length) {
+												handlers = JSON.parse(handlerElement.val());
+												handlerElement.remove();
+											}
+											handlers[i] = response[i].hash;
+											form.append(
+												$('<input>', { name: 'skipHandlers', value: JSON.stringify(handlers), type: 'hidden' })
+											);
+											form.submit();
+										}
+									});
+									aDeferred.resolve(false);
+									break;
+								} else if (
+									typeof response[i].showModal !== 'undefined' &&
+									typeof response[i].showModal.url !== 'undefined'
+								) {
 									app.showModalWindow(null, response[i].showModal.url, function (modalContainer) {
 										app.registerModalController(undefined, modalContainer, function (_, instance) {
 											instance.formContainer = form;
@@ -1487,17 +1653,38 @@ $.Class(
 			const self = this;
 			let fields = JSON.parse(event.val());
 			$.each(fields, function (key, fieldName) {
-				let fieldElement = container.find(`[name="${fieldName}"]`);
-				fieldElement.change(function () {
-					let formData = container.serializeFormData();
-					formData['action'] = 'ChangeValueHandler';
-					delete formData['view'];
-					AppConnector.request(formData).done(function (response) {
-						$.each(response.result, function (key, data) {
-							self.triggerRecordEditEvents(data);
+				let fieldElement = container.find(`[name="${fieldName}"],[name="${fieldName}[]"]`);
+				fieldElement.on(
+					`change ${Vtiger_Edit_Js.referenceSelectionEvent} ${Vtiger_Edit_Js.referenceDeSelectionEvent}`,
+					function () {
+						let formData = container.serializeFormData();
+						formData['action'] = 'ChangeValueHandler';
+						delete formData['view'];
+						AppConnector.request(formData).done(function (response) {
+							$.each(response.result, function (key, data) {
+								self.triggerRecordEditEvents(data);
+							});
 						});
-					});
-				});
+					}
+				);
+			});
+		},
+		/**
+		 * Register keyboard shortcuts events
+		 */
+		registerKeyboardShortcutsEvent: function () {
+			document.addEventListener('keydown', (event) => {
+				if (event.shiftKey && event.ctrlKey && event.code === 'KeyS') {
+					let form = event.target.closest('form');
+					if (form) {
+						$(form).trigger('submit');
+					} else {
+						form = $(event.target).find('form');
+						if (form.length && form.hasClass('recordEditView')) {
+							form.last().trigger('submit');
+						}
+					}
+				}
 			});
 		},
 		/**
@@ -1523,12 +1710,17 @@ $.Class(
 			this.registerReferenceCreate(container);
 			this.registerRecordCollectorModal(container);
 			this.registerAccountName(container);
+			this.registerKeyboardShortcutsEvent();
 			App.Fields.MultiEmail.register(container);
 			App.Fields.MultiDependField.register(container);
 			App.Fields.Tree.register(container);
 			App.Fields.MultiCurrency.register(container);
 			App.Fields.MeetingUrl.register(container);
 			App.Fields.ChangesJson.register(container);
+			App.Fields.MultiReference.register(container);
+			App.Fields.Password.register(container);
+			App.Components.ActivityNotifier.register(container);
+			App.Fields.MultiAttachment.register(container);
 		},
 		registerEvents: function () {
 			let editViewForm = this.getForm();
@@ -1547,7 +1739,6 @@ $.Class(
 			this.registerValidationsFields(editViewForm);
 			this.registerAutoloadAddress();
 			editViewForm.find('.js-form-submit-btn').prop('disabled', false);
-			//this.triggerDisplayTypeEvent();
 		}
 	}
 );

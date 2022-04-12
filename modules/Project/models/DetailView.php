@@ -6,14 +6,12 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Project_DetailView_Model extends Vtiger_DetailView_Model
 {
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getDetailViewLinks(array $linkParams): array
 	{
 		$recordModel = $this->getRecord();
@@ -44,9 +42,7 @@ class Project_DetailView_Model extends Vtiger_DetailView_Model
 		return $linkModelList;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getDetailViewRelatedLinks()
 	{
 		$recordModel = $this->getRecord();
@@ -62,7 +58,7 @@ class Project_DetailView_Model extends Vtiger_DetailView_Model
 				'related' => 'Charts',
 			];
 		}
-		if (\App\Module::isModuleActive('ProjectTask') && \App\Module::isModuleActive('ProjectMilestone')) {
+		if (\App\Config::module('Project', 'showGanttTab', true) && \App\Module::isModuleActive('ProjectTask') && \App\Module::isModuleActive('ProjectMilestone')) {
 			$relatedLinks[] = [
 				'linktype' => 'DETAILVIEWTAB',
 				'linklabel' => \App\Language::translate('LBL_GANTT', $moduleName),

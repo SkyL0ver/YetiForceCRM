@@ -5,7 +5,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce Sp. z o.o.
+ * Contributor(s): YetiForce S.A.
  *************************************************************************************/
 'use strict';
 
@@ -47,7 +47,8 @@ Vtiger_Base_Validator_Js(
 		 * @return false if validation error occurs
 		 */
 		validateValue: function (fieldValue) {
-			var emailFilter = /^[_/a-zA-Z0-9*]+([!"#$%&'()*+,./:;<=>?\^_`{|}~-]?[a-zA-Z0-9/_/-])*@[a-zA-Z0-9]+([\_\-\.]?[a-zA-Z0-9]+)*\.([\-\_]?[a-zA-Z0-9])+(\.?[a-zA-Z0-9]+)?$/;
+			var emailFilter =
+				/^[_/a-zA-Z0-9*]+([!"#$%&'()*+,./:;<=>?\^_`{|}~-]?[a-zA-Z0-9/_/-])*@[a-zA-Z0-9]+([\_\-\.]?[a-zA-Z0-9]+)*\.([\-\_]?[a-zA-Z0-9])+(\.?[a-zA-Z0-9]+)?$/;
 			var illegalChars = /[\(\)\<\>\,\;\:\\\"\[\]]/;
 
 			if (!emailFilter.test(fieldValue)) {
@@ -818,19 +819,25 @@ Vtiger_Base_Validator_Js(
 		 * @return false if validation error occurs
 		 */
 		validate: function (dependentFieldList) {
-			var thisInstance = this;
-			var field = this.getElement();
-			var fieldDateTime = '';
-			var fieldDateTimeInstance = [];
-			var contextFormElem = field.closest('form');
-			var view = contextFormElem.attr('name');
-			if (view == 'EditView') {
-				return true;
+			let thisInstance = this;
+			let field = this.getElement();
+			let fieldDateTime = '';
+			let fieldDateTimeInstance = [];
+			let contextFormElem = field.closest('form');
+			let view = contextFormElem.attr('name');
+			let j = 0;
+
+			if (view == 'EditView' && contextFormElem.data('jqv').InvalidFields.length > 0) {
+				let invalidFields = contextFormElem.data('jqv').InvalidFields.map((e) => {
+					return e.attributes.name.value;
+				});
+				if (invalidFields.filter((value) => dependentFieldList.includes(value)).length > 0) {
+					return false;
+				}
 			}
-			var j = 0;
-			for (var i = 0; i < dependentFieldList.length; i++) {
-				var dependentField = dependentFieldList[i];
-				var dependentFieldInContext = jQuery('input[name=' + dependentField + ']', contextFormElem);
+			for (let i in dependentFieldList) {
+				let dependentField = dependentFieldList[i];
+				let dependentFieldInContext = jQuery('input[name=' + dependentField + ']', contextFormElem);
 				if (dependentFieldInContext.length > 0) {
 					if (typeof dependentFieldInContext.data('dateFormat') === 'undefined' && fieldDateTime) {
 						fieldDateTime += ' ' + dependentFieldInContext.val();
@@ -1016,10 +1023,16 @@ Vtiger_Base_Validator_Js(
 				return false;
 			}
 			const maximumLength = typeof fieldData.fieldinfo !== 'undefined' ? fieldData.fieldinfo.maximumlength : null;
-			if (maximumLength && strippedValue > parseFloat(maximumLength)) {
-				errorInfo = app.vtranslate('JS_ERROR_MAX_VALUE');
-				this.setError(errorInfo);
-				return false;
+			if (maximumLength) {
+				let ranges = maximumLength.split(',');
+				if (
+					(ranges.length === 2 && (strippedValue > parseFloat(ranges[1]) || strippedValue < parseFloat(ranges[0]))) ||
+					(ranges.length === 1 && (strippedValue > parseFloat(ranges[0]) || strippedValue < 0))
+				) {
+					errorInfo = app.vtranslate('JS_ERROR_MAX_VALUE');
+					this.setError(errorInfo);
+					return false;
+				}
 			}
 			return true;
 		}
@@ -1233,16 +1246,16 @@ Vtiger_Email_Validator_Js(
 			}
 			let allFields = $(this.field).closest('div.js-multi-email').eq(0).find('.js-multi-email-item');
 			let arrayLength = allFields.length;
-			let amoutOfDuplicateEmails = 0;
+			let amountOfDuplicateEmails = 0;
 			for (let i = 0; i < arrayLength; ++i) {
 				let inputField = $(allFields[i]).find('input.js-multi-email');
 				if (inputField.val() === '') {
 					continue;
 				}
 				if (inputField.val() === fieldValue) {
-					++amoutOfDuplicateEmails;
+					++amountOfDuplicateEmails;
 				}
-				if (2 <= amoutOfDuplicateEmails) {
+				if (2 <= amountOfDuplicateEmails) {
 					this.setError(app.vtranslate('JS_EMAIL_DUPLICATED'));
 					return false;
 				}

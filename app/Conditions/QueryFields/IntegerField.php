@@ -1,16 +1,28 @@
 <?php
+/**
+ * Integer query field conditions file.
+ *
+ * @package UIType
+ *
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @author    Tomasz Kur <t.kur@yetiforce.com>
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ */
 
 namespace App\Conditions\QueryFields;
 
 /**
- * Integer Query Field Class.
- *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
- * @author    Tomasz Kur <t.kur@yetiforce.com>
+ * Integer query field conditions class.
  */
 class IntegerField extends BaseField
 {
+	use \App\Conditions\QueryTraits\Comparison;
+	use \App\Conditions\QueryTraits\ComparisonField;
+
+	/**
+	 * @var string[] List of extended operators
+	 */
 	public static $extendedOperators = ['>=', '<=', '<', '>'];
 
 	/**
@@ -18,7 +30,7 @@ class IntegerField extends BaseField
 	 *
 	 * @return array
 	 */
-	public function operatorA()
+	public function operatorA(): array
 	{
 		$value = \App\Purifier::decodeHtml($this->value);
 		$condition = ['and'];
@@ -37,52 +49,10 @@ class IntegerField extends BaseField
 		return $condition;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
-	public function getOperator()
+	/** {@inheritdoc} */
+	public function getOperator(): string
 	{
 		return 'a' === $this->operator ? 'e' : $this->operator;
-	}
-
-	/**
-	 * Lower operator.
-	 *
-	 * @return array
-	 */
-	public function operatorL()
-	{
-		return ['<', $this->getColumnName(), $this->getValue()];
-	}
-
-	/**
-	 * Greater operator.
-	 *
-	 * @return array
-	 */
-	public function operatorG()
-	{
-		return ['>', $this->getColumnName(), $this->getValue()];
-	}
-
-	/**
-	 * Lower or equal operator.
-	 *
-	 * @return array
-	 */
-	public function operatorM()
-	{
-		return ['<=', $this->getColumnName(), $this->getValue()];
-	}
-
-	/**
-	 * Greater or equal operator.
-	 *
-	 * @return array
-	 */
-	public function operatorH()
-	{
-		return ['>=', $this->getColumnName(), $this->getValue()];
 	}
 
 	/**
@@ -90,7 +60,7 @@ class IntegerField extends BaseField
 	 *
 	 * @return array
 	 */
-	public function operatorY()
+	public function operatorY(): array
 	{
 		return [$this->getColumnName() => null];
 	}
@@ -100,7 +70,7 @@ class IntegerField extends BaseField
 	 *
 	 * @return array
 	 */
-	public function operatorNy()
+	public function operatorNy(): array
 	{
 		return ['not', [$this->getColumnName() => null]];
 	}

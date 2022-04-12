@@ -2,10 +2,10 @@
 /**
  * Base file.
  *
- * @package   App
+ * @package App
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
@@ -16,6 +16,7 @@ namespace App;
  */
 class Base
 {
+	/** @var array Values */
 	protected $value;
 
 	/**
@@ -50,7 +51,7 @@ class Base
 	 */
 	public function get($key)
 	{
-		return isset($this->value[$key]) ? $this->value[$key] : null;
+		return $this->value[$key] ?? null;
 	}
 
 	/**

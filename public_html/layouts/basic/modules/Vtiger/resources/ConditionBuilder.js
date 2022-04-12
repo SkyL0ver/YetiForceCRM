@@ -1,10 +1,12 @@
-/* {[The file is published on the basis of YetiForce Public License 3.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
+/* {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
 'use strict';
 
 class Vtiger_ConditionBuilder_Js {
 	/**
 	 * Constructor
 	 * @param {jQuery} container
+	 * @param {string} sourceModuleName
+	 * @param {function} onChange
 	 */
 	constructor(container, sourceModuleName, onChange) {
 		this.container = container;
@@ -33,7 +35,7 @@ class Vtiger_ConditionBuilder_Js {
 	 */
 	registerChangeConditions(container) {
 		let self = this;
-		container.find('.js-conditions-fields, .js-conditions-operator').on('change', function (e) {
+		container.on('change', '.js-conditions-fields, .js-conditions-operator', function (e) {
 			let progress = $.progressIndicator({
 				position: 'html',
 				blockInfo: {
@@ -63,7 +65,6 @@ class Vtiger_ConditionBuilder_Js {
 			AppConnector.request(requestParams).done(function (data) {
 				progress.progressIndicator({ mode: 'hide' });
 				container.html($(data).html());
-				self.registerChangeConditions(container);
 				self.registerField(container);
 				self.registerChangeValueEvent(container);
 				self.onChange(self);
@@ -155,8 +156,8 @@ class Vtiger_ConditionBuilder_Js {
 	 * Block submit on press enter key
 	 */
 	registerDisableSubmitOnEnter() {
-		this.container.find('.js-condition-builder-value').keydown(function (e) {
-			if (e.keyCode === 13) {
+		this.container.find('.js-condition-builder-value').on('keydown', (e) => {
+			if (e.key === 'Enter') {
 				e.preventDefault();
 			}
 		});
@@ -209,8 +210,10 @@ class Vtiger_ConditionBuilder_Js {
 		this.registerDeleteCondition();
 		this.registerDisableSubmitOnEnter();
 		this.container.find('.js-condition-builder-conditions-row').each(function () {
-			self.registerChangeConditions($(this));
-			self.registerField($(this));
+			let row = $(this);
+			self.registerChangeConditions(row);
+			self.registerChangeValueEvent(row);
+			self.registerField(row);
 		});
 	}
 }

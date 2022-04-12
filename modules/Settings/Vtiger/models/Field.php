@@ -3,44 +3,18 @@
 /**
  * Field Model Class.
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 class Settings_Vtiger_Field_Model extends Vtiger_Field_Model
 {
 	/**
-	 * Variables.
-	 *
-	 * @var string[]
-	 */
-	public $referenceList = [];
-	public $picklistValues = [];
-
-	/**
-	 * {@inheritdoc}
-	 */
-	public function getPicklistValues($skipCheckingRole = false)
-	{
-		return $this->picklistValues;
-	}
-
-	/**
-	 * Function to get list of modules the field refernced to.
-	 *
-	 * @return string[] list of modules for which field is refered to
-	 */
-	public function getReferenceList()
-	{
-		return $this->referenceList;
-	}
-
-	/**
 	 * Function to check if the field is named field of the module.
 	 *
 	 * @return bool
 	 */
-	public function isNameField()
+	public function isNameField(): bool
 	{
 		return false;
 	}
@@ -50,22 +24,18 @@ class Settings_Vtiger_Field_Model extends Vtiger_Field_Model
 	 *
 	 * @return bool
 	 */
-	public function isReadOnly()
+	public function isReadOnly(): bool
 	{
 		return $this->isReadOnly ?? false;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getValidator()
 	{
 		return $this->validator ?? parent::getValidator();
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function getModuleName()
 	{
 		$moduleName = '';

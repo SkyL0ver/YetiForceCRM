@@ -6,7 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
- * Contributor(s): YetiForce.com
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Vtiger_Delete_Action extends \App\Controller\Action
@@ -18,9 +18,7 @@ class Vtiger_Delete_Action extends \App\Controller\Action
 	 */
 	protected $record;
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function checkPermission(App\Request $request)
 	{
 		if ($request->isEmpty('record', true)) {
@@ -32,9 +30,7 @@ class Vtiger_Delete_Action extends \App\Controller\Action
 		}
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
+	/** {@inheritdoc} */
 	public function process(App\Request $request)
 	{
 		$this->record->delete();

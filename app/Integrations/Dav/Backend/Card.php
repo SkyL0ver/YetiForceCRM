@@ -3,10 +3,10 @@
  * SabreDav PDO CardDAV backend file.
  * This CardDAV backend uses PDO to store addressbooks.
  *
- * @package   Integrations
+ * @package Integration
  *
- * @copyright YetiForce Sp. z o.o
- * @license   YetiForce Public License 3.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @copyright YetiForce S.A.
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
