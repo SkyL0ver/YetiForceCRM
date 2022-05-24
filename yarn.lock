@@ -229,10 +229,10 @@ css-line-break@^2.1.0:
   dependencies:
     utrie "^1.0.2"
 
-datatables.net-bs4@^1.10.15, datatables.net-bs4@^1.11.3:
-  version "1.11.5"
-  resolved "https://registry.yarnpkg.com/datatables.net-bs4/-/datatables.net-bs4-1.11.5.tgz#7767a27991c75716ce7fef1aa6a41d01bfeaefbd"
-  integrity sha512-tYE9MnyWIW4P8nm41yQnCqW4dUPK3M7qsuxQY5rViFFKDEU0bUUNAnE9+69P5/4Exe4uyXaY05xFkD00niPZUA==
+datatables.net-bs4@^1.10.15, datatables.net-bs4@^1.12.1:
+  version "1.12.1"
+  resolved "https://registry.yarnpkg.com/datatables.net-bs4/-/datatables.net-bs4-1.12.1.tgz#652e0701788109bf7c24170e643fe6f128cc8eca"
+  integrity sha512-LBeC8zUNVYyQT7ytC2lYqyXDn+k2kYpqvijC83oOjlcnEtb/8Tduzgquox5FrNKUJPcUrj9r+h5B0TDBbob/Gg==
   dependencies:
     datatables.net ">=1.11.3"
     jquery ">=1.7"
