@@ -2,7 +2,7 @@
 /**
  * Action file to save record.
  *
- * @package Api
+ * @package API
  *
  * @copyright YetiForce S.A.
  * @license YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
@@ -19,6 +19,7 @@ class Save extends \Vtiger_Save_Action
 {
 	/** @var int ID of application. */
 	protected $appId;
+
 	/** @var array Skipped value. */
 	public $skippedData = [];
 
@@ -36,7 +37,7 @@ class Save extends \Vtiger_Save_Action
 	 *
 	 * @return void
 	 */
-	public function init($record): void
+	public function init(\Api\Core\BaseAction $record): void
 	{
 		$this->appId = $record->controller->app['id'];
 		$this->record = $record->recordModel;
@@ -46,10 +47,14 @@ class Save extends \Vtiger_Save_Action
 	protected function getRecordModelFromRequest(\App\Request $request)
 	{
 		$fieldModelList = $this->record->getModule()->getFields();
+		$viewName = $this->record->isNew() ? 'Create' : 'Edit';
 		$requestKeys = $request->getAllRaw();
 		unset($requestKeys['module'],$requestKeys['action'],$requestKeys['record']);
+		if (empty($requestKeys)) {
+			throw new \Api\Core\Exception('No input data', 406);
+		}
 		foreach ($fieldModelList as $fieldName => $fieldModel) {
-			if (!$fieldModel->isWritable()) {
+			if (!$fieldModel->isWritable($viewName)) {
 				continue;
 			}
 			if ($request->has($fieldName)) {

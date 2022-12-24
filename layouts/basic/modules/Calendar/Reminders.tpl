@@ -47,8 +47,8 @@
 						<div>
 							{\App\Language::translate('FL_RELATION',$MODULE_NAME)}:&nbsp;
 							<strong>{$RECORD->getDisplayValue('link')}</strong>
-							{if $PERMISSION_TO_SENDE_MAIL}
-								{if $USER_MODEL->get('internal_mailer') == 1}
+							{if \Config\Main::$isActiveSendingMails}
+								{if 'InternalClient' === \App\Mail::getMailComposer()}
 									{assign var=COMPOSE_URL value=OSSMail_Module_Model::getComposeUrl(\App\Record::getType($RECORD->get('link')), $RECORD->get('link'), 'Detail', 'new')}
 									<a target="_blank" class="float-right" href="{$COMPOSE_URL}" title="{\App\Language::translate('LBL_SEND_EMAIL')}">
 										<span class="fas fa-envelope fa-fw"></span>
@@ -56,7 +56,7 @@
 								{else}
 									{assign var=URLDATA value=OSSMail_Module_Model::getExternalUrl(\App\Record::getType($RECORD->get('link')), $RECORD->get('link'), 'Detail', 'new')}
 									{if $URLDATA && $URLDATA != 'mailto:?'}
-										<a class="float-right" href="{$URLDATA}" title="{\App\Language::translate('LBL_CREATEMAIL', 'OSSMailView')}">
+										<a target="_blank" class="float-right" href="{$URLDATA}" title="{\App\Language::translate('LBL_CREATEMAIL', 'OSSMailView')}">
 											<span class="fas fa-envelope fa-fw" title="{\App\Language::translate('LBL_CREATEMAIL', 'OSSMailView')}"></span>
 										</a>
 									{/if}
@@ -74,8 +74,8 @@
 						<div>
 							{\App\Language::translate('FL_RELATION_EXTEND',$MODULE_NAME)}:&nbsp;
 							<strong>{$RECORD->getDisplayValue('linkextend')}</strong>
-							{if $PERMISSION_TO_SENDE_MAIL}
-								{if $USER_MODEL->get('internal_mailer') == 1}
+							{if \Config\Main::$isActiveSendingMails}
+								{if 'InternalClient' === \App\Mail::getMailComposer()}
 									{assign var=COMPOSE_URL value=OSSMail_Module_Model::getComposeUrl(\App\Record::getType($RECORD->get('linkextend')), $RECORD->get('linkextend'), 'Detail', 'new')}
 									<a target="_blank" class="float-right" href="{$COMPOSE_URL}"
 										rel="noreferrer noopener">
@@ -84,7 +84,7 @@
 								{else}
 									{assign var=URLDATA value=OSSMail_Module_Model::getExternalUrl(\App\Record::getType($RECORD->get('linkextend')), $RECORD->get('linkextend'), 'Detail', 'new')}
 									{if $URLDATA && $URLDATA != 'mailto:?'}
-										<a class="float-right" href="{$URLDATA}" title="{\App\Language::translate('LBL_CREATEMAIL', 'OSSMailView')}">
+										<a target="_blank" class="float-right" href="{$URLDATA}" title="{\App\Language::translate('LBL_CREATEMAIL', 'OSSMailView')}">
 											<span class="fas fa-envelope fa-fw" title="{\App\Language::translate('LBL_CREATEMAIL', 'OSSMailView')}"></span>
 										</a>
 									{/if}

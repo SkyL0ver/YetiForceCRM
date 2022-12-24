@@ -21,17 +21,18 @@ class Phone
 	 *
 	 * @param string      $phoneNumber
 	 * @param string|null $phoneCountry
+	 * @param int         $numberFormat the PhoneNumberFormat the phone number should be formatted into
 	 *
 	 * @return array|bool
 	 */
-	public static function getDetails(string $phoneNumber, ?string $phoneCountry = null)
+	public static function getDetails(string $phoneNumber, ?string $phoneCountry = null, int $numberFormat = \libphonenumber\PhoneNumberFormat::NATIONAL)
 	{
 		$phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
 		try {
 			$swissNumberProto = $phoneUtil->parse($phoneNumber, $phoneCountry);
 			if ($phoneUtil->isValidNumber($swissNumberProto)) {
 				return [
-					'number' => $phoneUtil->format($swissNumberProto, \libphonenumber\PhoneNumberFormat::INTERNATIONAL),
+					'number' => $phoneUtil->format($swissNumberProto, $numberFormat),
 					'geocoding' => \libphonenumber\geocoding\PhoneNumberOfflineGeocoder::getInstance()->getDescriptionForNumber($swissNumberProto, \App\Language::getLanguage()),
 					'carrier' => \libphonenumber\PhoneNumberToCarrierMapper::getInstance()->getNameForValidNumber($swissNumberProto, \App\Language::getShortLanguageName()),
 					'country' => $phoneUtil->getRegionCodeForNumber($swissNumberProto),
@@ -56,7 +57,7 @@ class Phone
 	 *
 	 * @return bool
 	 */
-	public static function verifyNumber($phoneNumber, $phoneCountry)
+	public static function verifyNumber(string $phoneNumber, ?string $phoneCountry = null)
 	{
 		$phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
 		if ($phoneCountry && !\in_array($phoneCountry, $phoneUtil->getSupportedRegions())) {
@@ -79,5 +80,40 @@ class Phone
 			\App\Log::info($e->getMessage(), __CLASS__);
 		}
 		throw new \App\Exceptions\FieldException('LBL_INVALID_PHONE_NUMBER');
+	}
+
+	/**
+	 * Parse phone number.
+	 *
+	 * @param string      $fieldName
+	 * @param array       $parsedData
+	 * @param string|null $phoneCountry
+	 *
+	 * @return array
+	 */
+	public static function parsePhone(string $fieldName, array $parsedData, ?string $phoneCountry = null): array
+	{
+		if (\App\Config::component('Phone', 'advancedVerification', false)) {
+			$phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
+			$phone = trim($parsedData[$fieldName]);
+			try {
+				$swissNumberProto = $phoneUtil->parse($phone, $phoneCountry);
+				$international = $phoneUtil->format($swissNumberProto, \libphonenumber\PhoneNumberFormat::INTERNATIONAL);
+			} catch (\libphonenumber\NumberParseException $e) {
+				$international = false;
+				foreach ($phoneUtil->findNumbers($phone, $phoneCountry) as $phoneNumberMatch) {
+					$international = $phoneUtil->format($phoneNumberMatch->number(), \libphonenumber\PhoneNumberFormat::INTERNATIONAL);
+					$parsedData[$fieldName . '_extra'] = trim(str_replace($phoneNumberMatch->rawString(), '', $phone));
+					break;
+				}
+			}
+			if ($international) {
+				$parsedData[$fieldName] = $international;
+			} else {
+				$parsedData[$fieldName . '_extra'] = $phone;
+				unset($parsedData[$fieldName]);
+			}
+		}
+		return $parsedData;
 	}
 }

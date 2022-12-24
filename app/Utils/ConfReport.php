@@ -33,7 +33,7 @@ class ConfReport
 	];
 
 	/** @var array Urls to check in request. */
-	public static $urlsToCheck = ['root' => 'token.php', 'js' => 'layouts/resources/Tools.js', 'css' => 'layouts/resources/fonts/fonts.css'];
+	public static $urlsToCheck = ['root' => 'cron.php', 'js' => 'layouts/resources/Tools.js', 'css' => 'layouts/resources/fonts/fonts.css'];
 
 	/**
 	 * List all variables.
@@ -55,7 +55,7 @@ class ConfReport
 	 * @var array
 	 */
 	public static $stability = [
-		'phpVersion' => ['recommended' => '7.4.x, 7.4.x, 8.0.x, 8.1.x (dev)', 'type' => 'Version', 'container' => 'env', 'testCli' => true, 'label' => 'PHP'],
+		'phpVersion' => ['recommended' => '7.4.x, 8.0.x, 8.1.x (dev)', 'type' => 'Version', 'container' => 'env', 'testCli' => true, 'label' => 'PHP'],
 		'protocolVersion' => ['recommended' => '2.0, 1.x', 'type' => 'Version', 'container' => 'env', 'testCli' => false, 'label' => 'PROTOCOL_VERSION'],
 		'error_reporting' => ['recommended' => 'E_ALL & ~E_NOTICE', 'type' => 'ErrorReporting', 'container' => 'php', 'testCli' => true],
 		'output_buffering' => ['recommended' => 'On', 'type' => 'OnOffInt', 'container' => 'php', 'testCli' => true],
@@ -74,7 +74,9 @@ class ConfReport
 		'session.gc_maxlifetime' => ['recommended' => 1440, 'type' => 'Greater', 'container' => 'php', 'testCli' => true],
 		'session.gc_divisor' => ['recommended' => 500, 'type' => 'Greater', 'container' => 'php', 'testCli' => true],
 		'session.gc_probability' => ['recommended' => 1, 'type' => 'Equal', 'container' => 'php', 'testCli' => true],
-		'mbstring.func_overload' => ['recommended' => 'Off', 'type' => 'OnOff', 'container' => 'php', 'testCli' => true], //Roundcube
+		'suhosin.session.encrypt' => ['recommended' => 'Off', 'type' => 'Equal', 'container' => 'php', 'testCli' => true], //Roundcube
+		'mbstring.func_overload' => ['recommended' => 0, 'type' => 'Equal', 'container' => 'php', 'testCli' => true], //Roundcube
+		'pcre.backtrack_limit' => ['recommended' => 100000, 'type' => 'Greater', 'container' => 'php', 'testCli' => true], //Roundcube
 		'date.timezone' => ['type' => 'TimeZone', 'container' => 'php', 'testCli' => true], //Roundcube
 		'allow_url_fopen' => ['recommended' => 'On', 'type' => 'OnOff', 'container' => 'php', 'testCli' => true], //Roundcube
 		'auto_detect_line_endings' => ['recommended' => 'On', 'type' => 'OnOff', 'container' => 'php', 'testCli' => true], //CSVReader
@@ -114,7 +116,7 @@ class ConfReport
 	 * @var array
 	 */
 	public static $headers = [
-		'Header: server' => ['recommended' => '', 'type' => 'Header', 'container' => 'request', 'testCli' => false],
+		'Header: server' => ['recommended' => '', 'type' => 'HeaderServer', 'container' => 'request', 'testCli' => false],
 		'Header: x-powered-by' => ['recommended' => '', 'type' => 'Header', 'contaiuse_only_cookiesner' => 'request', 'testCli' => false],
 		'Header: access-control-allow-methods' => ['recommended' => 'GET, POST', 'type' => 'Header', 'container' => 'request', 'testCli' => false, 'onlyPhp' => true],
 		'Header: access-control-allow-origin' => ['recommended' => '*', 'type' => 'Header', 'container' => 'request', 'testCli' => false, 'onlyPhp' => true],
@@ -165,6 +167,7 @@ class ConfReport
 		'OPcache' => ['mandatory' => false, 'type' => 'ExtExist', 'extName' => 'Zend OPcache', 'container' => 'ext', 'testCli' => true, 'mode' => 'showWarnings'],
 		'apcu' => ['mandatory' => false, 'type' => 'ExtExist', 'extName' => 'apcu', 'container' => 'ext', 'testCli' => true, 'mode' => 'showWarnings'],
 		'imagick' => ['mandatory' => false, 'type' => 'ExtExist', 'extName' => 'imagick', 'container' => 'ext', 'testCli' => true, 'mode' => 'showWarnings'],
+		'pdo_sqlsrv' => ['mandatory' => false, 'type' => 'ExtExist', 'extName' => 'pdo_sqlsrv', 'container' => 'ext', 'testCli' => true, 'mode' => 'showWarnings'],
 		'allExt' => ['container' => 'ext', 'type' => 'AllExt', 'testCli' => true, 'label' => 'EXTENSIONS'],
 	];
 
@@ -181,8 +184,10 @@ class ConfReport
 		'version_comment' => ['container' => 'db', 'testCli' => true, 'label' => 'DB_VERSION_COMMENT'],
 		'connectionStatus' => ['container' => 'db', 'testCli' => true, 'label' => 'DB_CONNECTION_STATUS'],
 		'serverInfo' => ['container' => 'db', 'testCli' => true, 'label' => 'DB_SERVER_INFO'],
-		'maximumMemorySize' => ['container' => 'db', 'type' => 'ShowBytes', 'testCli' => true, 'label' => 'DB_MAXIMUM_MEMORY_SIZE', 'showHelp' => true],
+		'maxUsedMemory' => ['container' => 'db', 'type' => 'ShowBytes', 'testCli' => true, 'label' => 'DB_MAXIMUM_MEMORY_SIZE', 'showHelp' => true, 'desc' => 'maxUsedMemoryDesc'],
 		'key_buffer_size' => ['container' => 'db', 'type' => 'ShowBytes', 'testCli' => true],
+		'max_tmp_table_size' => ['container' => 'db', 'type' => 'ShowBytes', 'testCli' => true],
+		'aria_pagecache_buffer_size' => ['container' => 'db', 'type' => 'ShowBytes', 'testCli' => true],
 		'have_query_cache' => ['container' => 'db', 'testCli' => true],
 		'query_cache_size' => ['container' => 'db', 'type' => 'ShowBytes', 'testCli' => true],
 		'query_cache_type' => ['container' => 'db', 'testCli' => true],
@@ -190,7 +195,7 @@ class ConfReport
 		'table_open_cache_instances' => ['container' => 'db', 'testCli' => true],
 		'table_open_cache' => ['recommended' => 1000, 'type' => 'Greater', 'container' => 'db', 'testCli' => true, 'mode' => 'showWarnings'],
 		'table_definition_cache' => ['type' => 'DbTableDefinitionCache', 'container' => 'db', 'testCli' => true, 'mode' => 'showWarnings'],
-		'open_files_limit' => ['container' => 'db', 'testCli' => true],
+		'open_files_limit' => ['container' => 'db', 'type' => 'DbOpenFilesLimit', 'testCli' => true],
 		'tmp_table_size' => ['container' => 'db', 'type' => 'ShowBytes', 'testCli' => true],
 		'innodb_buffer_pool_size' => ['container' => 'db', 'type' => 'ShowBytes', 'testCli' => true],
 		'innodb_additional_mem_pool_size' => ['container' => 'db', 'type' => 'ShowBytes', 'testCli' => true],
@@ -218,8 +223,8 @@ class ConfReport
 		'innodb_ft_min_token_size' => ['container' => 'db', 'testCli' => true],
 		'innodb_default_row_format' => ['recommended' => 'dynamic', 'type' => 'Equal', 'container' => 'db', 'testCli' => true],
 		'innodb_strict_mode' => ['container' => 'db', 'testCli' => true],
-		'innodb_large_prefix' => ['recommended' => 'On', 'type' => 'OnOff', 'container' => 'db', 'testCli' => true],
-		'innodb_file_per_table' => ['recommended' => 'On', 'type' => 'OnOff', 'container' => 'db', 'testCli' => true],
+		'innodb_large_prefix' => ['recommended' => 'On', 'type' => 'OnOff', 'container' => 'db', 'testCli' => true], //Roundcube
+		'innodb_file_per_table' => ['recommended' => 'On', 'type' => 'OnOff', 'container' => 'db', 'testCli' => true], //Roundcube
 		'innodb_stats_on_metadata' => ['recommended' => 'Off', 'type' => 'OnOff', 'container' => 'db', 'testCli' => true],
 		'innodb_buffer_pool_instances' => ['container' => 'db', 'testCli' => true],
 		'innodb_buffer_pool_load_at_startup' => ['container' => 'db', 'testCli' => true],
@@ -380,49 +385,50 @@ class ConfReport
 	 * @var array
 	 */
 	public static $writableFilesAndFolders = [
+		'cron.php' => ['type' => 'IsWritable', 'testCli' => true],
 		'app_data/cron.php' => ['type' => 'IsWritable', 'testCli' => true],
 		'app_data/registration.php' => ['type' => 'IsWritable', 'testCli' => true],
-		'app_data/moduleHierarchy.php' => ['type' => 'IsWritable', 'testCli' => true],
+		'app_data/moduleHierarchy.php' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
 		'app_data/shop.php' => ['type' => 'IsWritable', 'testCli' => true],
 		'app_data/icons.php' => ['type' => 'IsWritable', 'testCli' => true],
 		'app_data/LanguagesUpdater.json' => ['type' => 'IsWritable', 'testCli' => true],
 		'app_data/SystemUpdater.json' => ['type' => 'IsWritable', 'testCli' => true],
 		'app_data/libraries.json' => ['type' => 'IsWritable', 'testCli' => true],
-		'user_privileges/tabdata.php' => ['type' => 'IsWritable', 'testCli' => true],
+		'user_privileges/tabdata.php' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
 		'user_privileges/menu_0.php' => ['type' => 'IsWritable', 'testCli' => true],
 		'user_privileges/user_privileges_1.php' => ['type' => 'IsWritable', 'testCli' => true],
 		'cache/logs/system.log' => ['type' => 'IsWritable', 'testCli' => true],
-		'app_data/' => ['type' => 'IsWritable', 'testCli' => true],
+		'app_data/' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
 		'app_data/shop/' => ['type' => 'IsWritable', 'testCli' => true],
-		'cache/' => ['type' => 'IsWritable', 'testCli' => true],
+		'cache/' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
 		'cache/addressBook/' => ['type' => 'IsWritable', 'testCli' => true],
 		'cache/images/' => ['type' => 'IsWritable', 'testCli' => true],
 		'cache/import/' => ['type' => 'IsWritable', 'testCli' => true],
 		'cache/mail/' => ['type' => 'IsWritable', 'testCli' => true],
 		'cache/pdf/' => ['type' => 'IsWritable', 'testCli' => true],
-		'cache/logs/' => ['type' => 'IsWritable', 'testCli' => true],
+		'cache/logs/' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
 		'cache/logs/cron/' => ['type' => 'IsWritable', 'testCli' => true],
-		'cache/session/' => ['type' => 'IsWritable', 'testCli' => true],
-		'cache/templates_c/' => ['type' => 'IsWritable', 'testCli' => true],
-		'cache/upload/' => ['type' => 'IsWritable', 'testCli' => true],
-		'cache/vtlib/' => ['type' => 'IsWritable', 'testCli' => true],
-		'cache/vtlib/HTML' => ['type' => 'IsWritable', 'testCli' => true],
-		'config/' => ['type' => 'IsWritable', 'testCli' => true],
-		'config/Components' => ['type' => 'IsWritable', 'testCli' => true],
-		'config/Modules' => ['type' => 'IsWritable', 'testCli' => true],
-		'user_privileges/' => ['type' => 'IsWritable', 'testCli' => true],
+		'cache/session/' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
+		'cache/templates_c/' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
+		'cache/upload/' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
+		'cache/vtlib/' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
+		'cache/vtlib/HTML' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
+		'config/' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
+		'config/Components' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
+		'config/Modules' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
+		'user_privileges/' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
 		'cron/modules/' => ['type' => 'IsWritable', 'testCli' => true],
-		'languages/' => ['type' => 'IsWritable', 'testCli' => true],
+		'languages/' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
 		'install/' => ['type' => 'IsWritable', 'testCli' => true],
-		'modules/' => ['type' => 'IsWritable', 'testCli' => true],
-		'storage/' => ['type' => 'IsWritable', 'testCli' => true],
+		'modules/' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
+		'storage/' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
 		'storage/Products/' => ['type' => 'IsWritable', 'testCli' => true],
 		'storage/Users/' => ['type' => 'IsWritable', 'testCli' => true],
 		'storage/Contacts/' => ['type' => 'IsWritable', 'testCli' => true],
 		'storage/OSSMailView/' => ['type' => 'IsWritable', 'testCli' => true],
-		'public_html/modules/OSSMail/' => ['type' => 'IsWritable', 'testCli' => true],
-		'public_html/libraries/' => ['type' => 'IsWritable', 'testCli' => true],
-		'public_html/layouts/resources/Logo/' => ['type' => 'IsWritable', 'testCli' => true],
+		'public_html/modules/OSSMail/' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
+		'public_html/libraries/' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
+		'public_html/layouts/resources/Logo/' => ['type' => 'IsWritable', 'testCli' => true, 'mustExist' => true],
 	];
 	/**
 	 * Functionality test map.
@@ -559,10 +565,10 @@ class ConfReport
 					break;
 				case 'writableFilesAndFolders':
 					if ($tmp = sys_get_temp_dir()) {
-						self::$writableFilesAndFolders[$tmp] = ['type' => 'IsWritable', 'testCli' => true, 'absolutePaths' => true];
+						self::$writableFilesAndFolders[$tmp] = ['type' => 'IsWritable', 'testCli' => true, 'absolutePaths' => true, 'mustExist' => true];
 					}
 					if ($tmp = ini_get('upload_tmp_dir')) {
-						self::$writableFilesAndFolders[$tmp] = ['type' => 'IsWritable', 'testCli' => true, 'absolutePaths' => true];
+						self::$writableFilesAndFolders[$tmp] = ['type' => 'IsWritable', 'testCli' => true, 'absolutePaths' => true, 'mustExist' => true];
 					}
 					break;
 				default:
@@ -612,7 +618,7 @@ class ConfReport
 				'public_html' => IS_PUBLIC_DIR ? 'On' : 'Off',
 				'crmVersion' => \App\Version::get(),
 				'crmDate' => \App\Version::get('patchVersion'),
-				'companySize' => \App\Company::getSize(),
+				'companySize' => \App\Config::main('application_unique_key') ? \App\Company::getSize() : '-',
 				'crmDir' => ROOT_DIRECTORY,
 				'operatingSystem' => 'demo' === \App\Config::main('systemMode') ? php_uname('s') : php_uname(),
 				'serverSoftware' => $_SERVER['SERVER_SOFTWARE'] ?? '-',
@@ -700,6 +706,10 @@ class ConfReport
 				$item['status'] = true;
 				if (isset($main[$key])) {
 					$item[static::$sapi] = $main[$key];
+					if ('--' === $main[$key]) {
+						$item['noParameter'] = true;
+						continue;
+					}
 				}
 				if (isset($cron[$key]['cron']) && (self::$testCli || ($item['testCli'] && 'www' === static::$sapi))) {
 					$item['cron'] = $cron[$key]['cron'];
@@ -713,6 +723,12 @@ class ConfReport
 						if (self::$testCli || ($item['testCli'] && !empty($cron))) {
 							$item = static::$methodName($key, $item, 'cron');
 						}
+						if (isset($item['desc'])) {
+							$container = $item['container'];
+							if (isset(static::${$container}[$item['desc']])) {
+								$item['desc'] = static::${$container}[$item['desc']];
+							}
+						}
 					}
 					if (isset($item['mode']) && (('whenError' === $item['mode'] && !$item['status']) || 'skipParam' === $item['mode'])) {
 						unset(static::${$type}[$key]);
@@ -720,6 +736,7 @@ class ConfReport
 				}
 			}
 		}
+
 		return static::${$type};
 	}
 
@@ -770,6 +787,23 @@ class ConfReport
 			return $values;
 		}
 		return static::validate($type);
+	}
+
+	/**
+	 * Check open_basedir restrictions.
+	 *
+	 * @param string $dir
+	 *
+	 * @return bool
+	 */
+	public static function validatePath(string $dir): bool
+	{
+		$paths = [];
+		if (\ini_get('open_basedir')) {
+			$paths = explode(PATH_SEPARATOR, \ini_get('open_basedir'));
+		}
+
+		return !$paths || array_filter($paths, fn ($v) => 0 === strpos(rtrim($dir, '/') . '/', rtrim($v, '/') . '/')) ? is_dir($dir) && is_readable($dir) : true;
 	}
 
 	/**
@@ -908,6 +942,28 @@ class ConfReport
 	}
 
 	/**
+	 * Validate DB open_files_limit.
+	 *
+	 * @param string $name
+	 * @param array  $row
+	 * @param string $sapi
+	 *
+	 * @return array
+	 */
+	private static function validateDbOpenFilesLimit(string $name, array $row, string $sapi)
+	{
+		unset($name);
+		$row['recommended'] = self::$db['table_open_cache'] * 2;
+		if (isset($row[$sapi]) && (int) $row[$sapi] < $row['recommended']) {
+			$row['status'] = false;
+		}
+		if (!isset($row[$sapi])) {
+			$row['noParameter'] = true;
+		}
+		return $row;
+	}
+
+	/**
 	 * Validate number in bytes greater than recommended.
 	 *
 	 * @param string $name
@@ -1036,7 +1092,6 @@ class ConfReport
 		} else {
 			$row['noParameter'] = true;
 		}
-
 		return $row;
 	}
 
@@ -1142,13 +1197,16 @@ class ConfReport
 	 * @param string $name
 	 * @param array  $row
 	 *
-	 * @return array
+	 * @return string
 	 */
 	private static function parserOnOff(string $name, array $row)
 	{
 		$container = $row['container'];
+		if ('db' === $container && !isset(static::${$container}[\strtolower($name)])) {
+			return '--';
+		}
 		$current = static::${$container}[\strtolower($name)] ?? static::${$container}[$name] ?? '';
-		static $map = ['on' => 'On', 'true' => 'On', 'off' => 'Off', 'false' => 'Off'];
+		$map = ['on' => 'On', 'true' => 'On', 'off' => 'Off', 'false' => 'Off'];
 		return isset($map[strtolower($current)]) ? $map[strtolower($current)] : ($current ? 'On' : 'Off');
 	}
 
@@ -1202,6 +1260,37 @@ class ConfReport
 			$row['status'] = true;
 		} else {
 			$row['status'] = false;
+		}
+		return $row;
+	}
+
+	/**
+	 * Validate header CSP.
+	 *
+	 * @param string $name
+	 * @param array  $row
+	 * @param string $sapi
+	 *
+	 * @return array
+	 */
+	private static function validateHeaderServer(string $name, array $row, string $sapi)
+	{
+		unset($sapi);
+		$header = strtolower(\str_replace('Header: ', '', $name));
+		$onlyPhp = empty($row['onlyPhp']);
+		if (isset(static::$request[$header])) {
+			$row['www'] = static::$request[$header]['root'] ?? '-';
+			$row['js'] = static::$request[$header]['js'] ?? '-';
+			$row['css'] = static::$request[$header]['css'] ?? '-';
+			$row['status'] = empty($row['www']);
+			if ($onlyPhp) {
+				$row['status'] = $row['status'] && empty($row['js']) && empty($row['css']);
+			}
+			if (!$row['status'] && \App\Validator::standard($row['www'])) {
+				$row['mode'] = 'showWarnings';
+			}
+		} else {
+			$row['status'] = true;
 		}
 		return $row;
 	}
@@ -1461,7 +1550,7 @@ class ConfReport
 	{
 		unset($name);
 		$supported = [];
-		$requestUrl = static::$crmUrl . 'token.php';
+		$requestUrl = static::$crmUrl . 'cron.php';
 		foreach (\explode(', ', $row['recommended']) as $type) {
 			try {
 				$response = (new \GuzzleHttp\Client(\App\RequestHttp::getOptions()))->request($type, $requestUrl, ['timeout' => 1, 'verify' => false]);
@@ -1509,13 +1598,14 @@ class ConfReport
 		if (!$absolutePaths) {
 			$path = ROOT_DIRECTORY . \DIRECTORY_SEPARATOR . $path;
 		}
-		if (!file_exists($path)) {
+		$exists = file_exists($path);
+		if (empty($row['mustExist']) && !$exists) {
 			$row['mode'] = 'skipParam';
 		} else {
 			$row['status'] = \App\Fields\File::isWriteable($path, true);
 			$row[$sapi] = $row['status'] ? 'LBL_YES' : 'LBL_NO';
-			$row['owner'] = fileowner($path);
-			$row['perms'] = substr(sprintf('%o', fileperms($path)), -4);
+			$row['owner'] = $exists ? fileowner($path) : '';
+			$row['perms'] = $exists ? substr(sprintf('%o', fileperms($path)), -4) : '';
 		}
 		return $row;
 	}
@@ -1631,11 +1721,9 @@ class ConfReport
 	{
 		$row = self::validateNotEmpty($name, $row, $sapi);
 		if ($row['status']) {
-			$dir = \dirname($row[$sapi]);
-			if (!is_dir($dir) && !is_readable($dir)) {
-				$row['status'] = true;
-			}
+			$row['status'] = self::validatePath(\dirname($row[$sapi]));
 		}
+
 		return $row;
 	}
 
@@ -1715,8 +1803,8 @@ class ConfReport
 	{
 		unset($sapi);
 		try {
-			$response = (new \GuzzleHttp\Client(\App\RequestHttp::getOptions()))->request('HEAD', static::$crmUrl . $name, ['timeout' => 1, 'connect_timeout' => 1, 'verify' => false, 'http_errors' => false, 'allow_redirects' => false]);
-			$row['status'] = 401 === $response->getStatusCode();
+			$response = (new \GuzzleHttp\Client(\App\RequestHttp::getOptions()))->request('OPTIONS', static::$crmUrl . $name . 'Modules', ['timeout' => 1, 'connect_timeout' => 1, 'verify' => false, 'http_errors' => false, 'allow_redirects' => false]);
+			$row['status'] = 200 === $response->getStatusCode();
 		} catch (\Throwable $th) {
 			$row['status'] = false;
 		}
@@ -1770,7 +1858,7 @@ class ConfReport
 	{
 		$result = [];
 		foreach (static::get($type, true) as $param => $data) {
-			if (!$data['status'] && (empty($data['mode']) || 'showErrors' === $data['mode'])) {
+			if (!$data['status'] && (empty($data['mode']) || 'showErrors' === $data['mode']) && empty($data['noParameter'])) {
 				if (!isset($data['www']) && !isset($data['cron'])) {
 					$val = $data['status'];
 				} else {
@@ -1804,16 +1892,23 @@ class ConfReport
 		if (!\App\RequestUtil::isNetConnection()) {
 			return false;
 		}
-		$response = (new \GuzzleHttp\Client(\App\RequestHttp::getOptions()))->get('http://php.net/releases/index.php?json&max=7&version=7');
-		$data = array_keys((array) \App\Json::decode($response->getBody()));
+		$data = [];
+		$versions = explode(',', self::$stability['phpVersion']['recommended']);
+		foreach ($versions as $version) {
+			$version = explode('.', $version, 3);
+			array_pop($version);
+			$response = (new \GuzzleHttp\Client(\App\RequestHttp::getOptions()))->get('http://php.net/releases/index.php?json&max=1&version=' . implode('.', $version));
+			$response = array_keys((array) \App\Json::decode($response->getBody()));
+			$data = array_merge($data, $response);
+		}
 		natsort($data);
 		$ver = [];
 		foreach (array_reverse($data) as $row) {
 			$t = explode('.', $row);
 			array_pop($t);
 			$short = implode('.', $t);
-			if (!isset($ver[$short]) && version_compare($short, '7.2', '>') && version_compare($short, '8.0', '<')) {
-				$ver[$short] = $row;
+			if (!isset($ver[$short])) {
+				$ver[$short] = \App\Purifier::encodeHtml($row);
 			}
 		}
 		return $ver;

@@ -19,7 +19,7 @@
 				<div class="card">
 					<div class="card-header">
 						{if !empty($RECORD_MODEL->getId())}
-							<span class="yfi yfi-full-editing-view mr-2"></span>{\App\Language::translate('LBL_EDIT_BUSINESS_HOURS',$QUALIFIED_MODULE)} - {$RECORD_MODEL->getName()}
+							<span class="yfi yfi-full-editing-view mr-2"></span>{\App\Language::translate('LBL_EDIT_BUSINESS_HOURS',$QUALIFIED_MODULE)} - {\App\Purifier::encodeHtml($RECORD_MODEL->getName())}
 						{else}
 							<span class="fas fa-plus mr-2"></span>{\App\Language::translate('LBL_ADD_BUSINESS_HOURS',$QUALIFIED_MODULE)}
 						{/if}
@@ -27,10 +27,9 @@
 					<div class="card-body">
 						<div class="row mb-3">
 							<div class="col-12 form-group row">
-								<label class="col-5">{\App\Language::translate('LBL_NAME', $QUALIFIED_MODULE)}</label>
+								<label class="col-5"><span class="redColor">*</span>{\App\Language::translate('LBL_NAME', $QUALIFIED_MODULE)}</label>
 								<div class="col-7">
-									<input type="text" name="name" class="form-control w-100" {if isset($RECORD_MODEL)} value="{$RECORD_MODEL->getName()}" {/if}
-										data-validation-engine="validate[required,funcCall[Vtiger_Base_Validator_Js.invokeValidation]]">
+									<input type="text" name="name" class="form-control w-100" {if isset($RECORD_MODEL)}value="{\App\Purifier::encodeHtml($RECORD_MODEL->getName())}" {/if} data-validation-engine="validate[required,funcCall[Vtiger_Base_Validator_Js.invokeValidation]]">
 								</div>
 							</div>
 							<div class="col-12 form-group row">
@@ -49,13 +48,13 @@
 								</div>
 							</div>
 							<div class="col-12 form-group row">
-								<label class="col-5">{\App\Language::translate('LBL_WORKING_HOURS_FROM', $QUALIFIED_MODULE)}</label>
+								<label class="col-5"><span class="redColor">*</span>{\App\Language::translate('LBL_WORKING_HOURS_FROM', $QUALIFIED_MODULE)}</label>
 								<div class="input-group time col-7">
 									<input id="hours_from" type="text" data-format="{$USER_MODEL->get('hour_format')}"
 										class="clockPicker form-control" value="{\App\Fields\Time::formatToDisplay($RECORD_MODEL->get('working_hours_from'))}"
 										title="{\App\Language::translate('LBL_WORKING_HOURS_FROM', $QUALIFIED_MODULE)}"
 										name="working_hours_from"
-										data-validation-engine="validate[required,funcCall[Vtiger_Base_Validator_Js.invokeValidation]]"
+										data-validation-engine="validate[required,funcCall[Vtiger_Time_Validator_Js.invokeValidation]]"
 										autocomplete="off" />
 									<div class="input-group-append">
 										<span class="input-group-text u-cursor-pointer js-clock__btn" data-js="click">
@@ -65,13 +64,13 @@
 								</div>
 							</div>
 							<div class="col-12 form-group row">
-								<label class="col-5">{\App\Language::translate('LBL_WORKING_HOURS_TO', $QUALIFIED_MODULE)}</label>
+								<label class="col-5"><span class="redColor">*</span>{\App\Language::translate('LBL_WORKING_HOURS_TO', $QUALIFIED_MODULE)}</label>
 								<div class="input-group time col-7">
 									<input id="hours_from" type="text" data-format="{$USER_MODEL->get('hour_format')}"
 										class="clockPicker form-control" value="{\App\Fields\Time::formatToDisplay($RECORD_MODEL->get('working_hours_to'))}"
 										title="{\App\Language::translate('LBL_WORKING_HOURS_TO', $QUALIFIED_MODULE)}"
 										name="working_hours_to"
-										data-validation-engine="validate[required,funcCall[Vtiger_Base_Validator_Js.invokeValidation]]"
+										data-validation-engine="validate[required,funcCall[Vtiger_Time_Validator_Js.invokeValidation]]"
 										autocomplete="off" />
 									<div class="input-group-append">
 										<span class="input-group-text u-cursor-pointer js-clock__btn" data-js="click">

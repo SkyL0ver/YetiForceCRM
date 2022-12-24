@@ -28,9 +28,6 @@
 						<input type="hidden" name="sourceRecord" value="{$SOURCE_RECORD}" />
 						<input type="hidden" name="relationOperation" value="{$IS_RELATION_OPERATION}" />
 					{/if}
-					{if !empty($PICKIST_DEPENDENCY_DATASOURCE)}
-						<input type="hidden" name="picklistDependency" value='{\App\Purifier::encodeHtml($PICKIST_DEPENDENCY_DATASOURCE)}' />
-					{/if}
 					{if !empty($MAPPING_RELATED_FIELD)}
 						<input type="hidden" name="mappingRelatedField" value='{\App\Purifier::encodeHtml($MAPPING_RELATED_FIELD)}' />
 					{/if}
@@ -59,14 +56,7 @@
 						</div>
 						<div class="col-xl-6 col-12 text-center text-xl-right">
 							{if \App\Privilege::isPermitted($MODULE_NAME, 'RecordCollector') && !empty($QUICKCREATE_LINKS['EDIT_VIEW_RECORD_COLLECTOR'])}
-								{foreach item=COLLECTOR_LINK from=$QUICKCREATE_LINKS['EDIT_VIEW_RECORD_COLLECTOR']}
-									{assign var=COLLECTOR value=\App\RecordCollector::getInstance($COLLECTOR_LINK->get('linkurl'), $MODULE_NAME)}
-									{if isset($COLLECTOR) && $COLLECTOR->isActive()}
-										<button type="button" class="btn btn-outline-dark js-popover-tooltip js-record-collector-modal mr-1" {if isset(Vtiger_Field_Model::$tabIndexLastSeq)}tabindex="{Vtiger_Field_Model::$tabIndexLastSeq}" {/if} data-type={$COLLECTOR_LINK->get('linkurl')} data-content="{App\Language::translate({$COLLECTOR->label}, $MODULE_NAME)}" data-js="click|popover">
-											<span class="{$COLLECTOR->icon}"></span>
-										</button>
-									{/if}
-								{/foreach}
+								{include file=\App\Layout::getTemplatePath('Edit/RecordCollectors.tpl', $MODULE) SHOW_BTN_LABEL=1 RECORD_COLLECTOR=$QUICKCREATE_LINKS['EDIT_VIEW_RECORD_COLLECTOR']}
 							{/if}
 							{assign var="EDIT_VIEW_URL" value=$MODULE_MODEL->getCreateRecordUrl()}
 							{if !empty($QUICKCREATE_LINKS['QUICKCREATE_VIEW_HEADER'])}
@@ -85,7 +75,7 @@
 					<div class="quickCreateContent">
 						<div class="modal-body m-0">
 							{if $LAYOUT === 'blocks'}
-								{include file=\App\Layout::getTemplatePath('EditBlocks.tpl') RECORD_STRUCTURE=$RECORD_STRUCTURE}
+								{include file=\App\Layout::getTemplatePath('EditBlocks.tpl', $MODULE_NAME) RECORD_STRUCTURE=$RECORD_STRUCTURE}
 							{else}
 								<div class="border-0 px-1 mx-auto m-0">
 									<div class="px-0 m-0 form-row d-flex justify-content-center">

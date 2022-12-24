@@ -1,16 +1,17 @@
 <?php
 
 /**
- * Calendar actions.
+ * Calendar actions file.
  *
  * @package Action
  *
  * @copyright 	YetiForce S.A.
  * @license 	YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author   	Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
+ * @author    	Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 /**
- * Vtiger_Calendar_Action class.
+ * Calendar actions class.
  */
 class Vtiger_Calendar_Action extends \App\Controller\Action
 {
@@ -40,9 +41,9 @@ class Vtiger_Calendar_Action extends \App\Controller\Action
 		parent::__construct();
 		$this->exposeMethod('getEvents');
 		$this->exposeMethod('getEventsYear');
-		$this->exposeMethod('getCountEvents');
 		$this->exposeMethod('updateEvent');
 		$this->exposeMethod('getCountEventsGroup');
+		$this->exposeMethod('pinOrUnpinUser');
 	}
 
 	public function getEvents(App\Request $request)
@@ -50,34 +51,6 @@ class Vtiger_Calendar_Action extends \App\Controller\Action
 		$record = $this->getCalendarModel($request);
 		$record->remove('types');
 		$entity = array_merge($record->getEntity(), $record->getPublicHolidays());
-		$response = new Vtiger_Response();
-		$response->setResult($entity);
-		$response->emit();
-	}
-
-	/**
-	 * Get events for year view.
-	 *
-	 * @param \App\Request $request
-	 */
-	public function getEventsYear(App\Request $request)
-	{
-		$record = $this->getCalendarModel($request);
-		$entity = array_merge($record->getEntityYearCount(), $record->getPublicHolidays());
-		$response = new Vtiger_Response();
-		$response->setResult($entity);
-		$response->emit();
-	}
-
-	/**
-	 * Get count Events for extended calendar's left column.
-	 *
-	 * @param \App\Request $request
-	 */
-	public function getCountEvents(App\Request $request)
-	{
-		$record = $this->getCalendarModel($request);
-		$entity = $record->getEntityRecordsCount();
 		$response = new Vtiger_Response();
 		$response->setResult($entity);
 		$response->emit();
@@ -93,9 +66,9 @@ class Vtiger_Calendar_Action extends \App\Controller\Action
 		$request->delete('end');
 		$record = $this->getCalendarModel($request);
 		$result = [];
-		foreach ($request->getArray('dates', 'DateTimeInUserFormat') as $datePair) {
-			$record->set('start', $datePair[0]);
-			$record->set('end', $datePair[1]);
+		foreach ($request->getArray('dates', 'date') as $datePair) {
+			$record->set('start', App\Fields\DateTime::formatToDisplay($datePair[0] . ' 00:00:00'));
+			$record->set('end', App\Fields\DateTime::formatToDisplay($datePair[1] . ' 23:59:59'));
 			$result[] = $record->getEntityRecordsCount();
 		}
 		$response = new Vtiger_Response();
@@ -137,9 +110,43 @@ class Vtiger_Calendar_Action extends \App\Controller\Action
 	public function updateEvent(App\Request $request)
 	{
 		$record = Vtiger_Calendar_Model::getInstance($request->getModule());
-		$success = $record->updateEvent($request->getInteger('id'), $request->get('start'), $request->getArray('delta'));
+		$success = $record->updateEvent($request->getInteger('id'), $request->getByType('start', 'dateTimeInUserFormat'), $request->getByType('end', 'dateTimeInUserFormat'), $request);
 		$response = new Vtiger_Response();
 		$response->setResult($success);
+		$response->emit();
+	}
+
+	/**
+	 * Get count Events for extended calendar's left column.
+	 *
+	 * @param App\Request $request
+	 *
+	 * @return void
+	 */
+	public function pinOrUnpinUser(App\Request $request): void
+	{
+		$db = \App\Db::getInstance();
+		$userId = \App\User::getCurrentUserId();
+		if (!$request->isEmpty('element_id')) {
+			$id = $request->getInteger('element_id');
+			if (\App\User::isExists($id)) {
+				$users = Vtiger_CalendarRightPanel_Model::getFavoriteUsers($request->getModule());
+				if (empty($users[$id])) {
+					$db->createCommand()->insert('u_#__users_pinned', [
+						'user_id' => $userId,
+						'tabid' => \App\Module::getModuleId($request->getModule()),
+						'fav_id' => $id,
+					])->execute();
+					$result = 'pin';
+				} else {
+					$db->createCommand()->delete('u_#__users_pinned', ['id' => $users[$id]])->execute();
+					$result = 'unpin';
+				}
+				\App\Cache::delete('FavoriteUsers', $userId);
+			}
+		}
+		$response = new Vtiger_Response();
+		$response->setResult($result);
 		$response->emit();
 	}
 }

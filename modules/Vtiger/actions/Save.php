@@ -39,7 +39,7 @@ class Vtiger_Save_Action extends \App\Controller\Action
 		$moduleName = $request->getModule();
 		if ($request->isEmpty('record', true)) {
 			$this->record = Vtiger_Record_Model::getCleanInstance($moduleName);
-			if (!$this->record->isCreateable()) {
+			if (!$this->record->isCreatable()) {
 				throw new \App\Exceptions\NoPermittedToRecord('ERR_NO_PERMISSIONS_FOR_THE_RECORD', 406);
 			}
 		} else {
@@ -170,6 +170,9 @@ class Vtiger_Save_Action extends \App\Controller\Action
 			$handlerId = $handler['eventhandler_id'];
 			$response = $eventHandler->triggerHandler($handler);
 			if (!($response['result'] ?? null) && (!isset($response['hash'], $skipHandlers[$handlerId]) || $skipHandlers[$handlerId] !== $response['hash'])) {
+				if ($result && 'confirm' === ($response['type'] ?? '')) {
+					break;
+				}
 				$result[$handlerId] = $response;
 			}
 		}

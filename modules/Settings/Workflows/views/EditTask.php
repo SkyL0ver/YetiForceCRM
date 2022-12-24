@@ -53,7 +53,6 @@ class Settings_Workflows_EditTask_View extends Settings_Vtiger_Index_View
 			if (!empty($taskObject->entity_type) && $taskObject->field_value_mapping) {
 				$relationModuleModel = Vtiger_Module_Model::getInstance($taskObject->entity_type);
 				$ownerFieldModels = $relationModuleModel->getFieldsByType('owner');
-
 				$fieldMapping = \App\Json::decode($taskObject->field_value_mapping);
 				foreach ($fieldMapping as $key => $mappingInfo) {
 					if (\array_key_exists($mappingInfo['fieldname'], $ownerFieldModels)) {
@@ -88,14 +87,14 @@ class Settings_Workflows_EditTask_View extends Settings_Vtiger_Index_View
 					$recordStructureModulesField[$relatedModuleName][$referenceField->getFieldName()] = Vtiger_RecordStructure_Model::getInstanceForModule(Vtiger_Module_Model::getInstance($relatedModuleName))->getStructure();
 				}
 			}
-			$viewer->assign('ADVANCE_CRITERIA', $taskObject->conditions);
+			$viewer->assign('ADVANCE_CRITERIA', $taskObject->conditions ?? []);
 			$viewer->assign('RECORD_STRUCTURE_RELATED_MODULES', $recordStructureModulesField);
 			$viewer->assign('RECORD_STRUCTURE', Vtiger_RecordStructure_Model::getInstanceForModule($moduleModel)->getStructure());
 		}
-		if ('VTEmailTemplateTask' === $taskType) {
+		if (\in_array($taskType, ['VTEmailTemplateTask', 'VTEmailTask'])) {
 			$relations = \App\Field::getRelatedFieldForModule($sourceModule);
 			$documentsModel = Vtiger_Module_Model::getInstance('Documents');
-			$relationsWithDocuments = [];
+			$relationsWithDocuments = $documentsMultiReferenceField = [];
 			foreach ($relations as $relatedModuleName => $info) {
 				$documentsRelations = Vtiger_Relation_Model::getInstance(Vtiger_Module_Model::getInstance($relatedModuleName), $documentsModel);
 				if (false !== $documentsRelations) {
@@ -107,8 +106,15 @@ class Settings_Workflows_EditTask_View extends Settings_Vtiger_Index_View
 			if (false !== $documentsRelations) {
 				$documents = true;
 			}
-			$viewer->assign('DOCUMENTS_RELATED_MODULLES', $relationsWithDocuments);
-			$viewer->assign('DOCUMENTS_MODULLES', $documents);
+			foreach ($moduleModel->getFieldsByType('multiReference', true) as $fieldName => $fieldModel) {
+				$fieldParams = $fieldModel->getFieldParams();
+				if (isset($fieldParams['module']) && 'Documents' === $fieldParams['module']) {
+					$documentsMultiReferenceField[$fieldName] = $fieldModel;
+				}
+			}
+			$viewer->assign('DOCUMENTS_MULTI_REFERENCE_FIELD', $documentsMultiReferenceField);
+			$viewer->assign('DOCUMENTS_RELATED_MODULES', $relationsWithDocuments);
+			$viewer->assign('DOCUMENTS_MODULES', $documents);
 			$relationsEmails = [];
 			foreach ($moduleModel->getRelations() as $relation) {
 				if (!\in_array($relation->get('relatedModuleName'), [$sourceModule, 'Documents', 'OSSMailView'])) {
@@ -130,19 +136,7 @@ class Settings_Workflows_EditTask_View extends Settings_Vtiger_Index_View
 		$viewer->assign('WORKFLOW_MODEL', $workflowModel);
 		$viewer->assign('TASK_MODEL', $taskModel);
 		$viewer->assign('CURRENTDATE', date('Y-n-j'));
-		// Adding option Line Item block for Individual tax mode
-		$individualTaxBlockLabel = \App\Language::translate('LBL_LINEITEM_BLOCK_GROUP', $qualifiedModuleName);
-		$individualTaxBlockValue = $viewer->view('LineItemsGroupTemplate.tpl', $qualifiedModuleName, true);
 
-		// Adding option Line Item block for group tax mode
-		$groupTaxBlockLabel = \App\Language::translate('LBL_LINEITEM_BLOCK_INDIVIDUAL', $qualifiedModuleName);
-		$groupTaxBlockValue = $viewer->view('LineItemsIndividualTemplate.tpl', $qualifiedModuleName, true);
-
-		$templateVariables = [
-			$individualTaxBlockValue => $individualTaxBlockLabel,
-			$groupTaxBlockValue => $groupTaxBlockLabel,
-		];
-		$viewer->assign('TEMPLATE_VARIABLES', $templateVariables);
 		$viewer->assign('TASK_OBJECT', $taskObject);
 		$viewer->assign('FIELD_EXPRESSIONS', Settings_Workflows_Module_Model::getExpressions());
 		$userModel = \App\User::getCurrentUserModel();

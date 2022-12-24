@@ -9,30 +9,30 @@
  * ****************************************************************************** */
 
 // Start the cron services configured.
+$init = microtime(true);
 chdir(__DIR__);
 require_once __DIR__ . '/include/main/WebUI.php';
 try {
 	$checkLibrary = true;
 	require_once __DIR__ . '/include/RequirementsValidation.php';
 } catch (\Throwable $e) {
-	file_put_contents(__DIR__ . '/cache/logs/cron_error.log', date('Y-m-d H:i:s') . ' - ' . $e->getMessage() . PHP_EOL, LOCK_EX);
+	file_put_contents(__DIR__ . '/cache/logs/cron_error.log', date('Y-m-d H:i:s', (int) $init) . ' - ' . $e->getMessage() . PHP_EOL, LOCK_EX);
 	throw $e;
 }
 \App\Process::$requestMode = 'Cron';
 \App\Utils\ConfReport::$sapi = 'cron';
-$cronInstance = new \App\Cron();
 \App\Session::init();
 \App\Session::set('last_activity', microtime(true));
 $authenticatedUserId = \App\Session::get('authenticated_user_id');
 $appUniqueKey = \App\Session::get('app_unique_key');
 $user = (!empty($authenticatedUserId) && !empty($appUniqueKey) && $appUniqueKey === App\Config::main('application_unique_key'));
 $response = '';
-$cronInstance->log('SAPI: ' . PHP_SAPI . ', User: ' . Users::getActiveAdminId(), 'info', false);
 if (PHP_SAPI === 'cli' || $user || App\Config::main('application_unique_key') === \App\Request::_get('app_key')) {
-	$cronTasks = false;
-	$cronInstance->log('Cron start', 'info', false);
+	$cronInstance = new \App\Cron();
+	$cronInstance->log('Cron start | SAPI: ' . PHP_SAPI . ', User: ' . Users::getActiveAdminId(), 'info', false);
 	$cronInstance::$cronTimeStart = microtime(true);
 	vtlib\Cron::setCronAction(true);
+	$cronTasks = false;
 	if (\App\Request::_has('service')) {
 		$cronTask = vtlib\Cron::getInstance(\App\Request::_get('service'));
 		if (!$cronTask) {
@@ -46,7 +46,7 @@ if (PHP_SAPI === 'cli' || $user || App\Config::main('application_unique_key') ==
 	if ($user) {
 		$response .= '<pre>';
 	}
-	$response .= sprintf('---------------  %s | Start CRON  ----------', date('Y-m-d H:i:s')) . PHP_EOL;
+	$response .= sprintf('---------------  %s (init: %s) | Start CRON  ----------', date('Y-m-d H:i:s'), date('H:i:s', (int) $init)) . PHP_EOL;
 	foreach ($cronTasks as $cronTask) {
 		try {
 			$cronTask->setCronInstance($cronInstance);
@@ -130,6 +130,6 @@ if (PHP_SAPI === 'cli' || $user || App\Config::main('application_unique_key') ==
 		}
 	}
 	$cronInstance->log('End CRON (' . $cronInstance->getCronExecutionTime() . ')', 'info', false);
-	$response .= sprintf('===============  %s (' . $cronInstance->getCronExecutionTime() . ') | End CRON  ==========', date('Y-m-d H:i:s')) . PHP_EOL;
+	$response .= sprintf('===============  %s (Tasks: ' . $cronInstance->getCronExecutionTime() . ') (Script: %s) | End CRON  ==========', date('Y-m-d H:i:s'), round(microtime(true) - $init, 2)) . PHP_EOL;
 	echo $response;
 }

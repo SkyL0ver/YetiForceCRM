@@ -55,12 +55,11 @@ jQuery.Class(
 				})
 				.fail(function (error, err) {});
 		},
-		/*
-		 * function to trigger send Sms
-		 * @params: send sms url , module name.
+		/**
+		 * Function to trigger SMS quick view actions
 		 */
-		triggerSendSms: function (detailActionUrl, module) {
-			Vtiger_Detail_Js.triggerDetailViewAction(detailActionUrl);
+		triggerSMSmodal: () => {
+			App.Components.QuickCreate.createRecord('SMSNotifier', { noCache: true });
 		},
 		triggerTransferOwnership: function (massActionUrl) {
 			let thisInstance = this;
@@ -403,7 +402,7 @@ jQuery.Class(
 						for (let i in data) {
 							params.recordsToAdd.push(i);
 						}
-						AppConnector.request(params).done(function (res) {
+						AppConnector.request(params).done(function () {
 							thisInstance.reloadTabContent();
 						});
 					});
@@ -872,24 +871,6 @@ jQuery.Class(
 			}
 		},
 		/*
-		 * Function to register the click event of email field
-		 */
-		registerEmailFieldClickEvent: function () {
-			let detailContentsHolder = this.getContentHolder();
-			detailContentsHolder.on('click', '.emailField', function (e) {
-				e.stopPropagation();
-			});
-		},
-		/*
-		 * Function to register the click event of phone field
-		 */
-		registerPhoneFieldClickEvent: function () {
-			let detailContentsHolder = this.getContentHolder();
-			detailContentsHolder.on('click', '.phoneField', function (e) {
-				e.stopPropagation();
-			});
-		},
-		/*
 		 * Function to register the click event of url field
 		 */
 		registerUrlFieldClickEvent: function () {
@@ -1230,10 +1211,7 @@ jQuery.Class(
 									let detailContentsHolder = thisInstance.getContentHolder();
 									thisInstance.reloadTabContent();
 									thisInstance.registerSummaryViewContainerEvents(detailContentsHolder);
-									thisInstance.registerEventForPicklistDependencySetup(thisInstance.getForm());
 									thisInstance.registerEventForRelatedList();
-								} else if (selectedTabElement.data('linkKey') == thisInstance.detailViewDetailsTabLabel) {
-									thisInstance.registerEventForPicklistDependencySetup(thisInstance.getForm());
 								}
 								thisInstance.updateRecordsPDFTemplateBtn(thisInstance.getForm());
 							})
@@ -1304,61 +1282,6 @@ jQuery.Class(
 				App.Components.QuickCreate.createRecord(referenceModuleName, QuickCreateParams);
 			});
 		},
-		getEndDate: function (startDate) {
-			let dateTab = startDate.split('-');
-			let date = new Date(dateTab[0], dateTab[1], dateTab[2]);
-			let newDate = new Date();
-
-			newDate.setDate(date.getDate() + 2);
-			return app.getStringDate(newDate);
-		},
-		getSingleEventType: function (modDay, id, type) {
-			let dateStartEl = jQuery('[name="date_start"]');
-			let dateStartVal = jQuery(dateStartEl).val();
-			let dateStartFormat = jQuery(dateStartEl).data('date-format');
-			let validDateFromat = Vtiger_Helper_Js.convertToDateString(dateStartVal, dateStartFormat, modDay, type);
-			let map = jQuery.extend({}, ['#b6a996,black']);
-
-			let params = {
-				module: 'Calendar',
-				action: 'Feed',
-				start: validDateFromat,
-				end: this.getEndDate(validDateFromat),
-				type: type,
-				mapping: map
-			};
-
-			AppConnector.request(params).done(function (events) {
-				let testDate = Vtiger_Helper_Js.convertToDateString(dateStartVal, dateStartFormat, modDay);
-				if (!jQuery.isEmptyObject(events)) {
-					if (events[0]['activitytype'] === 'Task') {
-						for (let ev in events) {
-							if (events[ev]['start'].indexOf(testDate) > -1) {
-								jQuery('#' + id + ' .table').append(
-									'<tr><td><a target="_blank" href="' +
-										events[ev]['url'] +
-										'">' +
-										events[ev]['title'] +
-										'</a></td></tr>'
-								);
-							}
-						}
-					} else {
-						for (let i = 0; i < events[0].length; i++) {
-							if (events[0][i]['start'].indexOf(testDate) > -1) {
-								jQuery('#' + id + ' .table').append(
-									'<tr><td><a target="_blank" href="' +
-										events[0][i]['url'] +
-										'">' +
-										events[0][i]['title'] +
-										'</a></td></tr>'
-								);
-							}
-						}
-					}
-				}
-			});
-		},
 		/**
 		 * Function to add module related record from summary widget
 		 */
@@ -1426,13 +1349,13 @@ jQuery.Class(
 						params['search_key'] = restrictionsField.key;
 						params['search_value'] = restrictionsField.name;
 					}
-					app.showRecordsList(params, (modal, instance) => {
+					app.showRecordsList(params, (_modal, instance) => {
 						instance.setSelectEvent((responseData) => {
 							thisInstance
 								.addRelationBetweenRecords(referenceModuleName, Object.keys(responseData), null, {
 									relationId: params.relationId
 								})
-								.done(function (data) {
+								.done(function () {
 									thisInstance.loadWidget(summaryWidgetContainer.find('.widgetContentBlock'));
 								});
 						});
@@ -1818,90 +1741,6 @@ jQuery.Class(
 						});
 				}
 			});
-		},
-		/**
-		 * Function to register event for setting up picklistdependency
-		 * for a module if exist on change of picklist value
-		 */
-		registerEventForPicklistDependencySetup: function (container) {
-			let thisInstance = this;
-			let picklistDependcyElemnt = jQuery('[name="picklistDependency"]', container);
-			if (picklistDependcyElemnt.length <= 0) {
-				return;
-			}
-			let picklistDependencyMapping = JSON.parse(picklistDependcyElemnt.val());
-			let sourcePicklists = Object.keys(picklistDependencyMapping);
-			if (sourcePicklists.length <= 0) {
-				return;
-			}
-
-			let sourcePickListNames = [];
-			for (let i = 0; i < sourcePicklists.length; i++) {
-				sourcePickListNames.push('[name="' + sourcePicklists[i] + '"]');
-			}
-			sourcePickListNames = sourcePickListNames.join(',');
-			let sourcePickListElements = container.find(sourcePickListNames);
-			sourcePickListElements.on('change', function (e) {
-				let currentElement = jQuery(e.currentTarget);
-				let sourcePicklistname = currentElement.attr('name');
-
-				let configuredDependencyObject = picklistDependencyMapping[sourcePicklistname];
-				let selectedValue = currentElement.val();
-				let targetObjectForSelectedSourceValue = configuredDependencyObject[selectedValue];
-				let picklistmap = configuredDependencyObject['__DEFAULT__'];
-
-				if (typeof targetObjectForSelectedSourceValue === 'undefined') {
-					targetObjectForSelectedSourceValue = picklistmap;
-				}
-				jQuery.each(picklistmap, function (targetPickListName, targetPickListValues) {
-					let targetPickListMap = targetObjectForSelectedSourceValue[targetPickListName];
-					if (typeof targetPickListMap === 'undefined') {
-						targetPickListMap = targetPickListValues;
-					}
-					let targetPickList = jQuery('[name="' + targetPickListName + '"]', container);
-					if (targetPickList.length <= 0) {
-						return;
-					}
-
-					//On change of SourceField value, If TargetField value is not there in mapping, make user to select the new target value also.
-					let selectedValue = targetPickList.data('selectedValue');
-					if (jQuery.inArray(selectedValue, targetPickListMap) == -1) {
-						thisInstance.targetPicklistChange = true;
-						thisInstance.targetPicklist = targetPickList.closest('td');
-					} else {
-						thisInstance.targetPicklistChange = false;
-						thisInstance.targetPicklist = false;
-					}
-
-					let listOfAvailableOptions = targetPickList.data('availableOptions');
-					if (typeof listOfAvailableOptions === 'undefined') {
-						listOfAvailableOptions = jQuery('option', targetPickList);
-						targetPickList.data('available-options', listOfAvailableOptions);
-					}
-
-					let targetOptions = new jQuery();
-					let optionSelector = [];
-					optionSelector.push('');
-					for (let i = 0; i < targetPickListMap.length; i++) {
-						optionSelector.push(targetPickListMap[i]);
-					}
-
-					jQuery.each(listOfAvailableOptions, function (i, e) {
-						let picklistValue = jQuery(e).val();
-						if (jQuery.inArray(picklistValue, optionSelector) != -1) {
-							targetOptions = targetOptions.add(jQuery(e));
-						}
-					});
-					let targetPickListSelectedValue = '';
-					targetPickListSelectedValue = targetOptions.filter('[selected]').val();
-					if (targetPickListMap.length == 1) {
-						targetPickListSelectedValue = targetPickListMap[0]; // to automatically select picklist if only one picklistmap is present.
-					}
-					targetPickList.html(targetOptions).val(targetPickListSelectedValue).trigger('change');
-				});
-			});
-			//To Trigger the change on load
-			sourcePickListElements.trigger('change');
 		},
 		/**
 		 * Function to get child comments
@@ -2817,6 +2656,7 @@ jQuery.Class(
 					tabElement.trigger('click');
 				});
 			app.registerIframeEvents(detailContentsHolder);
+			app.registerBlockToggleEvent(detailContentsHolder);
 		},
 		reloadWidgetActivitesStats: function (container) {
 			let countElement = container.find('.countActivities');
@@ -2987,8 +2827,6 @@ jQuery.Class(
 			this.registerAjaxEditEvent();
 			this.registerRelatedRowClickEvent();
 			this.registerBlockStatusCheckOnLoad();
-			this.registerEmailFieldClickEvent();
-			this.registerPhoneFieldClickEvent();
 			this.registerEventForRelatedTabClick();
 			Vtiger_Helper_Js.showHorizontalTopScrollBar();
 			this.registerUrlFieldClickEvent();
@@ -2999,7 +2837,6 @@ jQuery.Class(
 			}
 			this.registerWidgetProductAndServices();
 			this.registerSetReadRecord(detailViewContainer);
-			this.registerEventForPicklistDependencySetup(this.getForm());
 			this.getForm().validationEngine(app.validationEngineOptionsForRecord);
 			this.loadWidgetsEvents();
 			this.loadWidgets();

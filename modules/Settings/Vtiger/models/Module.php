@@ -116,14 +116,13 @@ class Settings_Vtiger_Module_Model extends \App\Base
 	/**
 	 * Function to get the instance of Settings module model.
 	 *
-	 * @param mixed $name
+	 * @param string $name
 	 *
-	 * @return Settings_Vtiger_Module_Model instance
+	 * @return $this instance
 	 */
 	public static function getInstance($name = 'Settings:Vtiger')
 	{
 		$modelClassName = Vtiger_Loader::getComponentClassName('Model', 'Module', $name);
-
 		return new $modelClassName();
 	}
 

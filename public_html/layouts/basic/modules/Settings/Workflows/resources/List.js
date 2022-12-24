@@ -5,6 +5,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
+ * Contributor(s): YetiForce S.A.
  *************************************************************************************/
 'use strict';
 
@@ -72,16 +73,18 @@ Settings_Vtiger_List_Js(
 	},
 	{
 		registerFilterChangeEvent: function () {
-			var thisInstance = this;
-			jQuery('#moduleFilter').on('change', function (e) {
+			let thisInstance = this;
+			this.topMenuContainer.find('.js-workflow-module-filter').on('change', (e) => {
+				this.topMenuContainer.find('.js-workflow-sort-button').removeClass('d-none');
 				jQuery('#pageNumber').val('1');
 				jQuery('#pageToJump').val('1');
 				jQuery('#orderBy').val('');
 				jQuery('#sortOrder').val('');
-				var params = {
+				let params = {
 					module: app.getModuleName(),
 					parent: app.getParentModuleName(),
-					sourceModule: jQuery(e.currentTarget).val()
+					sourceModule: jQuery(e.currentTarget).val(),
+					orderby: 'sequence'
 				};
 				//Make the select all count as empty
 				jQuery('#recordsCount').val('');
@@ -123,10 +126,57 @@ Settings_Vtiger_List_Js(
 				window.location.href = jQuery(this).data('url');
 			});
 		},
+		/**
+		 * Register show sort actions modal
+		 */
+		registerShowSortActionsModal: function () {
+			$('.js-workflow-sort-button').on('click', () => {
+				let sourceModule = this.topMenuContainer.find('.js-workflow-module-filter option:selected').val();
+				let url = 'index.php?module=Workflows&parent=Settings&view=SortActionsModal&sourceModule=' + sourceModule;
+				app.showModalWindow(null, url, (modalContainer) => {
+					modalContainer.find('.js-modal__save').on('click', (e) => {
+						e.preventDefault();
+						let progressIndicatorElement = $.progressIndicator({
+							position: 'html',
+							blockInfo: {
+								enabled: true
+							}
+						});
+						AppConnector.request({
+							module: this.container.find('[name="module"]').length
+								? this.container.find('[name="module"]').val()
+								: app.getModuleName(),
+							parent: app.getParentModuleName(),
+							sourceModule: sourceModule,
+							action: 'SaveAjax',
+							mode: 'sequenceActions',
+							workflowForSort: modalContainer.find('.js-workflow-for-sort').val(),
+							workflowBefore: modalContainer.find('.js-workflow-before').val()
+						})
+							.done((data) => {
+								if (data.result.message) {
+									app.hideModalWindow();
+									progressIndicatorElement.progressIndicator({ mode: 'hide' });
+									let params = this.getDefaultParams();
+									params.orderby = 'sequence';
+									this.getListViewRecords(params);
+									app.showNotify({ text: data.result.message });
+								}
+							})
+							.fail(function (error, err) {
+								app.errorLog(error, err);
+							});
+					});
+				});
+			});
+		},
 		registerEvents: function () {
+			this.container = this.getListViewContentContainer();
 			this._super();
+			this.topMenuContainer = this.getListViewTopMenuContainer();
 			this.registerFilterChangeEvent();
 			this.registerImportTemplate();
+			this.registerShowSortActionsModal();
 		}
 	}
 );

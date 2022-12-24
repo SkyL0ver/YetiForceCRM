@@ -1,13 +1,17 @@
 <?php
 
 /**
- * Occurrences calendar model class.
+ * Occurrences calendar model files.
  *
  * @package Model
  *
  * @copyright YetiForce S.A.
  * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ */
+/**
+ * Occurrences calendar model class.
  */
 class Occurrences_Calendar_Model extends Vtiger_Calendar_Model
 {
@@ -101,6 +105,7 @@ class Occurrences_Calendar_Model extends Vtiger_Calendar_Model
 		$result = [];
 		$moduleModel = $this->getModule();
 		$isSummaryViewSupported = $moduleModel->isSummaryViewSupported();
+		$colors = \App\Fields\Picklist::getColors('occurrences_type', false);
 		while ($record = $dataReader->read()) {
 			$item = [];
 			$item['id'] = $record['id'];
@@ -114,9 +119,10 @@ class Occurrences_Calendar_Model extends Vtiger_Calendar_Model
 			$item['end'] = DateTimeField::convertToUserTimeZone($record['date_end'])->format('Y-m-d') . ' ' . $dateTimeInstance->getFullcalenderTime();
 			$item['end_display'] = $dateTimeInstance->getDisplayDateTimeValue();
 
-			$item['className'] = 'js-popover-tooltip--record ownerCBg_' . $record['assigned_user_id'] . ' picklistCBr_Occurrences_occurrences_type_' . $record['occurrences_type'];
+			$item['borderColor'] = $colors[$record['occurrences_type']] ?? '';
+			$item['className'] = 'js-popover-tooltip--record ownerCBg_' . $record['assigned_user_id'];
 			if ($isSummaryViewSupported) {
-				$item['url'] = 'index.php?module=' . $this->getModuleName() . '&view=QuickDetailModal&record=' . $record['id'];
+				$item['url'] = 'index.php?module=' . $this->getModuleName() . '&view=Detail&record=' . $record['id'];
 				$item['className'] .= ' js-show-modal';
 			} else {
 				$item['url'] = $moduleModel->getDetailViewUrl($record['id']);
@@ -137,62 +143,14 @@ class Occurrences_Calendar_Model extends Vtiger_Calendar_Model
 		return $this->getModule()->getFieldByName('occurrences_type')->getPicklistValues();
 	}
 
-	/**
-	 * Get entity count for year view.
-	 *
-	 * @return array
-	 */
-	public function getEntityYearCount()
-	{
-		$currentUser = \App\User::getCurrentUserModel();
-		$startDate = DateTimeField::convertToDBTimeZone($this->get('start'));
-		$startDate = strtotime($startDate->format('Y-m-d H:i:s'));
-		$endDate = DateTimeField::convertToDBTimeZone($this->get('end'));
-		$endDate = strtotime($endDate->format('Y-m-d H:i:s'));
-		$dataReader = $this->getQuery()->createCommand()->query();
-		$return = [];
-		while ($record = $dataReader->read()) {
-			$dateFormat = \App\Fields\DateTime::formatToDisplay($record['date_start']);
-			$dateTimeComponents = explode(' ', $dateFormat);
-			$startDateFormated = \App\Fields\Date::sanitizeDbFormat($dateTimeComponents[0], $currentUser->getDetail('date_format'));
-
-			$dateFormat = \App\Fields\DateTime::formatToDisplay($record['date_start']);
-			$dateTimeComponents = explode(' ', $dateFormat);
-			$endDateFormated = \App\Fields\Date::sanitizeDbFormat($dateTimeComponents[0], $currentUser->getDetail('date_format'));
-
-			$begin = new DateTime($startDateFormated);
-			$end = new DateTime($endDateFormated);
-			$end->modify('+1 day');
-			$interval = DateInterval::createFromDateString('1 day');
-			foreach (new DatePeriod($begin, $interval, $end) as $dt) {
-				$date = strtotime($dt->format('Y-m-d'));
-				if ($date >= $startDate && $date <= $endDate) {
-					$date = date('Y-m-d', $date);
-					$return[$date]['date'] = $date;
-					if (isset($return[$date]['count'])) {
-						++$return[$date]['count'];
-					} else {
-						$return[$date]['count'] = 1;
-					}
-				}
-			}
-		}
-		$dataReader->close();
-		return array_values($return);
-	}
-
 	/** {@inheritdoc} */
-	public function updateEvent(int $recordId, string $data, array $delta)
+	public function updateEvent(int $recordId, string $start, string $end, App\Request $request): bool
 	{
-		$start = DateTimeField::convertToDBTimeZone($data, \App\User::getCurrentUserModel(), false);
-		$dateStart = $start->format('Y-m-d H:i:s');
 		try {
 			$recordModel = Vtiger_Record_Model::getInstanceById($recordId, $this->getModuleName());
 			if ($success = $recordModel->isEditable()) {
-				$end = $this->changeDateTime($recordModel->get('date_end'), $delta);
-				$dueDate = $end['date'] . ' ' . $end['time'];
-				$recordModel->set('date_start', $dateStart);
-				$recordModel->set('date_end', $dueDate);
+				$recordModel->set('date_start', App\Fields\DateTime::formatToDb($start));
+				$recordModel->set('date_end', App\Fields\DateTime::formatToDb($end));
 				$recordModel->save();
 				$success = true;
 			}

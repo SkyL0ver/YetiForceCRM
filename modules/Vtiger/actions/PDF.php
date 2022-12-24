@@ -30,8 +30,8 @@ class Vtiger_PDF_Action extends \App\Controller\Action
 	 */
 	public function checkPermission(App\Request $request)
 	{
-		$currentUserPriviligesModel = Users_Privileges_Model::getCurrentUserPrivilegesModel();
-		if (!$currentUserPriviligesModel->hasModuleActionPermission($request->getModule(), 'ExportPdf')) {
+		$userPrivilegesModel = Users_Privileges_Model::getCurrentUserPrivilegesModel();
+		if (!$userPrivilegesModel->hasModuleActionPermission($request->getModule(), 'ExportPdf')) {
 			throw new \App\Exceptions\NoPermitted('LBL_PERMISSION_DENIED', 406);
 		}
 	}
@@ -99,7 +99,7 @@ class Vtiger_PDF_Action extends \App\Controller\Action
 		$templateIds = $request->getArray('pdf_template', 'Integer');
 		$singlePdf = 1 === $request->getInteger('single_pdf');
 		$emailPdf = 1 === $request->getInteger('email_pdf');
-		$pdfFlag = $request->getByType('flag', \App\Purifier::STANDARD) ?: '';
+		$pdfFlag = $request->getByType('flag', \App\Purifier::STANDARD) ?: null;
 		$key = 'inventoryColumns';
 		$userVariables = $request->getArray('userVariables', \App\Purifier::TEXT);
 
@@ -107,7 +107,7 @@ class Vtiger_PDF_Action extends \App\Controller\Action
 		$pdfModel = new $handlerClass();
 		$templates = ($recordId && !$isRelatedView) ? $pdfModel->getActiveTemplatesForRecord($recordId, $view, $pdfModuleName) : $pdfModel->getActiveTemplatesForModule($pdfModuleName, $view);
 
-		if (($emailPdf && !\App\Privilege::isPermitted('OSSMail'))
+		if (($emailPdf && !\App\Mail::checkInternalMailClient())
 			|| ($request->has($key) && !\App\Privilege::isPermitted($pdfModuleName, 'RecordPdfInventory'))
 			|| array_diff($templateIds, array_keys($templates))
 			) {
@@ -197,7 +197,7 @@ class Vtiger_PDF_Action extends \App\Controller\Action
 						}
 					}
 				}
-				$pdf->output($filePath, $mode ?? 'D');
+				$pdf->output($filePath, $mode ?? $pdfFlag ?? 'D');
 			}
 		}
 		if ($singlePdf) {
@@ -277,5 +277,15 @@ class Vtiger_PDF_Action extends \App\Controller\Action
 			$records = \Vtiger_Mass_Action::getRecordsListFromRequest($request);
 		}
 		return $records;
+	}
+
+	/** {@inheritdoc} */
+	public function validateRequest(App\Request $request)
+	{
+		if ('generate' === $request->getMode()) {
+			$request->validateReadAccess();
+		} else {
+			$request->validateWriteAccess();
+		}
 	}
 }

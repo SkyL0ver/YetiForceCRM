@@ -17,7 +17,7 @@ class Vtiger_Phone_UIType extends Vtiger_Base_UIType
 		if (empty($value)) {
 			return '';
 		}
-		if (\Config\Main::$phoneFieldAdvancedVerification ?? false) {
+		if (\App\Config::component('Phone', 'advancedVerification', false)) {
 			$value = str_replace(' ', '', $value);
 		}
 		return \App\Purifier::decodeHtml($value);
@@ -35,7 +35,7 @@ class Vtiger_Phone_UIType extends Vtiger_Base_UIType
 		if (empty($value) || isset($this->validate[$value])) {
 			return;
 		}
-		if (\Config\Main::$phoneFieldAdvancedVerification ?? false) {
+		if (\App\Config::component('Phone', 'advancedVerification', false)) {
 			$phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
 			try {
 				$phoneUtil->isValidNumber($phoneUtil->parse($value));
@@ -51,10 +51,11 @@ class Vtiger_Phone_UIType extends Vtiger_Base_UIType
 	/** {@inheritdoc} */
 	public function getDisplayValue($value, $record = false, $recordModel = false, $rawText = false, $length = false)
 	{
-		$extra = '';
-		$href = $international = \App\Purifier::encodeHtml($value);
-		if ((\Config\Main::$phoneFieldAdvancedVerification ?? false) && ($format = \App\Config::main('phoneFieldAdvancedHrefFormat', \libphonenumber\PhoneNumberFormat::RFC3966)) !== false) {
-			if ($recordModel) {
+		$title = $extra = '';
+		$href = $international = ($value ? \App\Purifier::encodeHtml($value) : '');
+		if (\App\Config::component('Phone', 'advancedVerification', false)
+			&& ($format = \App\Config::component('Phone', 'advancedFormat', \libphonenumber\PhoneNumberFormat::INTERNATIONAL)) !== false) {
+			if ($recordModel && $recordModel->get($this->getFieldModel()->getName() . '_extra')) {
 				$extra = $recordModel->getDisplayValue($this->getFieldModel()->getName() . '_extra');
 				if ($extra) {
 					$extra = ' ' . $extra;
@@ -65,33 +66,11 @@ class Vtiger_Phone_UIType extends Vtiger_Base_UIType
 				$swissNumberProto = $phoneUtil->parse($value);
 				$international = $phoneUtil->format($swissNumberProto, \libphonenumber\PhoneNumberFormat::INTERNATIONAL);
 				$href = $phoneUtil->format($swissNumberProto, $format);
-			} catch (\libphonenumber\NumberParseException $e) {
-			}
-			if (\libphonenumber\PhoneNumberFormat::RFC3966 !== $format) {
-				$href = 'tel:' . $href;
-			}
-		} else {
-			$href = 'tel:' . $href;
-		}
-		if ($rawText) {
-			return $international . $extra;
-		}
-		if (!\App\Integrations\Pbx::isActive()) {
-			return '<a href="' . $href . '">' . $international . $extra . '</a>';
-		}
-		return '<a class="phoneField" onclick="Vtiger_Index_Js.performPhoneCall(\'' . preg_replace('/(?<!^)\+|[^\d+]+/', '', $international) . '\',' . $record . ')"><span class="fas fa-phone" aria-hidden="true"></span> ' . $international . $extra . '</a>';
-	}
 
-	/** {@inheritdoc} */
-	public function getListViewDisplayValue($value, $record = false, $recordModel = false, $rawText = false)
-	{
-		$href = $international = \App\Purifier::encodeHtml($value);
-		if ((\Config\Main::$phoneFieldAdvancedVerification ?? false) && ($format = \App\Config::main('phoneFieldAdvancedHrefFormat', \libphonenumber\PhoneNumberFormat::RFC3966)) !== false) {
-			$phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
-			try {
-				$swissNumberProto = $phoneUtil->parse($value);
-				$international = $phoneUtil->format($swissNumberProto, \libphonenumber\PhoneNumberFormat::INTERNATIONAL);
-				$href = $phoneUtil->format($swissNumberProto, $format);
+				$title .= ' ' . \libphonenumber\geocoding\PhoneNumberOfflineGeocoder::getInstance()
+					->getDescriptionForNumber($swissNumberProto, \App\Language::getLanguage());
+				$title .= ' ' . \libphonenumber\PhoneNumberToCarrierMapper::getInstance()
+					->getNameForValidNumber($swissNumberProto, \App\Language::getShortLanguageName());
 			} catch (\libphonenumber\NumberParseException $e) {
 			}
 			if (\libphonenumber\PhoneNumberFormat::RFC3966 !== $format) {
@@ -100,13 +79,19 @@ class Vtiger_Phone_UIType extends Vtiger_Base_UIType
 		} else {
 			$href = 'tel:' . $href;
 		}
-		if ($rawText) {
-			return $international;
+		$label = $international . $extra;
+		if ($rawText || (empty($international))) {
+			return $label;
 		}
 		if (!\App\Integrations\Pbx::isActive()) {
-			return '<a href="' . $href . '">' . $international . '</a>';
+			return '<a href="' . $href . '" class="js-popover-tooltip" title="' . $label . ' ' . trim($title) . '">' . $label . '</a>';
 		}
-		return '<a class="phoneField" onclick="Vtiger_Index_Js.performPhoneCall(\'' . preg_replace('/(?<!^)\+|[^\d+]+/', '', $international) . '\',' . $record . ')"><span class="fas fa-phone" aria-hidden="true"></span> ' . $international . '</a>';
+		$data = 'data-phone="' . preg_replace('/(?<!^)\+|[^\d+]+/', '', $international) . '"';
+		if ($record) {
+			$data .= ' data-record="' . $record . '"';
+		}
+		$data .= ' title="' . $label . ' ' . trim($title) . '"';
+		return '<a class="u-cursor-pointer js-phone-perform-call js-popover-tooltip" ' . $data . ' data-js="click|container"><span class="fas fa-phone" aria-hidden="true"></span> ' . $label . '</a>';
 	}
 
 	/** {@inheritdoc} */
@@ -116,7 +101,7 @@ class Vtiger_Phone_UIType extends Vtiger_Base_UIType
 			return '';
 		}
 		$href = $international = \App\Purifier::encodeHtml($value);
-		if ((\Config\Main::$phoneFieldAdvancedVerification ?? false) && ($format = \App\Config::main('phoneFieldAdvancedHrefFormat', \libphonenumber\PhoneNumberFormat::RFC3966)) !== false) {
+		if (\App\Config::component('Phone', 'advancedVerification', false) && ($format = \App\Config::component('Phone', 'advancedFormat', \libphonenumber\PhoneNumberFormat::RFC3966)) !== false) {
 			$phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
 			try {
 				$swissNumberProto = $phoneUtil->parse($value);
@@ -161,7 +146,7 @@ class Vtiger_Phone_UIType extends Vtiger_Base_UIType
 			'rawCountry' => $country,
 			'fieldName' => $this->getFieldModel()->getName(),
 		];
-		if (\App\Config::main('phoneFieldAdvancedVerification', false)) {
+		if (\App\Config::component('Phone', 'advancedVerification', false)) {
 			$phoneDetails = \App\Fields\Phone::getDetails($number, $country);
 			if (isset($phoneDetails['number'])) {
 				$details = array_merge($details, $phoneDetails);
@@ -179,7 +164,7 @@ class Vtiger_Phone_UIType extends Vtiger_Base_UIType
 		if ('' === $value && null !== $defaultValue) {
 			$value = $defaultValue;
 		}
-		if (\Config\Main::$phoneFieldAdvancedVerification ?? false) {
+		if (\App\Config::component('Phone', 'advancedVerification', false)) {
 			$value = preg_replace('/[^+\d]/', '', $value);
 		}
 		return $value;

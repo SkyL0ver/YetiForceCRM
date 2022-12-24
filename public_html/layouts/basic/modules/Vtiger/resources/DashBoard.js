@@ -90,7 +90,7 @@ $.Class(
 		savePositions: function (widgets) {
 			let widgetRowColPositions = {},
 				widgetSizes = {};
-			widgets.each((index, element) => {
+			widgets.each((_index, element) => {
 				let widget = $(element);
 				let widgetId = widget.find('.grid-stack-item-content').attr('id');
 				widgetRowColPositions[widgetId] = {
@@ -101,6 +101,7 @@ $.Class(
 					width: widget.attr('gs-w'),
 					height: widget.attr('gs-h')
 				};
+				this.getWidgetInstance(widget.find('.dashboardWidget')).loadScrollbar();
 			});
 			this.updateLazyWidget();
 			AppConnector.request({
@@ -175,7 +176,6 @@ $.Class(
 						);
 						app.showNotify({
 							title: app.vtranslate('JS_ERROR'),
-							text: errorThrown,
 							type: 'error'
 						});
 					});
@@ -300,29 +300,6 @@ $.Class(
 					mailBody.hide();
 					bodyIcon.removeClass('fa-chevron-up').addClass('fa-chevron-down');
 				}
-			});
-		},
-		registerChangeMailUser: function () {
-			let container = this.getContainer();
-			container.on('change', '#mailUserList', function (e) {
-				let element = $(e.currentTarget);
-				let parent = element.closest('.dashboardWidget');
-				let contentContainer = parent.find('.dashboardWidgetContent');
-				let optionSelected = $('option:selected', this);
-				let url = parent.data('url') + '&user=' + optionSelected.val();
-
-				let params = {};
-				params.url = url;
-				params.data = {};
-				contentContainer.progressIndicator({});
-				AppConnector.request(params)
-					.done(function (data) {
-						contentContainer.progressIndicator({ mode: 'hide' });
-						parent.html(data).trigger(Vtiger_Widget_Js.widgetPostRefereshEvent);
-					})
-					.fail(function () {
-						contentContainer.progressIndicator({ mode: 'hide' });
-					});
 			});
 		},
 		registerMiniListWidget: function () {
@@ -666,7 +643,6 @@ $.Class(
 			this.removeWidget();
 			this.registerDatePickerHideInitiater();
 			this.registerShowMailBody();
-			this.registerChangeMailUser();
 			this.registerMiniListWidget();
 			this.registerTabModules();
 			this.removeWidgetFromList();

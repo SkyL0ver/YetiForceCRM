@@ -110,10 +110,10 @@ class Purifier extends \Tests\Base
 			['DateInUserFormat', 'NotSame', date('Y.m.d'), date('Y.m.d'), 'Sample text should be purified', \App\Exceptions\IllegalValue::class],
 			['DateRangeUserFormat', 'Same', [date('Y-m-d'), date('Y-m-d', \strtotime('+1 day'))], date('Y-m-d') . ',' . date('Y-m-d', \strtotime('+1 day')), 'Sample text should be unchanged', null],
 			['DateRangeUserFormat', 'NotSame', date('Y.m.d') . ',' . date('Y.m.d', \strtotime('+1 day')), date('Y.m.d') . ',' . date('Y.m.d', \strtotime('+1 day')), 'Sample text should be purified', \App\Exceptions\IllegalValue::class],
-			['Date', 'Same', date('Y-m-d'), date('Y-m-d'), 'Sample text should be unchanged', null],
-			['Date', 'NotSame', '201X-07-26', '201X-07-26', 'Sample text should be purified', \App\Exceptions\IllegalValue::class],
-			['Time', 'Same', date('H:i:s'), date('H:i:s'), 'Sample text should be unchanged', null],
-			['Time', 'NotSame', '24:12:20', '24:12:20', 'Sample text should be unchanged', \App\Exceptions\IllegalValue::class],
+			['date', 'Same', date('Y-m-d'), date('Y-m-d'), 'Sample text should be unchanged', null],
+			['date', 'NotSame', '201X-07-26', '201X-07-26', 'Sample text should be purified', \App\Exceptions\IllegalValue::class],
+			['time', 'Same', date('H:i:s'), date('H:i:s'), 'Sample text should be unchanged', null],
+			['time', 'NotSame', '24:12:20', '24:12:20', 'Sample text should be unchanged', \App\Exceptions\IllegalValue::class],
 			['TimeInUserFormat', 'Same', date('H:i'), date('H:i'), 'Sample text should be unchanged', null],
 			['Bool', 'Same', true, true, 'Sample text should be unchanged', null],
 			['Bool', 'NotSame', 'Test-text', 'Test-text', 'Sample text should be purified', \App\Exceptions\IllegalValue::class],
@@ -131,9 +131,10 @@ class Purifier extends \Tests\Base
 			['Text', 'NotSame', 'ę€ółśążźćń23{}":?>><>?:"{}+_)(*&^%$#@!) &lt;svg/onabort=alert(3)//  <svg/onload=alert(1) onfocus=alert(2)//', 'ę€ółśążźćń23{}":?>><>?:"{}+_)(*&^%$#@!) &lt;svg/onabort=alert(3)//  <svg/onload=alert(1) onfocus=alert(2)//', 'Sample number should be purified', \App\Exceptions\IllegalValue::class],
 			['Default', 'Same', 'Test-text-string-for-purifier', 'Test-text-string-for-purifier', 'Sample number should be unchanged', null],
 			['Default', 'NotSame', 'ę€ółśążźćń23{}":?>><>?:"{}+_)(*&^%$#@!) &lt;svg/onabort=alert(3)//  <svg/onload=alert(1) onfocus=alert(2)//', 'ę€ółśążźćń23{}":?>><>?:"{}+_)(*&^%$#@!) &lt;svg/onabort=alert(3)//  <svg/onload=alert(1) onfocus=alert(2)//', 'Sample number should be purified', \App\Exceptions\IllegalValue::class],
-			['MailId', 'Same', '<5FB2B5EF@xx.cc.it> (added by postmaster@cc.it)', '<5FB2B5EF@xx.cc.it> (added by postmaster@cc.it)', 'Sample text should be unchanged', null],
-			['MailId', 'Same', '<30.123.12.JavaMail."admin.azure"@A-PROXY01>', '<30.123.12.JavaMail."admin.azure"@A-PROXY01>', 'Sample text should be unchanged', null],
-			['MailId', 'Same', '<CAK01GN-UtTiM90_wQNB07OnE6aBm=w@mail.g.c>', '<CAK01GN-UtTiM90_wQNB07OnE6aBm=w@mail.g.c>', 'Sample text should be unchanged', null],
+			['MailId', 'Same',  '5FB2B5EF@xx.cc.it> (added by postmaster@cc.it)', '<5FB2B5EF@xx.cc.it> (added by postmaster@cc.it)', 'Sample text should be unchanged', null],
+			['MailId', 'Same',  '30.123.12.JavaMail."admin.azure"@A-PROXY01', '<30.123.12.JavaMail."admin.azure"@A-PROXY01>', 'Sample text should be unchanged', null],
+			['MailId', 'Same',  'CAK01GN-UtTiM90_wQNB07OnE6aBm=w@mail.g.c', '<CAK01GN-UtTiM90_wQNB07OnE6aBm=w@mail.g.c>', 'Sample text should be unchanged', null],
+			['MailId', 'Same',  'AM9F9@AM9PR.eurprd01.prod.exchangelabs.com', ' <AM9F9@AM9PR.eurprd01.prod.exchangelabs.com', 'Sample text should be unchanged', null],
 			[\App\Purifier::PATH, 'NotSame', '../Test', '../Test', 'Path should be discarded', \App\Exceptions\IllegalValue::class],
 			[\App\Purifier::PATH, 'Same', '/Test/test', '/Test/test', 'Path should be unchanged', null],
 		];
@@ -205,7 +206,6 @@ class Purifier extends \Tests\Base
 		$rows = [];
 		$file = \App\Fields\File::loadFromUrl('https://raw.githubusercontent.com/YetiForceCompany/YetiForceCRM-Tests/main/xss-payload.txt');
 		$fileRows = explode("\n", $file->getContents());
-		// $fileRows = explode("\n", file_get_contents('c:\www\YetiForceCRM-Tests\xss-payload.txt'));
 		foreach ($fileRows as $row) {
 			if ($row) {
 				$rows[] = [$row];
@@ -247,6 +247,8 @@ class Purifier extends \Tests\Base
 			['<div>Test-text-string-for-purifier</div>', '<div>Test-text-string-for-purifier</div>', true],
 			['ę€ółśążźćń23{}":?>><>?:"{}+_)', 'ę€ółśążźćń23{}":?&gt;&gt;&lt;&gt;?:"{}+_)', true],
 			['ę€ółśążźćń23{}":?>><>?:"{}+_)(*&^%$#@!)', 'ę€ółśążźćń23{}":?&gt;&gt;&lt;&gt;?:"{}+_)(*&amp;^%$#@!)', true],
+			[\file_get_contents(ROOT_DIRECTORY . '/tests/data/phpFile1.html'), \file_get_contents(ROOT_DIRECTORY . '/tests/data/phpFile2.html'), true],
+			['<p><yetiforce type="Documents" crm-id="70521" attachment-id="22855"></yetiforce></p>', '<p><yetiforce type="Documents" crm-id="70521" attachment-id="22855"></yetiforce></p>', true],
 		];
 	}
 

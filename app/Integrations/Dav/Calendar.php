@@ -75,7 +75,7 @@ class Calendar
 	public static function deleteByCrmId(int $id)
 	{
 		$dbCommand = \App\Db::getInstance()->createCommand();
-		$dataReader = (new \App\Db\Query())->select(['id'])->from('dav_calendarobjects')->where(['crmid' => $id])->createCommand()->query();
+		$dataReader = (new \App\Db\Query())->select(['calendarid'])->from('dav_calendarobjects')->where(['crmid' => $id])->createCommand()->query();
 		$dbCommand->delete('dav_calendarobjects', ['crmid' => $id])->execute();
 		while ($calendarId = $dataReader->readColumn(0)) {
 			static::addChange($calendarId, $id . '.vcf', 3);
@@ -92,7 +92,7 @@ class Calendar
 	 */
 	public static function delete(array $calendar)
 	{
-		static::addChange($calendar['id'], $calendar['uri'], 3);
+		static::addChange($calendar['calendarid'], $calendar['uri'], 3);
 		\App\Db::getInstance()->createCommand()->delete('dav_calendarobjects', ['id' => $calendar['id']])->execute();
 	}
 
@@ -117,8 +117,7 @@ class Calendar
 		])->execute();
 		$dbCommand->update('dav_calendars', [
 			'synctoken' => ((int) $calendar['synctoken']) + 1,
-		], ['id' => $calendarId])
-			->execute();
+		], ['id' => $calendarId])->execute();
 	}
 
 	/**
@@ -144,8 +143,18 @@ class Calendar
 	{
 		$instance = new self();
 		$instance->record = \Vtiger_Record_Model::getCleanInstance('Calendar');
-		$instance->vcalendar = VObject\Reader::read($calendar);
-		$instance->vcomponent = current($instance->vcalendar->getBaseComponents());
+		$instance->vcalendar = VObject\Reader::read($calendar, \Sabre\VObject\Reader::OPTION_FORGIVING);
+		foreach ($instance->vcalendar->children() as $child) {
+			if (!$child instanceof VObject\Component) {
+				continue;
+			}
+			if ('VTIMEZONE' === $child->name) {
+				continue;
+			}
+			if (empty($instance->vcomponent)) {
+				$instance->vcomponent = $child;
+			}
+		}
 		return $instance;
 	}
 
@@ -287,12 +296,12 @@ class Calendar
 		if (false !== strpos($value, $separator)) {
 			[$html,$text] = explode($separator, $value, 2);
 			$value = trim(strip_tags($html)) . "\n" . \trim(\str_replace($separator, '', $text));
-		}else{
+		} else {
 			$value = trim(\str_replace('\n', PHP_EOL, $value));
 		}
 		$value = \App\Purifier::decodeHtml(\App\Purifier::purify($value));
-		if ($length = $this->record->getField($fieldName)->get('maximumlength')) {
-			$value = \App\TextParser::textTruncate($value, $length, false);
+		if ($length = $this->record->getField($fieldName)->getMaxValue()) {
+			$value = \App\TextUtils::textTruncate($value, $length, false);
 		}
 		$this->record->set($fieldName, \trim($value));
 	}
@@ -554,7 +563,7 @@ class Calendar
 		if ('VEVENT' === (string) $this->vcomponent->name) {
 			$values = [
 				'PLL_PLANNED' => 'TENTATIVE',
-				'PLL_OVERDUE' => 'CANCELLED',
+				'PLL_OVERDUE' => 'TENTATIVE',
 				'PLL_POSTPONED' => 'CANCELLED',
 				'PLL_CANCELLED' => 'CANCELLED',
 				'PLL_COMPLETED' => 'CONFIRMED',
@@ -563,7 +572,7 @@ class Calendar
 			$values = [
 				'PLL_PLANNED' => 'NEEDS-ACTION',
 				'PLL_IN_REALIZATION' => 'IN-PROCESS',
-				'PLL_OVERDUE' => 'CANCELLED',
+				'PLL_OVERDUE' => 'NEEDS-ACTION',
 				'PLL_POSTPONED' => 'CANCELLED',
 				'PLL_CANCELLED' => 'CANCELLED',
 				'PLL_COMPLETED' => 'COMPLETED',
@@ -792,7 +801,7 @@ class Calendar
 				if (0 === stripos($value, 'mailto:')) {
 					$value = substr($value, 7, \strlen($value) - 7);
 				}
-				if ($value && \App\TextParser::getTextLength($value) > 100 || !\App\Validator::email($value)) {
+				if ($value && \App\TextUtils::getTextLength($value) > 100 || !\App\Validator::email($value)) {
 					throw new \Sabre\DAV\Exception\BadRequest('Invalid email: ' . $value);
 				}
 				if (isset($attendee['ROLE']) && 'CHAIR' === $attendee['ROLE']->getValue()) {
@@ -814,7 +823,7 @@ class Calendar
 						$dbCommand->update('u_#__activity_invitation', [
 							'status' => $status,
 							'time' => $timeFormated,
-							'name' => \App\TextParser::textTruncate($nameAttendee, 500, false),
+							'name' => \App\TextUtils::textTruncate($nameAttendee, 500, false),
 						], ['activityid' => $record->getId(), 'email' => $value]
 					)->execute();
 					}
@@ -824,7 +833,7 @@ class Calendar
 						'email' => $value,
 						'crmid' => $crmid,
 						'status' => $status,
-						'name' => \App\TextParser::textTruncate($nameAttendee, 500, false),
+						'name' => \App\TextUtils::textTruncate($nameAttendee, 500, false),
 						'activityid' => $record->getId(),
 					];
 					if ($status) {
@@ -925,6 +934,8 @@ class Calendar
 	 * @param string $calendarData
 	 *
 	 * @return array
+	 *
+	 * @see Sabre\CalDAV\Backend\PDO::getDenormalizedData
 	 */
 	public function getDenormalizedData($calendarData)
 	{

@@ -2,7 +2,6 @@
 {strip}
 	<!-- tpl-Base-Detail-Widget-EmailList -->
 	{assign var=WIDGET_UID value="id-{\App\Layout::getUniqueId($WIDGET['id']|cat:_)}"}
-	{assign var=CONFIG value=OSSMail_Module_Model::getComposeParameters()}
 	<div class="c-detail-widget js-detail-widget" data-js="container">
 		<div class="widgetContainer_{$key} widgetContentBlock" data-url="{$WIDGET['url']}" data-name="{$WIDGET['label']}"
 			data-type="{$WIDGET['type']}">
@@ -33,11 +32,11 @@
 									<span class="body-icon fas fa-search"
 										title="{\App\Language::translate('LBL_SHOW_PREVIEW_EMAILS','OSSMailView')}"></span>
 								</button>
-								{if App\Config::main('isActiveSendingMails') && \App\Privilege::isPermitted('OSSMail')}
-									{if $USER_MODEL->get('internal_mailer') == 1}
+								{if \Config\Main::$isActiveSendingMails}
+									{if 'InternalClient' === \App\Mail::getMailComposer()}
 										{assign var=URLDATA value=OSSMail_Module_Model::getComposeUrl($MODULE_NAME, $RECORD->getId(), 'Detail', 'new')}
 										<button type="button" class="btn btn-sm btn-light sendMailBtn" data-url="{$URLDATA}"
-											data-module="{$MODULE_NAME}" data-record="{$RECORD->getId()}" data-popup="{$CONFIG['popup']}"
+											data-module="{$MODULE_NAME}" data-record="{$RECORD->getId()}" data-popup="{\App\User::getCurrentUserModel()->getDetail('mail_popup')}"
 											title="{\App\Language::translate('LBL_CREATEMAIL', 'OSSMailView')}">
 											<span class="fas fa-envelope"
 												title="{\App\Language::translate('LBL_CREATEMAIL', 'OSSMailView')}"></span>

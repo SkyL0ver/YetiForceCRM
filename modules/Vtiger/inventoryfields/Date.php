@@ -12,11 +12,17 @@
  */
 class Vtiger_Date_InventoryField extends Vtiger_Basic_InventoryField
 {
+	/** {@inheritdoc} */
 	protected $type = 'Date';
+	/** {@inheritdoc} */
 	protected $defaultLabel = 'LBL_DATE';
+	/** {@inheritdoc} */
 	protected $columnName = 'date';
+	/** {@inheritdoc} */
 	protected $dbType = \yii\db\Schema::TYPE_DATE;
+	/** {@inheritdoc} */
 	protected $onlyOne = false;
+	/** {@inheritdoc} */
 	protected $purifyType = \App\Purifier::DATE_USER_FORMAT;
 
 	/** {@inheritdoc} */
@@ -43,24 +49,8 @@ class Vtiger_Date_InventoryField extends Vtiger_Basic_InventoryField
 	}
 
 	/** {@inheritdoc} */
-	public function getEditValue($value)
-	{
-		if (empty($value)) {
-			return '';
-		}
-		return \App\Purifier::encodeHtml(DateTimeField::convertToUserFormat($value));
-	}
-
-	/** {@inheritdoc} */
 	public function getDisplayValue($value, array $rowData = [], bool $rawText = false)
 	{
-		if (empty($value)) {
-			return '';
-		}
-		$dateValue = App\Fields\Date::formatToDisplay($value);
-		if ('--' === $dateValue) {
-			return '';
-		}
-		return $dateValue;
+		return !empty($value) && preg_replace('/[\D]/', '', $dateValue = App\Fields\Date::formatToDisplay($value)) ? $dateValue : '';
 	}
 }

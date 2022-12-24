@@ -191,6 +191,19 @@ class Vtiger_DetailView_Model extends \App\Base
 					'modalView' => true,
 				]);
 			}
+			$smsModuleModel = Vtiger_Module_Model::getInstance('SMSNotifier');
+			if ($smsModuleModel->isSMSActiveForModule($moduleName)
+				&& $smsModuleModel->isQuickCreateSupported()
+				&& array_filter($recordModel->getModule()->getFieldsByType('phone', true), fn ($fieldModel) => !$recordModel->isEmpty($fieldModel->getName()))
+			) {
+				$linkModelList['DETAIL_VIEW_ADDITIONAL'][] = Vtiger_Link_Model::getInstanceFromValues([
+					'linktype' => 'DETAIL_VIEW_ADDITIONAL',
+					'linklabel' => 'BTN_SMSNOTIFIER',
+					'linkurl' => 'javascript:Vtiger_Detail_Js.triggerSMSmodal(this)',
+					'linkicon' => 'yfm-SMSNotifier',
+					'linkclass' => 'btn-outline-dark btn-sm',
+				]);
+			}
 			if ($fields = App\Field::getQuickChangerFields($moduleModel->getId())) {
 				foreach ($fields as $field) {
 					if (App\Field::checkQuickChangerConditions($field, $recordModel)) {

@@ -8,6 +8,7 @@
  * @copyright YetiForce S.A.
  * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 
 namespace Api\WebserviceStandard\BaseModule;
@@ -189,20 +190,17 @@ class Fields extends \Api\Core\BaseAction
 			$block = $fieldModel->get('block');
 			if ($returnBlocks && !isset($blocks[$block->id])) {
 				$blockProperties = get_object_vars($block);
-				$blocks[$block->id] = array_filter($blockProperties, function ($v) {
-					return !\is_object($v);
-				});
+				$blocks[$block->id] = array_filter($blockProperties, fn ($v) => !\is_object($v));
 				$blocks[$block->id]['name'] = \App\Language::translate($block->label, $moduleName);
 			}
 			$fieldInfo = $fieldModel->getFieldInfo();
 			$fieldInfo['id'] = $fieldModel->getId();
 			$fieldInfo['uitype'] = $fieldModel->getUIType();
 			if ($returnPrivileges) {
-				$isEditable = $fieldModel->isEditable();
 				$fieldInfo['isViewable'] = $fieldModel->isViewable();
 				$fieldInfo['isReadOnly'] = $fieldModel->isReadOnly();
-				$fieldInfo['isCreatable'] = $isEditable || 4 === $fieldModel->get('displaytype');
-				$fieldInfo['isEditable'] = $isEditable;
+				$fieldInfo['isCreatable'] = $fieldModel->isEditable('Create');
+				$fieldInfo['isEditable'] = $fieldModel->isEditable('Edit');
 				$fieldInfo['isEditableReadOnly'] = $fieldModel->isEditableReadOnly();
 				$fieldInfo['isEditableHidden'] = 9 === $fieldModel->get('displaytype');
 			}
@@ -214,9 +212,7 @@ class Fields extends \Api\Core\BaseAction
 				$fieldInfo['dbStructure'] = $fieldModel->getDBColumnType(false);
 			}
 			if ($returnQueryOperators) {
-				$fieldInfo['queryOperators'] = array_map(function ($value) use ($moduleName) {
-					return \App\Language::translate($value, $moduleName);
-				}, $fieldModel->getQueryOperators());
+				$fieldInfo['queryOperators'] = array_map(fn ($value) => \App\Language::translate($value, $moduleName), $fieldModel->getQueryOperators());
 			}
 			if (isset($fieldInfo['picklistvalues']) && $fieldModel->isEmptyPicklistOptionAllowed()) {
 				$fieldInfo['isEmptyPicklistOptionAllowed'] = $fieldModel->isEmptyPicklistOptionAllowed();

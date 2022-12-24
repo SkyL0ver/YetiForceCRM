@@ -40,7 +40,7 @@
 							{$COUNT = $COUNT+1}
 							{assign var=RELATED_HEADERNAME value=$HEADER_FIELD->getFieldName()}
 							<td class="text-left {$WIDTHTYPE}
-							{if $HEADER_FIELD->getFieldDataType() eq 'documentsFileUpload' && $HEADER_FIELD->isEditable() && $RELATED_RECORD->isEditable() && 'I' === $RELATED_RECORD->getValueByField('filelocationtype') } js-drop-container{/if}"
+							{if $RELATED_HEADERNAME && $HEADER_FIELD->getFieldDataType() eq 'documentsFileUpload' && $HEADER_FIELD->isEditable() && $RELATED_RECORD->isEditable() && 'I' === $RELATED_RECORD->getValueByField('filelocationtype') } js-drop-container{/if}"
 								data-id="{$RELATED_RECORD->getId()}"
 								data-module="{$RELATED_MODULE->getName()}"
 								data-field-name="{$RELATED_HEADERNAME}"
@@ -68,7 +68,7 @@
 								{if strlen($RELATED_RECORD->get('rel_comment')) > App\Config::relation('COMMENT_MAX_LENGTH')}
 									<a class="js-popover-tooltip" data-js="popover" data-placement="top"
 										data-content="{$RELATED_RECORD->get('rel_comment')}">
-										{App\TextParser::textTruncate($RELATED_RECORD->get('rel_comment'), App\Config::relation('COMMENT_MAX_LENGTH'))}
+										{App\TextUtils::textTruncate($RELATED_RECORD->get('rel_comment'), App\Config::relation('COMMENT_MAX_LENGTH'))}
 									</a>
 								{else}
 									{$RELATED_RECORD->get('rel_comment')}
@@ -185,6 +185,11 @@
 												class="yfi yfi-full-editing-view"></span>
 										</button>
 									</a>
+									{if $RELATED_MODULE->isQuickCreateSupported()}
+										<button type="button" class="btn btn-sm btn-light js-quick-edit-modal js-popover-tooltip" data-module="{$RELATED_RECORD->getModuleName()}" data-record="{$RELATED_RECORD->getId()}" data-content="{\App\Language::translate('LBL_QUICK_EDIT',$MODULE)}" data-js="click|popover">
+											<span title="{\App\Language::translate('LBL_QUICK_EDIT',$MODULE)}" class="yfi yfi-quick-creation "></span>
+										</button>
+									{/if}
 								{/if}
 							</div>
 						</div>
@@ -298,9 +303,14 @@
 								<button type="button" class="btn btn-sm btn-light js-popover-tooltip" data-js="popover"
 									data-content="{\App\Language::translate('LBL_EDIT', $MODULE)}">
 									<span title="{\App\Language::translate('LBL_EDIT', $MODULE)}"
-										class="far fa-edit"></span>
+										class="yfi yfi-full-editing-view"></span>
 								</button>
 							</a>
+							{if $RELATED_MODULE->isQuickCreateSupported()}
+								<button type="button" class="btn btn-sm btn-light js-quick-edit-modal js-popover-tooltip" data-module="{$RELATED_RECORD->getModuleName()}" data-record="{$RELATED_RECORD->getId()}" data-content="{\App\Language::translate('LBL_QUICK_EDIT',$MODULE)}" data-js="click|popover">
+									<span title="{\App\Language::translate('LBL_QUICK_EDIT',$MODULE)}" class="yfi yfi-quick-creation "></span>
+								</button>
+							{/if}
 						{/if}
 						<button type="button" class="btn btn-sm btn-light js-popover-tooltip">
 							<span class="far fa-times-circle hideSummaryRelRecordView u-cursor-pointer"></span>

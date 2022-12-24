@@ -27,6 +27,7 @@ class YetiForce extends Base
 			return false;
 		}
 		$params = array_merge([
+			'version' => 2.0,
 			'format' => 'json',
 			'addressdetails' => 1,
 			'limit' => 1,
@@ -59,13 +60,11 @@ class YetiForce extends Base
 	}
 
 	/** {@inheritdoc} */
-	public function getCoordinatesByValue(string $value)
+	public function getCoordinatesByValue(string $value): array
 	{
-		$coordinatesDetails = $this->getCoordinates(['q' => $value]);
-		if ($coordinatesDetails) {
-			$coordinatesDetails = reset($coordinatesDetails);
-			return ['lat' => $coordinatesDetails['lat'], 'lon' => $coordinatesDetails['lon']];
+		if (($coordinatesDetails = $this->getCoordinates(['q' => $value])) && ($coordinates = reset($coordinatesDetails)) && !empty($coordinates)) {
+			return ['lat' => $coordinates['lat'], 'lon' => $coordinates['lon']];
 		}
-		return false;
+		return [];
 	}
 }

@@ -135,6 +135,7 @@ class Vtiger_ListView_Model extends \App\Base
 				'linkhint' => 'LBL_SHOW_MAP',
 				'linkurl' => 'javascript:Vtiger_List_Js.showMap()',
 				'linkicon' => 'fas fa-globe',
+				'relatedModuleName' => 'OpenStreetMap',
 			];
 		}
 		if ($userPrivilegesModel->hasModulePermission('PermissionInspector')) {
@@ -229,7 +230,7 @@ class Vtiger_ListView_Model extends \App\Base
 	/**
 	 * Function to get the list of Mass actions for the module.
 	 *
-	 * @param type $linkParams
+	 * @param array $linkParams
 	 *
 	 * @return Vtiger_Link_Model[]
 	 */
@@ -323,6 +324,15 @@ class Vtiger_ListView_Model extends \App\Base
 				'linkdata' => ['url' => "index.php?module={$moduleModel->getName()}&view=RecordConverter&sourceView=List", 'type' => 'modal'],
 				'linkicon' => 'fas fa-exchange-alt',
 				'linkclass' => 'u-cursor-pointer js-mass-action',
+			];
+		}
+		if ($moduleModel->isPermitted('MassSendSMS') && ($smsNotifierModel = \Vtiger_Module_Model::getInstance('SMSNotifier'))->isSMSActiveForModule($moduleModel->getName())) {
+			$massActionLinks[] = [
+				'linktype' => 'LISTVIEWMASSACTION',
+				'linklabel' => 'LBL_MASS_SEND_SMS',
+				'linkdata' => ['url' => $smsNotifierModel->getMassSMSUrlForModule($moduleModel->getName()), 'type' => 'modal'],
+				'linkicon' => 'fas fa-comment-sms',
+				'linkclass' => 'js-mass-action',
 			];
 		}
 		foreach ($massActionLinks as $massActionLink) {
@@ -436,7 +446,11 @@ class Vtiger_ListView_Model extends \App\Base
 			}
 			foreach ($fields as $fieldInfo) {
 				$fieldName = $fieldInfo['field_name'];
-				$fieldModel = Vtiger_Module_Model::getInstance($fieldInfo['module_name'])->getFieldByName($fieldName);
+				$fieldModel = clone Vtiger_Module_Model::getInstance($fieldInfo['module_name'])->getFieldByName($fieldName);
+				if (!empty($fieldInfo['label'])) {
+					$fieldModel->set('label', $fieldInfo['label']);
+					$fieldModel->set('isLabelCustomized', true);
+				}
 				if (!empty($fieldInfo['source_field_name'])) {
 					if (!$this->getModule()->getFieldByName($fieldInfo['source_field_name'])->isActiveField()) {
 						continue;
@@ -621,16 +635,15 @@ class Vtiger_ListView_Model extends \App\Base
 	}
 
 	/**
-	 * Function to get the list view entries.
+	 * Function to get the list view entries count.
 	 *
-	 * @param Vtiger_Paging_Model $pagingModel
-	 *
-	 * @return array - Associative array of record id mapped to Vtiger_Record_Model instance.
+	 * @return int|string|null number of records. The result may be a string depending on the
+	 *                         underlying database engine and to support integer values higher than a 32bit PHP integer can handle.
 	 */
 	public function getListViewCount()
 	{
 		$this->loadListViewCondition();
-		return $this->getQueryGenerator()->createQuery()->count();
+		return $this->getQueryGenerator()->setDistinct('id')->createQuery()->count();
 	}
 
 	/**

@@ -251,7 +251,7 @@ class CustomView
 		\App\Log::trace(__METHOD__ . ' - ' . $cvId);
 		$columnList = [];
 		if (is_numeric($cvId)) {
-			$dataReader = (new Db\Query())->select(['field_name', 'module_name', 'source_field_name'])
+			$dataReader = (new Db\Query())->select(['field_name', 'module_name', 'source_field_name', 'label'])
 				->from('vtiger_cvcolumnlist')
 				->innerJoin('vtiger_tab', 'vtiger_tab.name=vtiger_cvcolumnlist.module_name')
 				->innerJoin('vtiger_field', 'vtiger_tab.tabid = vtiger_field.tabid AND vtiger_field.fieldname = vtiger_cvcolumnlist.field_name')
@@ -764,13 +764,14 @@ class CustomView
 	{
 		Cache::delete('CustomViewById', $cvId);
 		Cache::delete('CustomViewInfo', $cvId);
-		Cache::delete('CustomViewInfo', $moduleName);
 		Cache::delete('getAllFilterColors', false);
 		Cache::delete('getAllFilterColors', true);
 		if (null === $moduleName) {
 			foreach (\App\Module::getAllModuleNames() as $moduleName) {
 				Cache::delete('CustomViewInfo', $moduleName);
 			}
+		} else {
+			Cache::delete('CustomViewInfo', $moduleName);
 		}
 	}
 }

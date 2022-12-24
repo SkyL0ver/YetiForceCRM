@@ -5,7 +5,7 @@ on:
   schedule:
     - cron: '36 5 * * 2'
   push:
-    branches: [ developer ]
+    branches: [developer]
 
 # Declare default permissions as read only.
 permissions: read-all
@@ -21,13 +21,13 @@ jobs:
       contents: read
 
     steps:
-      - name: "Checkout code"
-        uses: actions/checkout@5126516654c75f76bca1de45dd82a3006d8890f9
+      - name: 'Checkout code'
+        uses: actions/checkout@v3
         with:
           persist-credentials: false
 
-      - name: "Run analysis"
-        uses: ossf/scorecard-action@v1.0.4
+      - name: 'Run analysis'
+        uses: ossf/scorecard-action@v1.1.2
         with:
           results_file: results.sarif
           results_format: sarif
@@ -41,15 +41,15 @@ jobs:
           publish_results: true
 
       # Upload the results as artifacts (optional).
-      - name: "Upload artifact"
-        uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
+      - name: 'Upload artifact'
+        uses: actions/upload-artifact@v3
         with:
           name: SARIF file
           path: results.sarif
           retention-days: 5
 
       # Upload the results to GitHub's code scanning dashboard.
-      - name: "Upload to code-scanning"
-        uses: github/codeql-action/upload-sarif@f090899ed05d9bc6b1863b0d183bcfcdf88ff1e9 # v1.0.26
+      - name: 'Upload to code-scanning'
+        uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: results.sarif

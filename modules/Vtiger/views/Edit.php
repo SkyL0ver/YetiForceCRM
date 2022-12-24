@@ -11,18 +11,8 @@
 
 class Vtiger_Edit_View extends Vtiger_Index_View
 {
-	/**
-	 * Record model instance.
-	 *
-	 * @var Vtiger_Record_Model
-	 */
+	/** @var Vtiger_Record_Model Record model instance. */
 	protected $record;
-
-	/** {@inheritdoc} */
-	public function __construct()
-	{
-		parent::__construct();
-	}
 
 	/** {@inheritdoc} */
 	public function checkPermission(App\Request $request)
@@ -30,10 +20,10 @@ class Vtiger_Edit_View extends Vtiger_Index_View
 		$moduleName = $request->getModule();
 		if ($request->has('record')) {
 			$this->record = Vtiger_Record_Model::getInstanceById($request->getInteger('record'), $moduleName);
-			$isPermitted = $this->record->isEditable() || (true === $request->getBoolean('isDuplicate') && $this->record->getModule()->isPermitted('DuplicateRecord') && $this->record->isCreateable() && $this->record->isViewable());
+			$isPermitted = $this->record->isEditable() || (true === $request->getBoolean('isDuplicate') && $this->record->getModule()->isPermitted('DuplicateRecord') && $this->record->isCreatable() && $this->record->isViewable());
 		} else {
 			$this->record = Vtiger_Record_Model::getCleanInstance($moduleName);
-			$isPermitted = $this->record->isCreateable();
+			$isPermitted = $this->record->isCreatable();
 		}
 		if (!$isPermitted) {
 			throw new \App\Exceptions\NoPermittedToRecord('ERR_NO_PERMISSIONS_FOR_THE_RECORD', 406);
@@ -90,24 +80,17 @@ class Vtiger_Edit_View extends Vtiger_Index_View
 		$viewLinks = $editModel->getEditViewLinks(['MODULE' => $moduleName, 'RECORD' => $recordId]);
 
 		$moduleModel = $this->record->getModule();
-		$fieldList = $moduleModel->getFields();
-		foreach (array_intersect($request->getKeys(), array_keys($fieldList)) as $fieldName) {
-			$fieldModel = $fieldList[$fieldName];
-			if ($fieldModel->isWritable()) {
-				$fieldModel->getUITypeModel()->setValueFromRequest($request, $this->record);
-			}
-		}
+		$this->loadValues($request);
 		if ($moduleModel->isInventory() && !$request->isEmpty('inventory')) {
 			$this->record->initInventoryDataFromRequest($request);
 		}
 		$recordStructureInstance = Vtiger_RecordStructure_Model::getInstanceFromRecordModel($this->record, Vtiger_RecordStructure_Model::RECORD_STRUCTURE_MODE_EDIT);
 		$recordStructure = $recordStructureInstance->getStructure();
-		$picklistDependencyDatasource = \App\Fields\Picklist::getPicklistDependencyDatasource($moduleName);
-
 		$isRelationOperation = $request->getBoolean('relationOperation');
 		//if it is relation edit
 		$viewer->assign('IS_RELATION_OPERATION', $isRelationOperation);
 		if ($isRelationOperation) {
+			$viewName = 'edit' === $mode ? 'Edit' : 'Create';
 			$viewer->assign('SOURCE_MODULE', $request->getByType('sourceModule', 2));
 			$viewer->assign('SOURCE_RECORD', $request->getInteger('sourceRecord'));
 			$sourceRelatedField = $moduleModel->getValuesFromSource($request);
@@ -115,7 +98,7 @@ class Vtiger_Edit_View extends Vtiger_Index_View
 				foreach ($sourceRelatedField as $field => $value) {
 					if (isset($block[$field]) && '' !== $value) {
 						$fieldModel = $block[$field];
-						if ($fieldModel->isEditable() && '' === $fieldModel->get('fieldvalue')) {
+						if ($fieldModel->isEditable($viewName) && ('' === $fieldModel->get('fieldvalue') || null === $fieldModel->get('fieldvalue'))) {
 							$fieldModel->set('fieldvalue', $value);
 						}
 					}
@@ -150,7 +133,6 @@ class Vtiger_Edit_View extends Vtiger_Index_View
 		$viewer->assign('EDIT_VIEW_LAYOUT', $editViewLayout);
 		$viewer->assign('ADDRESS_BLOCK_LABELS', ['LBL_ADDRESS_INFORMATION', 'LBL_ADDRESS_MAILING_INFORMATION', 'LBL_ADDRESS_DELIVERY_INFORMATION', 'LBL_ADDRESS_BILLING', 'LBL_ADDRESS_SHIPPING']);
 		$viewer->assign('RECORD_STRUCTURE', $recordStructure);
-		$viewer->assign('PICKIST_DEPENDENCY_DATASOURCE', \App\Json::encode($picklistDependencyDatasource));
 		$viewer->assign('MAPPING_RELATED_FIELD', \App\Json::encode(\App\ModuleHierarchy::getRelationFieldByHierarchy($moduleName)));
 		$viewer->assign('LIST_FILTER_FIELDS', \App\Json::encode(\App\ModuleHierarchy::getFieldsForListFilter($moduleName)));
 		$viewer->assign('RECORD_STRUCTURE_MODEL', $recordStructureInstance);
@@ -160,26 +142,25 @@ class Vtiger_Edit_View extends Vtiger_Index_View
 		$viewer->assign('BLOCK_LIST', $moduleModel->getBlocks());
 		$viewer->assign('CURRENTDATE', date('Y-n-j'));
 		$viewer->assign('USER_MODEL', Users_Record_Model::getCurrentUserModel());
-		$viewer->assign('MAX_UPLOAD_LIMIT_MB', Vtiger_Util_Helper::getMaxUploadSize());
-		$viewer->assign('MAX_UPLOAD_LIMIT', \App\Config::main('upload_maxsize'));
 		$viewer->assign('RECORD_ACTIVITY_NOTIFIER', $recordId && \App\Config::performance('recordActivityNotifier', false) && $moduleModel->isTrackingEnabled() && $moduleModel->isPermitted('RecordActivityNotifier'));
 		$viewer->view('EditView.tpl', $moduleName);
 	}
 
+	/**
+	 * Set duplicate data.
+	 */
 	public function getDuplicate()
 	{
 		$fromRecord = $this->record->getId();
 		$this->record->set('id', '');
-		//While Duplicating record, If the related record is deleted then we are removing related record info in record model
-		$mandatoryFieldModels = $this->record->getModule()->getMandatoryFieldModels();
-		foreach ($mandatoryFieldModels as $fieldModel) {
-			if ($fieldModel->isReferenceField()) {
-				$fieldName = $fieldModel->get('name');
-				if (!\App\Record::isExists($this->record->get($fieldName))) {
-					$this->record->set($fieldName, '');
-				}
+		foreach ($this->record->getModule()->getFields() as $fieldModel) {
+			if ((!$fieldModel->isDuplicable() && !$this->record->isEmpty($fieldModel->getName()))
+				|| ($fieldModel->isReferenceField() && ($value = $this->record->get($fieldModel->getName())) && !\App\Record::isExists($value))
+			) {
+				$this->record->set($fieldModel->getName(), '');
 			}
 		}
+
 		$eventHandler = new App\EventHandler();
 		$eventHandler->setRecordModel($this->record);
 		$eventHandler->setModuleName($this->record->getModuleName());
@@ -211,5 +192,23 @@ class Vtiger_Edit_View extends Vtiger_Index_View
 			$parentScript = array_merge($parentScript, $scriptInstances);
 		}
 		return $parentScript;
+	}
+
+	/**
+	 * Load record values form request.
+	 *
+	 * @param App\Request $request
+	 *
+	 * @return void
+	 */
+	protected function loadValues(App\Request $request): void
+	{
+		$fieldList = $this->record->getModule()->getFields();
+		foreach (array_intersect($request->getKeys(), array_keys($fieldList)) as $fieldName) {
+			$fieldModel = $fieldList[$fieldName];
+			if ($fieldModel->isWritable()) {
+				$fieldModel->getUITypeModel()->setValueFromRequest($request, $this->record);
+			}
+		}
 	}
 }

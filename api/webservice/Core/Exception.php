@@ -18,6 +18,12 @@ namespace Api\Core;
 class Exception extends \Exception
 {
 	/** {@inheritdoc}  */
+	public function __toString(): string
+	{
+		return rtrim(str_replace(ROOT_DIRECTORY . \DIRECTORY_SEPARATOR, '', parent::__toString()), PHP_EOL);
+	}
+
+	/** {@inheritdoc}  */
 	public function __construct($message, $code = 500, \Throwable $previous = null)
 	{
 		$message = rtrim(str_replace(ROOT_DIRECTORY . \DIRECTORY_SEPARATOR, '', $message), PHP_EOL);
@@ -32,7 +38,7 @@ class Exception extends \Exception
 		if (empty($this->code)) {
 			$this->code = $code;
 		}
-		if (!\App\Config::debug('apiShowExceptionMessages')) {
+		if (!\App\Config::debug('apiShowExceptionMessages') && 406 !== $code) {
 			$message = 'Internal Server Error';
 		}
 		$body = [
@@ -96,7 +102,11 @@ class Exception extends \Exception
 				$error .= "----------- Request payload -----------\n";
 				$error .= print_r($payload, true) . PHP_EOL;
 			}
-			file_put_contents(ROOT_DIRECTORY . '/cache/logs/webserviceErrors.log', '============ Error exception ====== ' . date('Y-m-d H:i:s') . ' ======'
+			$path = ROOT_DIRECTORY . '/cache/logs/webserviceErrors.log';
+			if (isset(\Api\Controller::$container)) {
+				$path = ROOT_DIRECTORY . '/cache/logs/webservice' . \Api\Controller::$container . 'Errors.log';
+			}
+			file_put_contents($path, '============ Error exception ====== ' . date('Y-m-d H:i:s') . ' ======'
 				. PHP_EOL . $error . PHP_EOL, FILE_APPEND);
 		}
 	}

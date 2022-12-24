@@ -20,7 +20,7 @@ class Vtiger_SessionCleaner_Cron extends \App\CronHandler
 	public function process()
 	{
 		$dbCommand = \App\Db::getInstance('webservice')->createCommand();
-		foreach (\Api\Core\Containers::$listTables as $row) {
+		foreach (\Api\Core\Containers::LIST_TABLES as $row) {
 			if (!isset($row['session'])) {
 				continue;
 			}
@@ -36,7 +36,7 @@ class Vtiger_SessionCleaner_Cron extends \App\CronHandler
 					'logout_time' => date('Y-m-d H:i:s'),
 					'status' => 'Automatic signed off'
 				])->execute();
-				OSSMail_Logout_Model::logutUserById($userId);
+				OSSMail_Logout_Model::logoutUserById($userId);
 			}
 		} else {
 			\App\Log::warning('Session cleaning has been omitted because the server headers have already been sent');

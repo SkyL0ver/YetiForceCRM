@@ -83,7 +83,8 @@ class Users_Login_Action extends \App\Controller\Action
 	public function check2fa(App\Request $request): void
 	{
 		$userId = \App\Session::get('2faUserId');
-		if (Users_Totp_Authmethod::verifyCode(\App\User::getUserModel($userId)->getDetail('authy_secret_totp'), $request->getByType('user_code', Purifier::DIGITS))) {
+		$authMethod = new Users_Totp_Authmethod($userId);
+		if ($authMethod->verifyCode(\App\User::getUserModel($userId)->getDetail('authy_secret_totp'), $request->getByType('user_code', Purifier::DIGITS))) {
 			\App\Session::set('authenticated_user_id', $userId);
 			\App\Session::delete('2faUserId');
 			\App\Session::delete('LoginAuthyMethod');
@@ -271,7 +272,11 @@ class Users_Login_Action extends \App\Controller\Action
 				$status = '2fa' === $type ? 'ERR_2FA_IP_BLOCK' : 'ERR_LOGIN_IP_BLOCK';
 			}
 		}
-		Users_Module_Model::getInstance('Users')->saveLoginHistory(Purifier::encodeHtml($request->getRaw('username')), $status);
+		$userName = $request->getRaw('username');
+		if (!$userName) {
+			$userName = \App\Session::get('user_name');
+		}
+		Users_Module_Model::getInstance('Users')->saveLoginHistory(Purifier::encodeHtml($userName), $status);
 		header('location: index.php?module=Users&view=Login');
 	}
 }

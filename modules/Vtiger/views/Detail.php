@@ -18,27 +18,16 @@ class Vtiger_Detail_View extends Vtiger_Index_View
 {
 	use \App\Controller\ExposeMethod;
 
-	/**
-	 * Record model instance.
-	 *
-	 * @var Vtiger_DetailView_Model
-	 */
+	/** @var Vtiger_DetailView_Model Record model instance. */
 	public $record;
-	/**
-	 * Record structure model instance.
-	 *
-	 * @var Vtiger_RecordStructure_Model
-	 */
+
+	/** @var Vtiger_DetailRecordStructure_Model Detail record structure model instance. */
 	protected $recordStructure;
-	/**
-	 * @var string
-	 */
+
+	/** @var string Default request mode */
 	public $defaultMode = '';
-	/**
-	 * Page title.
-	 *
-	 * @var type
-	 */
+
+	/** @var string Page title. */
 	protected $pageTitle = 'LBL_VIEW_DETAIL';
 
 	/**
@@ -176,7 +165,6 @@ class Vtiger_Detail_View extends Vtiger_Index_View
 			'ACTION' => $request->getByType('view', 1),
 		]));
 		$viewer->assign('DEFAULT_RECORD_VIEW', $currentUserModel->get('default_record_view'));
-		$viewer->assign('PICKLIST_DEPENDENCY_DATASOURCE', \App\Json::encode(\App\Fields\Picklist::getPicklistDependencyDatasource($moduleName)));
 		$viewer->assign('IS_READ_ONLY', $request->getBoolean('isReadOnly') || $this->record->getRecord()->isReadOnly());
 		$viewer->assign('RECORD_ACTIVITY_NOTIFIER', $recordId && \App\Config::performance('recordActivityNotifier', false) && $moduleModel->isTrackingEnabled() && $moduleModel->isPermitted('RecordActivityNotifier'));
 		if ($display) {
@@ -184,6 +172,7 @@ class Vtiger_Detail_View extends Vtiger_Index_View
 		}
 	}
 
+	/** {@inheritdoc} */
 	public function preProcessTplName(App\Request $request)
 	{
 		return 'Detail/PreProcess.tpl';
@@ -527,7 +516,7 @@ class Vtiger_Detail_View extends Vtiger_Index_View
 			throw new \App\Exceptions\NoPermittedToRecord('ERR_NO_PERMISSIONS_FOR_THE_RECORD', 406);
 		}
 		$parentCommentId = $request->getInteger('commentid');
-		$parentCommentModel = Vtiger_Record_Model::getInstanceById($parentCommentId);
+		$parentCommentModel = ModComments_Record_Model::getInstanceById($parentCommentId);
 		$childComments = $parentCommentModel->getChildComments();
 		$currentUserModel = Users_Record_Model::getCurrentUserModel();
 		$modCommentsModel = Vtiger_Module_Model::getInstance('ModComments');
@@ -556,7 +545,7 @@ class Vtiger_Detail_View extends Vtiger_Index_View
 		if (!\App\Privilege::isPermitted('ModComments')) {
 			throw new \App\Exceptions\NoPermittedToRecord('ERR_NO_PERMISSIONS_FOR_THE_RECORD', 406);
 		}
-		$parentCommentModel = Vtiger_Record_Model::getInstanceById($request->getInteger('commentid'));
+		$parentCommentModel = ModComments_Record_Model::getInstanceById($request->getInteger('commentid'));
 		$parentThreadComments = $parentCommentModel->getParentComments();
 		$currentUserModel = Users_Record_Model::getCurrentUserModel();
 		$modCommentsModel = Vtiger_Module_Model::getInstance('ModComments');
@@ -760,8 +749,8 @@ class Vtiger_Detail_View extends Vtiger_Index_View
 	 */
 	public function getActivities(App\Request $request)
 	{
-		$currentUserPriviligesModel = Users_Privileges_Model::getCurrentUserPrivilegesModel();
-		if (!$currentUserPriviligesModel->hasModulePermission('Calendar')) {
+		$userPrivilegesModel = Users_Privileges_Model::getCurrentUserPrivilegesModel();
+		if (!$userPrivilegesModel->hasModulePermission('Calendar')) {
 			throw new \App\Exceptions\NoPermittedToRecord('ERR_NO_PERMISSIONS_FOR_THE_RECORD', 406);
 		}
 		$moduleName = $request->getModule();
@@ -1047,10 +1036,13 @@ class Vtiger_Detail_View extends Vtiger_Index_View
 				$header[$fieldName] = $fieldModel;
 			}
 		}
+
 		$viewer->assign('LIMIT', $limit);
 		$viewer->assign('ENTRIES', $entries);
 		$viewer->assign('HEADER_FIELD', $header);
+		$viewer->assign('INVENTORY_MODEL', $inventoryModel);
 		$viewer->assign('PAGING_MODEL', $pagingModel);
+
 		return $viewer->view('Detail/Widget/InventoryBlock.tpl', $moduleName, true);
 	}
 
@@ -1095,14 +1087,13 @@ class Vtiger_Detail_View extends Vtiger_Index_View
 		$pagingModel = new Vtiger_Paging_Model();
 		$pagingModel->set('page', $pageNumber);
 		$pagingModel->set('limit', $limitPage);
-		$config = OSSMail_Module_Model::getComposeParameters();
 		$histories = Vtiger_HistoryRelation_Widget::getHistory($request, $pagingModel);
 		$viewer = $this->getViewer($request);
 		$viewer->assign('VIEW_MODEL', $this->record);
 		$viewer->assign('RECORD_ID', $request->getInteger('record'));
 		$viewer->assign('HISTORIES', $histories);
 		$viewer->assign('PAGING_MODEL', $pagingModel);
-		$viewer->assign('POPUP', $config['popup']);
+		$viewer->assign('POPUP', \App\User::getCurrentUserModel()->getDetail('mail_popup'));
 		$viewer->assign('NO_MORE', $request->getBoolean('noMore'));
 		$viewer->assign('IS_READ_ONLY', $request->getBoolean('isReadOnly') || $this->record->getRecord()->isReadOnly());
 		$viewer->assign('IS_FULLSCREEN', $request->getBoolean('isFullscreen'));
@@ -1253,9 +1244,7 @@ class Vtiger_Detail_View extends Vtiger_Index_View
 		if (isset($history[$value]) && (!isset($locks[$fieldName]) || !\in_array($value, $locks[$fieldName]))) {
 			$history[$value]['time'] += \App\Fields\DateTime::getDiff($history[$value]['date'], date('Y-m-d H:i:s'), 'minutes');
 		}
-		uasort($history, function ($a, $b) {
-			return strnatcmp($b['date'], $a['date']);
-		});
+		uasort($history, fn ($a, $b) => strnatcmp($b['date'], $a['date']));
 		$viewer = $this->getViewer($request);
 		$viewer->assign('VIEW', 'Detail');
 		$viewer->assign('FIELD_HISTORY', $history);

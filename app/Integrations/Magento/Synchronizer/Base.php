@@ -2,7 +2,8 @@
 /**
  * Synchronize.
  *
- * The file is part of the paid functionality. Using the file is allowed only after purchasing a subscription. File modification allowed only with the consent of the system producer.
+ * The file is part of the paid functionality. Using the file is allowed only after purchasing a subscription.
+ * File modification allowed only with the consent of the system producer.
  *
  * @package Integration
  *
@@ -20,29 +21,13 @@ namespace App\Integrations\Magento\Synchronizer;
  */
 abstract class Base
 {
-	/**
-	 * Connector.
-	 *
-	 * @var \App\Integrations\Magento\Connector\Token
-	 */
+	/** @var \App\Integrations\Magento\Connector\Base Connector. */
 	protected $connector;
-	/**
-	 * Last scan config data.
-	 *
-	 * @var array
-	 */
+	/** @var array Last scan config data. */
 	public $lastScan = [];
-	/**
-	 * Config.
-	 *
-	 * @var \App\Integrations\Magento\Config
-	 */
+	/** @var \App\Integrations\Magento\Config Config instance. */
 	public $config;
-	/**
-	 * Controller.
-	 *
-	 * @var \App\Integrations\Magento\Controller
-	 */
+	/** @var \App\Integrations\Magento\Controller Controller instance. */
 	public $controller;
 
 	/**
@@ -242,10 +227,10 @@ abstract class Base
 		\App\DB::getInstance('log')->createCommand()
 			->insert('l_#__magento', [
 				'time' => date('Y-m-d H:i:s'),
-				'category' => null === $ex ? '' : $category,
+				'category' => $ex ? $category : 'info',
 				'message' => $ex ? $ex->getMessage() : $category,
 				'code' => $ex ? $ex->getCode() : 500,
-				'trace' => $ex ? $ex->__toString() : '',
+				'trace' => $ex ? $ex->__toString() : null,
 			])->execute();
 	}
 }

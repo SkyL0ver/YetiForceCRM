@@ -53,7 +53,7 @@
 							{assign var="TYPE_AVAILABLE_BLOCKS" value=$INVENTORY_BLOCKS}
 							{assign var="PREFIX" value='inventory_'}
 							{assign var="INVENTORY_FIELDS" value=Vtiger_Inventory_Model::getInstance($FOR_MODULE)->getAllColumns()}
-							{append var="INVENTORY_FIELDS" value="recordIteration"}
+							{* {append var="INVENTORY_FIELDS" value="recordIteration"} *}
 						{else}
 							{assign var="TYPE_AVAILABLE_BLOCKS" value=$AVAILABLE_BLOCKS}
 							{assign var="PREFIX" value=''}
@@ -65,7 +65,7 @@
 							{/if}
 							{assign var="_COUNTER" value=$_COUNTER+1}
 							{if $PREFIX && is_numeric($_HEADER_NAME)} {continue} {/if}
-							<tr class="fieldIdentifier {if $PREFIX && in_array($_HEADER_NAME, $INVENTORY_FIELDS)} d-none {/if}"
+							<tr class="fieldIdentifier {if $PREFIX && isset($INVENTORY_FIELDS[$_HEADER_NAME])} d-none {/if}"
 								id="fieldIdentifier{$_COUNTER}" data-typename="{$TYPE_NAME}">
 								{if $HAS_HEADER eq true}
 									<td class="cellLabel">
@@ -73,7 +73,7 @@
 									</td>
 								{/if}
 								<td class="cellLabel">
-									<span>{\App\Purifier::encodeHtml(\App\TextParser::textTruncate($_FIELD_VALUE))}</span>
+									<span>{\App\Purifier::encodeHtml(\App\TextUtils::textTruncate($_FIELD_VALUE))}</span>
 								</td>
 								<td class="cellLabel">
 									<input type="hidden" name="row_counter" value="{$_COUNTER}" />
@@ -87,11 +87,10 @@
 											{assign var="TRANSLATED_BLOCK" value=\App\Language::translate($BLOCK_NAME, $FOR_MODULE)}
 											<optgroup label="{$TRANSLATED_BLOCK}">
 												{foreach key=_FIELD_NAME item=_FIELD_INFO from=$_FIELDS}
-													{assign var="_TRANSLATED_FIELD_LABEL" value=\App\Purifier::decodeHtml(\App\Language::translate($_FIELD_INFO->get('label'),$FOR_MODULE))}
+													{assign var="_TRANSLATED_FIELD_LABEL" value=\App\Language::translate($_FIELD_INFO->get('label'),$FOR_MODULE)}
 													<option value="{$_FIELD_NAME}"
-														{if $HEADER_FIELD_LABELS && App\Purifier::decodeHtml($HEADER_FIELD_LABELS[0]) eq $TRANSLATED_BLOCK && App\Purifier::decodeHtml($HEADER_FIELD_LABELS[1]) eq $_TRANSLATED_FIELD_LABEL} selected {elseif !$HEADER_FIELD_LABELS && App\Purifier::decodeHtml($_HEADER_NAME) eq $_TRANSLATED_FIELD_LABEL} selected {/if}
-														data-label="{$_TRANSLATED_FIELD_LABEL}">{$_TRANSLATED_FIELD_LABEL}
-														{if $_FIELD_INFO->isMandatory() eq 'true'}&nbsp; (*){/if}</option>
+														{if $HEADER_FIELD_LABELS && \App\Purifier::encodeHtml($HEADER_FIELD_LABELS[0]) eq $TRANSLATED_BLOCK && \App\Purifier::encodeHtml($HEADER_FIELD_LABELS[1]) eq $_TRANSLATED_FIELD_LABEL} selected {elseif !$HEADER_FIELD_LABELS && $_HEADER_NAME eq $_TRANSLATED_FIELD_LABEL} selected {/if}
+														data-label="{$_TRANSLATED_FIELD_LABEL}">{$_TRANSLATED_FIELD_LABEL}{if $_FIELD_INFO->isMandatory() eq 'true'}&nbsp;(*){/if}</option>
 												{/foreach}
 											</optgroup>
 										{/foreach}

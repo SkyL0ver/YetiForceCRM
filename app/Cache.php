@@ -58,7 +58,7 @@ class Cache
 	 *
 	 * @return mixed
 	 */
-	public static function get($nameSpace, $key)
+	public static function get(string $nameSpace, string $key)
 	{
 		return static::$pool->get("$nameSpace-$key");
 	}
@@ -71,7 +71,7 @@ class Cache
 	 *
 	 * @return bool
 	 */
-	public static function has($nameSpace, $key): bool
+	public static function has(string $nameSpace, string $key): bool
 	{
 		return static::$pool->has("$nameSpace-$key");
 	}
@@ -86,7 +86,7 @@ class Cache
 	 *
 	 * @return bool
 	 */
-	public static function save($nameSpace, $key, $value = null, $duration = self::MEDIUM)
+	public static function save(string $nameSpace, string $key, $value = null, $duration = self::MEDIUM)
 	{
 		if (!static::$pool->save("$nameSpace-$key", $value, $duration)) {
 			Log::warning("Error writing to cache. Key: $nameSpace-$key | Value: " . var_export($value, true));
@@ -102,7 +102,7 @@ class Cache
 	 *
 	 * @return bool
 	 */
-	public static function delete($nameSpace, $key)
+	public static function delete(string $nameSpace, string $key)
 	{
 		static::$pool->delete("$nameSpace-$key");
 	}
@@ -125,7 +125,7 @@ class Cache
 	 *
 	 * @return mixed
 	 */
-	public static function staticGet($nameSpace, $key)
+	public static function staticGet(string $nameSpace, string $key = '')
 	{
 		return static::$staticPool->get("$nameSpace-$key");
 	}
@@ -138,7 +138,7 @@ class Cache
 	 *
 	 * @return bool
 	 */
-	public static function staticHas($nameSpace, $key = '')
+	public static function staticHas(string $nameSpace, string $key = '')
 	{
 		return static::$staticPool->has("$nameSpace-$key");
 	}
@@ -153,7 +153,7 @@ class Cache
 	 *
 	 * @return bool
 	 */
-	public static function staticSave($nameSpace, $key, $value = null)
+	public static function staticSave(string $nameSpace, string $key, $value = null)
 	{
 		return static::$staticPool->save("$nameSpace-$key", $value);
 	}
@@ -166,7 +166,7 @@ class Cache
 	 *
 	 * @return bool
 	 */
-	public static function staticDelete($nameSpace, $key)
+	public static function staticDelete(string $nameSpace, string $key)
 	{
 		static::$staticPool->delete("$nameSpace-$key");
 	}
@@ -252,6 +252,9 @@ class Cache
 		$exclusion = ['.htaccess', 'index.html'];
 		$s = $i = 0;
 		foreach (['pdf', 'import', 'mail', 'vtlib', 'rss_cache', 'upload', 'templates_c'] as $dir) {
+			if (!file_exists(ROOT_DIRECTORY . "/cache/{$dir}")) {
+				continue;
+			}
 			foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(ROOT_DIRECTORY . "/cache/{$dir}", \RecursiveDirectoryIterator::SKIP_DOTS), \RecursiveIteratorIterator::SELF_FIRST) as $item) {
 				if ($item->isFile() && !\in_array($item->getBasename(), $exclusion) && $item->getMTime() < $time && $item->getATime() < $time) {
 					$s += $item->getSize();

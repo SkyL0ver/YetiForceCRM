@@ -16,7 +16,7 @@
 	</div>
 	{include file=\App\Layout::getTemplatePath('ListViewAlphabet.tpl', $RELATED_MODULE_NAME) MODULE_MODEL=$RELATED_MODULE}
 	{assign var=IS_INVENTORY value=($RELATED_VIEW === 'List' && !empty($INVENTORY_MODULE) && !empty($INVENTORY_FIELDS))}
-	<div class="listViewEntriesDiv u-overflow-scroll-non-desktop">
+	<div class="listViewEntriesDiv u-overflow-scroll-non-desktop table-responsive">
 		<table class="table tableBorderHeadBody listViewEntriesTable {if $VIEW_MODEL && !$VIEW_MODEL->isEmpty('entityState')}listView{$VIEW_MODEL->get('entityState')}{/if}">
 			<thead>
 				<tr class="listViewHeaders">
@@ -108,14 +108,13 @@
 						{foreach item=HEADER_FIELD from=$RELATED_HEADERS}
 							<td>
 								{assign var=FIELD_UI_TYPE_MODEL value=$HEADER_FIELD->getUITypeModel()}
-								{assign var=ARRAY_ELEMENT value=$HEADER_FIELD->getName()}
-								{if isset($SEARCH_DETAILS[$ARRAY_ELEMENT])}
-									{assign var=SEARCH_INFO value=$SEARCH_DETAILS[$ARRAY_ELEMENT]}
+								{assign var=LISTVIEW_HEADER_NAME value=$HEADER_FIELD->getFullName()}
+								{if isset($SEARCH_DETAILS[$LISTVIEW_HEADER_NAME])}
+									{assign var=SEARCH_INFO value=$SEARCH_DETAILS[$LISTVIEW_HEADER_NAME]}
 								{else}
 									{assign var=SEARCH_INFO value=[]}
 								{/if}
-								{include file=\App\Layout::getTemplatePath($FIELD_UI_TYPE_MODEL->getListSearchTemplateName(), $RELATED_MODULE_NAME)
-																												FIELD_MODEL=$HEADER_FIELD SEARCH_INFO=$SEARCH_INFO USER_MODEL=$USER_MODEL MODULE_MODEL=$RELATED_MODULE MODULE=$RELATED_MODULE_NAME}
+								{include file=\App\Layout::getTemplatePath($FIELD_UI_TYPE_MODEL->getListSearchTemplateName(), $RELATED_MODULE_NAME)	FIELD_MODEL=$HEADER_FIELD SEARCH_INFO=$SEARCH_INFO USER_MODEL=$USER_MODEL MODULE_MODEL=$RELATED_MODULE MODULE=$RELATED_MODULE_NAME}
 							</td>
 						{/foreach}
 						<td class="reducePadding" colspan="{$ADDITIONAL_TD + 1}"></td>
@@ -148,9 +147,9 @@
 							{assign var=RELATED_HEADERNAME value=$HEADER_FIELD->getFieldName()}
 							<td class="{$WIDTHTYPE}" data-field-type="{$HEADER_FIELD->getFieldDataType()}" nowrap
 								{if $smarty.foreach.listHeaderForeach.iteration eq $RELATED_HEADER_COUNT} colspan="2" {/if}>
-								{if ($HEADER_FIELD->isNameField() eq true or $HEADER_FIELD->getUIType() eq '4') && $RELATED_RECORD->isViewable()}
+								{if empty($HEADER_FIELD->get('source_field_name')) && ($HEADER_FIELD->isNameField() eq true or $HEADER_FIELD->getUIType() eq '4') &&  $RELATED_MODULE->isListViewNameFieldNavigationEnabled() && $RELATED_RECORD->isViewable()}
 									<a class="modCT_{$RELATED_MODULE_NAME} js-list__field js-popover-tooltip--record" data-js="width" title="" href="{$RELATED_RECORD->getDetailViewUrl()}">
-										{$RELATED_RECORD->getListViewDisplayValue($RELATED_HEADERNAME)}
+										{$RELATED_RECORD->getListViewDisplayValue($HEADER_FIELD)}
 									</a>
 								{elseif $HEADER_FIELD->get('fromOutsideList') eq true}
 									{if $HEADER_FIELD->get('isEditable')}
@@ -161,10 +160,10 @@
 											value="{$HEADER_FIELD->getEditViewDisplayValue($RELATED_RECORD->get($RELATED_HEADERNAME))}"
 											data-js="change" />
 									{else}
-										{$HEADER_FIELD->getDisplayValue($RELATED_RECORD->get($RELATED_HEADERNAME))}
+										{$HEADER_FIELD->getUITypeModel()->getListViewDisplayValue($RELATED_RECORD->get($RELATED_HEADERNAME))}
 									{/if}
 								{else}
-									{$RELATED_RECORD->getListViewDisplayValue($RELATED_HEADERNAME)}
+									{$RELATED_RECORD->getListViewDisplayValue($HEADER_FIELD)}
 								{/if}
 								{if $HEADER_FIELD@last}
 								</td>
@@ -199,39 +198,16 @@
 					{if $IS_INVENTORY || $IS_WIDGETS}
 						<tr class="js-hidden-row {if !$SHOW_RELATED_WIDGETS}d-none{/if}" data-id="{$RELATED_RECORD->getId()}">
 							{if $RELATED_MODULE->isQuickSearchEnabled()}
-								{$COUNT = $COUNT+1}
+								{$COUNT = $COUNT+2}
 							{/if}
 							<td colspan="{$COUNT + $ADDITIONAL_TD}" class="backgroundWhiteSmoke">
 								{if $IS_INVENTORY}
 									<div class="js-hidden-row__block d-none" data-element="inventory">
-										{assign var="INVENTORY_DATA" value=$RELATED_RECORD->getInventoryData()}
+										{assign var="INVENTORY_ROWS" value=$RELATED_RECORD->getInventoryData()}
 										{assign var="INVENTORY_MODEL" value=Vtiger_Inventory_Model::getInstance($RELATED_RECORD->getModuleName())}
-										<table class="table table-sm no-margin">
-											<thead>
-												<tr>
-													{foreach from=$INVENTORY_FIELDS item=FIELD key=NAME}
-														<th class="medium" nowrap>
-															{\App\Language::translate($FIELD->get('label'),$RELATED_MODULE_NAME)}
-														</th>
-													{/foreach}
-												</tr>
-											</thead>
-											<tbody>
-												{foreach from=$INVENTORY_DATA item=INVENTORY_ROW}
-													<tr>
-														{if !empty($INVENTORY_ROW['name'])}
-															{assign var="ROW_MODULE" value=\App\Record::getType($INVENTORY_ROW['name'])}
-														{/if}
-														{foreach from=$INVENTORY_FIELDS item=FIELD key=NAME}
-															{assign var="FIELD_TPL_NAME" value="inventoryfields/"|cat:$FIELD->getTemplateName('DetailView',$RELATED_MODULE_NAME)}
-															<td>
-																{include file=\App\Layout::getTemplatePath($FIELD_TPL_NAME, $RELATED_MODULE_NAME) ITEM_VALUE=$INVENTORY_ROW[$FIELD->getColumnName()]}
-															</td>
-														{/foreach}
-													</tr>
-												{/foreach}
-											</tbody>
-										</table>
+										{include file=\App\Layout::getTemplatePath('Detail/Widget/InventoryBlock.tpl', $RELATED_MODULE_NAME) MODULE_NAME=$RELATED_MODULE_NAME HEADER_FIELD=$INVENTORY_FIELDS ENTRIES=$INVENTORY_ROWS PAGING_MODEL=null}
+										{assign var=GROUP_FIELD value=$INVENTORY_MODEL->getField('grouplabel')}
+										{include file=\App\Layout::getTemplatePath('Detail/InventoryGroupSummary.tpl', $RELATED_MODULE_NAME) MODULE_NAME=$RELATED_MODULE_NAME}
 									</div>
 								{/if}
 								{if $IS_WIDGETS}

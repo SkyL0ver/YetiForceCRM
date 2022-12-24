@@ -26,6 +26,7 @@ class Shop
 		2 => 'yfi-enterprise color-yellow-600',
 		3 => 'yfi-partners color-grey-600',
 	];
+
 	/** @var array Product categories. */
 	const PRODUCT_CATEGORIES = [
 		'All' => ['label' => 'LBL_CAT_ALL', 'icon' => 'yfi-all-shop'],
@@ -33,6 +34,7 @@ class Shop
 		'Support' => ['label' => 'LBL_CAT_SUPPORT', 'icon' => 'yfi-support-shop'],
 		'Addons' => ['label' => 'LBL_CAT_ADDONS', 'icon' => 'yfi-adds-on-shop'],
 		'Integrations' => ['label' => 'LBL_CAT_INTEGRATIONS', 'icon' => 'yfi-integration-shop'],
+		'RecordCollectors' => ['label' => 'LBL_CAT_RECORD_COLLECTORS', 'icon' => 'yfi-record-collectors'],
 		'PartnerSolutions' => ['label' => 'LBL_CAT_PARTNER_SOLUTIONS', 'icon' => 'yfi-partner-solution-shop'],
 	];
 
@@ -190,8 +192,6 @@ class Shop
 		$check = self::getProduct($productName)->verify();
 		if (false === $check['status']) {
 			$message = $check['message'];
-		} elseif (!self::getConfig($productName)) {
-			$message = 'LBL_PAID_FUNCTIONALITY';
 		}
 		return $message;
 	}

@@ -30,7 +30,7 @@
 							{assign var=LISTVIEW_HEADERNAME value=$LISTVIEW_HEADER->get('name')}
 							{assign var=LAST_COLUMN value=$LISTVIEW_HEADER@last}
 							<td class="listViewEntryValue {$WIDTHTYPE}" width="{$WIDTH}%" nowrap>
-								&nbsp;{\App\Language::translate($LISTVIEW_ENTRY->getDisplayValue($LISTVIEW_HEADERNAME), $QUALIFIED_MODULE)}
+								&nbsp;{$LISTVIEW_ENTRY->getDisplayValue($LISTVIEW_HEADERNAME)}
 								{if $LAST_COLUMN && $LISTVIEW_ENTRY->getRecordLinks()}
 								</td>
 								<td nowrap class="{$WIDTHTYPE}">
@@ -38,7 +38,7 @@
 										<span class="actionImages">
 											{foreach item=RECORD_LINK from=$LISTVIEW_ENTRY->getRecordLinks()}
 												{assign var="RECORD_LINK_URL" value=$RECORD_LINK->getUrl()}
-												<a class="{if $LISTVIEW_ENTRY->get('access') eq '0' && $RECORD_LINK->get('linklabel') eq 'LBL_DELETE'} d-none {/if} {$RECORD_LINK->getClassName()}" {if stripos($RECORD_LINK_URL, 'javascript:')===0} onclick="{$RECORD_LINK_URL|substr:strlen("javascript:")};if (event.stopPropagation){ldelim}
+												<a class="{if $LISTVIEW_ENTRY->get('access') eq '0' && $RECORD_LINK->get('linklabel') eq 'LBL_DELETE'} d-none {/if} {$RECORD_LINK->getClassName()}" {if stripos($RECORD_LINK_URL, 'javascript:')===0} onclick="{substr($RECORD_LINK_URL, strlen("javascript"))};if (event.stopPropagation){ldelim}
 															event.stopPropagation();{rdelim} else{ldelim}
 																		event.cancelBubble = true;{rdelim}" {else} href='{$RECORD_LINK_URL}' {/if}>
 													<span class="{$RECORD_LINK->getIcon()}" title="{\App\Language::translate($RECORD_LINK->getLabel(), $QUALIFIED_MODULE)}"></span>

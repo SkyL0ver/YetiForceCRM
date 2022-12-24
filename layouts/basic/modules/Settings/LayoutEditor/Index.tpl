@@ -29,10 +29,10 @@
 				{if $SELECTED_MODULE_MODEL->isTypeChangeAllowed()}
 					<div class="float-right">
 						<div class="btn-group">
-							<button class="js-switch--inventory btn btn-outline-primary{if !$IS_INVENTORY} active{/if}" type="button" data-js="click" {if $CHANGE_MODULE_TYPE_DISABLED}disabled="disabled" {/if} data-value="{Vtiger_Module_Model::STANDARD_TYPE}" autocomplete="off">
+							<button class="btn btn-outline-primary{if !$IS_INVENTORY} active{else} js-switch--inventory{/if}" type="button" data-js="click" {if $CHANGE_MODULE_TYPE_DISABLED}disabled="disabled" {/if} data-value="{Vtiger_Module_Model::STANDARD_TYPE}" autocomplete="off">
 								{App\Language::translate('LBL_BASIC_MODULE',$QUALIFIED_MODULE)}
 							</button>
-							<button class="js-switch--inventory btn btn-outline-primary{if $IS_INVENTORY} active{/if}" type="button" data-js="click" {if $CHANGE_MODULE_TYPE_DISABLED}disabled="disabled" {/if} data-value="{Vtiger_Module_Model::ADVANCED_TYPE}" autocomplete="off">
+							<button class="btn btn-outline-primary{if $IS_INVENTORY} active{else} js-switch--inventory{/if}" type="button" data-js="click" {if $CHANGE_MODULE_TYPE_DISABLED}disabled="disabled" {/if} data-value="{Vtiger_Module_Model::ADVANCED_TYPE}" autocomplete="off">
 								{App\Language::translate('LBL_ADVANCED_MODULE',$QUALIFIED_MODULE)}</button>
 						</div>
 					</div>
@@ -62,7 +62,7 @@
 					{if $SERVER['type'] === 'WebservicePremium'}
 						<li class="nav-item">
 							<a class="nav-link {if $ACTIVE_TAB === "webserviceApps{$SERVER_ID}" }active{/if}" id="webserviceAppsTab{$SERVER_ID}" data-toggle="tab" role="tab" href="#webserviceApps{$SERVER_ID}" aria-selected="{if $ACTIVE_TAB === "webserviceApps{$SERVER_ID}" }true{else}false{/if}">
-								<strong>{\App\Purifier::encodeHTML($SERVER['name'])} ({\App\Language::translate($SERVER['type'], 'Settings.WebserviceApps')})</strong>
+								<strong>{\App\Purifier::encodeHTML($SERVER['name'])} ({\App\Language::translate($SERVER['type'], 'Settings:WebserviceApps')})</strong>
 							</a>
 						</li>
 					{/if}

@@ -202,7 +202,7 @@ class EventHandler
 				if ($byKey) {
 					$return[$key] = $vars;
 				} else {
-					$return = array_unique(array_merge($return, $vars));
+					$return = array_values(array_unique(array_merge($return, $vars)));
 				}
 			}
 		}
@@ -373,10 +373,14 @@ class EventHandler
 	 * Set params.
 	 *
 	 * @param array $params
+	 *
+	 * @return $this
 	 */
 	public function setParams($params)
 	{
 		$this->params = $params;
+
+		return $this;
 	}
 
 	/**

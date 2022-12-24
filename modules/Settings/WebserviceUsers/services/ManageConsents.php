@@ -94,15 +94,16 @@ class Settings_WebserviceUsers_ManageConsents_Service extends Settings_Webservic
 		$table = $this->baseTable;
 		$index = $this->baseIndex;
 		$data = $this->getDataForSave();
+		$success = true;
 		if (empty($this->getId())) {
 			$success = $db->createCommand()->insert($table, $data)->execute();
 			if ($success) {
 				$this->set('id', $db->getLastInsertID("{$table}_{$index}_seq"));
 			}
-		} else {
+		} elseif ($data) {
 			$success = $db->createCommand()->update($table, $data, [$index => $this->getId()])->execute();
 		}
-		return $success;
+		return (bool) $success;
 	}
 
 	/**
@@ -185,7 +186,7 @@ class Settings_WebserviceUsers_ManageConsents_Service extends Settings_Webservic
 		switch ($name) {
 			case 'server_id':
 				$servers = Settings_WebserviceApps_Record_Model::getInstanceById($this->get($name));
-				$value = $servers ? $servers->getName() : '<span class="redColor">ERROR</span>';
+				$value = $servers ? \App\Purifier::encodeHtml($servers->getName()) : '<span class="redColor">ERROR</span>';
 				break;
 			case 'status':
 				$value = \App\Language::translate((empty($this->get($name)) ? 'FL_INACTIVE' : 'FL_ACTIVE'));
@@ -198,21 +199,17 @@ class Settings_WebserviceUsers_ManageConsents_Service extends Settings_Webservic
 				break;
 			case 'type':
 				$label = \App\Language::translate($this->getTypeValues($this->get($name)), $this->getModule()->getName(true));
-				$value = \App\TextParser::textTruncate($label);
+				$value = \App\TextUtils::textTruncate($label);
 				break;
 			default:
-				$value = $this->get($name);
+				$value = \App\Purifier::encodeHtml($this->get($name));
 				break;
 		}
 		return $value;
 	}
 
-	/**
-	 * Function to get the list view actions for the record.
-	 *
-	 * @return Vtiger_Link_Model[] - Associate array of Vtiger_Link_Model instances
-	 */
-	public function getRecordLinks()
+	/** {@inheritdoc} */
+	public function getRecordLinks(): array
 	{
 		$links = [];
 		$recordLinks = [

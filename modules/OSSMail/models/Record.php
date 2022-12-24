@@ -14,17 +14,40 @@
  */
 class OSSMail_Record_Model extends Vtiger_Record_Model
 {
-	/** Mailbox Status: Active  */
+	/** @var int Mailbox Status: Active */
 	const MAIL_BOX_STATUS_ACTIVE = 0;
 
-	/** Mailbox Status: Invalid access data  */
+	/** @var int Mailbox Status: Invalid access data */
 	const MAIL_BOX_STATUS_INVALID_ACCESS = 1;
 
-	/** Mailbox Status: Blocked  */
-	const MAIL_BOX_STATUS_BLOCKED = 2;
+	/** @var int Mailbox Status: Blocked temporarily */
+	const MAIL_BOX_STATUS_BLOCKED_TEMP = 2;
 
-	/** Mailbox Status: Disabled  */
+	/** @var int Mailbox Status: Disabled */
 	const MAIL_BOX_STATUS_DISABLED = 3;
+
+	/** @var int Mailbox Status: Blocked permanently */
+	const MAIL_BOX_STATUS_BLOCKED_PERM = 4;
+
+	/** @var string[] Mailbox status labels */
+	const MAIL_BOX_STATUS_LABELS = [
+		self::MAIL_BOX_STATUS_INVALID_ACCESS => 'LBL_ACCOUNT_INVALID_ACCESS',
+		self::MAIL_BOX_STATUS_DISABLED => 'LBL_ACCOUNT_IS_DISABLED',
+		self::MAIL_BOX_STATUS_BLOCKED_TEMP => 'LBL_ACCOUNT_IS_BLOCKED_TEMP',
+		self::MAIL_BOX_STATUS_BLOCKED_PERM => 'LBL_ACCOUNT_IS_BLOCKED_PERM',
+	];
+
+	/**
+	 * Get status label.
+	 *
+	 * @param int $status
+	 *
+	 * @return string
+	 */
+	public static function getStatusLabel(int $status): string
+	{
+		return self::MAIL_BOX_STATUS_LABELS[$status];
+	}
 
 	/**
 	 * Return accounts array.
@@ -59,10 +82,9 @@ class OSSMail_Record_Model extends Vtiger_Record_Model
 		$dataReader = $query->createCommand()->query();
 		while ($row = $dataReader->read()) {
 			$row['actions'] = empty($row['actions']) ? [] : explode(',', $row['actions']);
-			$users[] = $row;
+			$users[$row['user_id']] = $row;
 		}
 		$dataReader->close();
-
 		return $users;
 	}
 
@@ -114,9 +136,9 @@ class OSSMail_Record_Model extends Vtiger_Record_Model
 	 * @param array  $config
 	 * @param array  $account
 	 *
-	 * @return resource
+	 * @return IMAP\Connection|false
 	 */
-	public static function imapConnect($user, $password, $host = false, $folder = 'INBOX', $dieOnError = true, $config = [], array $account = [])
+	public static function imapConnect($user, $password, $host = '', $folder = 'INBOX', $dieOnError = true, $config = [], array $account = [])
 	{
 		\App\Log::trace("Entering OSSMail_Record_Model::imapConnect($user , '****' , $folder) method ...");
 		if (!$config) {
@@ -126,33 +148,40 @@ class OSSMail_Record_Model extends Vtiger_Record_Model
 		if (isset(self::$imapConnectCache[$cacheName])) {
 			return self::$imapConnectCache[$cacheName];
 		}
-		if (!$host) {
-			$host = key($config['default_host']);
+
+		$hosts = [];
+		if ($imapHost = $config['imap_host'] ?? '') {
+			$hosts = \is_string($imapHost) ? [$imapHost => $imapHost] : $imapHost;
 		}
+		if (!$host && $hosts) {
+			$host = array_key_first($hosts);
+		}
+
 		$parseHost = parse_url($host);
-		$validatecert = '';
+		if (empty($parseHost['host'])) {
+			foreach ($hosts as $row) {
+				if (false !== strpos($row, $host)) {
+					$parseHost = parse_url($row);
+					break;
+				}
+			}
+		}
+		$port = 143;
+		$sslMode = 'tls';
 		if (!empty($parseHost['host'])) {
 			$host = $parseHost['host'];
 			$sslMode = (isset($parseHost['scheme']) && \in_array($parseHost['scheme'], ['ssl', 'imaps', 'tls'])) ? $parseHost['scheme'] : null;
 			if (!empty($parseHost['port'])) {
 				$port = $parseHost['port'];
-			} elseif ($sslMode && 'tls' !== $sslMode && (!$config['default_port'] || 143 == $config['default_port'])) {
+			} elseif ($sslMode && 'tls' !== $sslMode) {
 				$port = 993;
 			}
-		} else {
-			if (993 == $config['default_port']) {
-				$sslMode = 'ssl';
-			} else {
-				$sslMode = 'tls';
-			}
 		}
-		if (empty($port)) {
-			$port = $config['default_port'];
-		}
+		$validateCert = '';
 		if (!$config['validate_cert'] && $config['imap_open_add_connection_type']) {
-			$validatecert = '/novalidate-cert';
+			$validateCert = '/novalidate-cert';
 		}
-		if ($config['imap_open_add_connection_type']) {
+		if ($config['imap_open_add_connection_type'] && $sslMode) {
 			$sslMode = '/' . $sslMode;
 		} else {
 			$sslMode = '';
@@ -166,7 +195,7 @@ class OSSMail_Record_Model extends Vtiger_Record_Model
 		if (isset($config['imap_params'])) {
 			$params = $config['imap_params'];
 		}
-		static::$imapConnectMailbox = "{{$host}:{$port}/imap{$sslMode}{$validatecert}}{$folder}";
+		static::$imapConnectMailbox = "{{$host}:{$port}/imap{$sslMode}{$validateCert}}{$folder}";
 		\App\Log::trace('imap_open(({' . static::$imapConnectMailbox . ", $user , '****'. $options, $maxRetries, " . var_export($params, true) . ') method ...');
 		\App\Log::beginProfile(__METHOD__ . '|imap_open|' . $user, 'Mail|IMAP');
 		$mbox = imap_open(static::$imapConnectMailbox, $user, $password, $options, $maxRetries, $params);
@@ -191,9 +220,20 @@ class OSSMail_Record_Model extends Vtiger_Record_Model
 			});
 		} else {
 			if ($account) {
-				$status = self::MAIL_BOX_STATUS_INVALID_ACCESS == $account['crm_status'] ? self::MAIL_BOX_STATUS_BLOCKED : self::MAIL_BOX_STATUS_INVALID_ACCESS;
+				$status = self::MAIL_BOX_STATUS_ACTIVE == $account['crm_status'] ? self::MAIL_BOX_STATUS_INVALID_ACCESS : self::MAIL_BOX_STATUS_BLOCKED_TEMP;
+				[$date] = explode('||', $account['crm_error'] ?: '');
+				if (empty($date) || false === strtotime($date)) {
+					$date = date('Y-m-d H:i:s');
+				}
+				if (self::MAIL_BOX_STATUS_BLOCKED_TEMP === $status && strtotime('-' . (OSSMailScanner_Record_Model::getConfig('blocked')['permanentTime'] ?? '2 day')) > strtotime($date)) {
+					$status = self::MAIL_BOX_STATUS_BLOCKED_PERM;
+				}
 				\App\Db::getInstance()->createCommand()
-					->update('roundcube_users', ['crm_error' => \App\TextParser::textTruncate(imap_last_error(), 250), 'crm_status' => $status], ['user_id' => $account['user_id']])
+					->update('roundcube_users', [
+						'crm_error' => \App\TextUtils::textTruncate($date . '||' . imap_last_error(), 250),
+						'crm_status' => $status,
+						'failed_login' => date('Y-m-d H:i:s'),
+					], ['user_id' => $account['user_id']])
 					->execute();
 			}
 			\App\Log::error('Error OSSMail_Record_Model::imapConnect(' . static::$imapConnectMailbox . '): ' . imap_last_error());
@@ -217,35 +257,38 @@ class OSSMail_Record_Model extends Vtiger_Record_Model
 			return [];
 		}
 		$dbCommand = \App\Db::getInstance()->createCommand();
-		$config = Settings_Mail_Config_Model::getConfig('mailIcon');
-		$interval = $config['timeCheckingMail'] ?? 30;
+		$interval = \App\Mail::getConfig('mailIcon', 'timeCheckingMail') ?: 30;
 		$date = strtotime("-{$interval} seconds");
 		$counter = [];
 		$all = (new \App\Db\Query())->from('u_#__mail_quantities')->where(['userid' => $users])->indexBy('userid')->all();
+		$accounts = OSSMail_Autologin_Model::getAutologinUsers();
 		foreach ($users as $user) {
 			if (empty($all[$user]['date']) || $date > strtotime($all[$user]['date'])) {
-				if ($account = self::getMailAccountDetail($user)) {
+				if (isset($accounts[$user])) {
 					if (empty($all[$user])) {
 						$dbCommand->insert('u_#__mail_quantities', ['userid' => $user, 'num' => 0, 'date' => date('Y-m-d H:i:s')])->execute();
 					} else {
 						$dbCommand->update('u_#__mail_quantities', ['date' => date('Y-m-d H:i:s')], ['userid' => $user])->execute();
 					}
 					try {
-						$mbox = self::imapConnect($account['username'], \App\Encryption::getInstance()->decrypt($account['password']), $account['mail_host'], 'INBOX', false, [], $account);
-						if ($mbox) {
-							\App\Log::beginProfile(__METHOD__ . '|imap_status|' . $user, 'Mail|IMAP');
-							$info = imap_status($mbox, static::$imapConnectMailbox, SA_UNSEEN);
-							\App\Log::endProfile(__METHOD__ . '|imap_status|' . $user, 'Mail|IMAP');
-							$counter[$user] = $info->unseen ?? 0;
-							$dbCommand->update('u_#__mail_quantities', ['num' => $counter[$user], 'date' => date('Y-m-d H:i:s')], ['userid' => $user])->execute();
+						$mailAccount = \App\Mail\Account::getInstanceById($user);
+						$mailbox = $mailAccount->openImap();
+						$folder = $mailbox->getFolderByName('INBOX');
+						$count = 0;
+						if ($folder) {
+							$count = $folder->query()->unseen()->count();
 						}
+						$counter[$user] = $count;
+						$dbCommand->update('u_#__mail_quantities', ['num' => $count, 'date' => date('Y-m-d H:i:s')], ['userid' => $user])->execute();
 					} catch (\Throwable $th) {
+						\App\Log::error($th->__toString());
 					}
 				}
 			} else {
 				$counter[$user] = $all[$user]['num'] ?? 0;
 			}
 		}
+
 		return $counter;
 	}
 
@@ -289,8 +332,8 @@ class OSSMail_Record_Model extends Vtiger_Record_Model
 		$mail->set('reply_toaddress', \App\Purifier::purify($mail->getEmail('reply_to')));
 		$mail->set('cc_email', \App\Purifier::purify($mail->getEmail('cc')));
 		$mail->set('bcc_email', \App\Purifier::purify($mail->getEmail('bcc')));
-		$mail->set('firstLetterBg', strtoupper(\App\TextParser::textTruncate(trim(strip_tags(App\Purifier::purify($mail->getEmail('from')))), 1, false)));
-		$mail->set('subject', isset($header->subject) ? \App\TextParser::textTruncate(\App\Purifier::purify(self::decodeText($header->subject)), 65535, false) : '');
+		$mail->set('firstLetterBg', strtoupper(\App\TextUtils::textTruncate(trim(strip_tags(App\Purifier::purify($mail->getEmail('from')))), 1, false)));
+		$mail->set('subject', isset($header->subject) ? \App\TextUtils::textTruncate(\App\Purifier::purify(self::decodeText($header->subject)), 65535, false) : '');
 		$mail->set('date', date('Y-m-d H:i:s', $header->udate));
 		if ($fullMode) {
 			$structure = self::getBodyAttach($mbox, $id, $msgno);
@@ -702,17 +745,21 @@ class OSSMail_Record_Model extends Vtiger_Record_Model
 	/**
 	 * Fetch mails from IMAP.
 	 *
-	 * @param int $user
+	 * @param int|null $user
 	 *
 	 * @return array
 	 */
-	public static function getMailsFromIMAP($user = false)
+	public static function getMailsFromIMAP(?int $user = null)
 	{
-		$account = self::getAccountsList($user, true);
+		$accounts = self::getAccountsList(false, true);
 		$mails = [];
 		$mailLimit = 5;
-		if ($account) {
-			$account = reset($account);
+		if ($accounts) {
+			if ($user && isset($accounts[$user])) {
+				$account = $accounts[$user];
+			} else {
+				$account = reset($accounts);
+			}
 			$imap = self::imapConnect($account['username'], \App\Encryption::getInstance()->decrypt($account['password']), $account['mail_host'], 'INBOX', true, [], $account);
 			\App\Log::beginProfile(__METHOD__ . '|imap_num_msg', 'Mail|IMAP');
 			$numMessages = imap_num_msg($imap);

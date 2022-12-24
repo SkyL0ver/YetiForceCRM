@@ -97,7 +97,7 @@ class Settings_FieldsDependency_Record_Model extends Settings_Vtiger_Record_Mode
 	 */
 	public static function sanitize(array $data): array
 	{
-		if (\App\TextParser::getTextLength($data['name']) > 100) {
+		if (\App\TextUtils::getTextLength($data['name']) > 100) {
 			throw new \App\Exceptions\AppException('ERR_EXCEEDED_NUMBER_CHARACTERS||100', 406);
 		}
 		if (isset($data['id'])) {
@@ -170,16 +170,12 @@ class Settings_FieldsDependency_Record_Model extends Settings_Vtiger_Record_Mode
 				$value = \App\Language::translate($moduleName, $moduleName);
 				break;
 			case 'views':
-				$value = implode(', ', array_map(function ($val) {
-					return \App\Language::translate(\App\FieldsDependency::VIEWS[$val], 'Settings:FieldsDependency');
-				}, \App\Json::decode($value) ?? []));
+				$value = implode(', ', array_map(fn ($val) => \App\Language::translate(\App\FieldsDependency::VIEWS[$val], 'Settings:FieldsDependency'), \App\Json::decode($value) ?? []));
 				break;
 			case 'fields':
 				$moduleModel = Vtiger_Module_Model::getInstance($this->get('tabid'));
-				$value = implode(', ', array_map(function ($fieldName) use ($moduleModel) {
-					return $moduleModel->getFieldByName($fieldName)->getFullLabelTranslation();
-				}, \App\Json::decode($value) ?? []));
-				$value = "<div class=\"js-popover-tooltip ml-2 mr-2 d-inline mt-2\" data-js=\"popover\" data-content=\"$value\">" . \App\TextParser::textTruncate($value) . '</div>';
+				$value = implode(', ', array_map(fn ($fieldName) => $moduleModel->getFieldByName($fieldName)->getFullLabelTranslation(), \App\Json::decode($value) ?? []));
+				$value = "<div class=\"js-popover-tooltip ml-2 mr-2 d-inline mt-2\" data-js=\"popover\" data-content=\"$value\">" . \App\TextUtils::textTruncate($value) . '</div>';
 				break;
 			case 'mandatory':
 			case 'gui':
@@ -187,6 +183,9 @@ class Settings_FieldsDependency_Record_Model extends Settings_Vtiger_Record_Mode
 				break;
 			case 'status':
 				$value = \App\Language::translate($value ? 'LBL_NO' : 'LBL_YES');
+				break;
+			default:
+				$value = \App\Purifier::encodeHtml($value);
 				break;
 		}
 		return $value;

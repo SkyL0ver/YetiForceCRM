@@ -2,30 +2,27 @@
 # yarn lockfile v1
 
 
-"@babel/polyfill@^7.12.1":
-  version "7.12.1"
-  resolved "https://registry.yarnpkg.com/@babel/polyfill/-/polyfill-7.12.1.tgz#1f2d6371d1261bbd961f3c5d5909150e12d0bd96"
-  integrity sha512-X0pi0V6gxLi6lFZpGmeNa4zxtwEmCs42isWLNjZZDE0Y8yVfgu0T2OAHlzBbdYlqbW/YXVvoBHpATEM+goCj8g==
-  dependencies:
-    core-js "^2.6.5"
-    regenerator-runtime "^0.13.4"
+"@babel/parser@^7.18.4":
+  version "7.20.3"
+  resolved "https://registry.yarnpkg.com/@babel/parser/-/parser-7.20.3.tgz#5358cf62e380cf69efcb87a7bb922ff88bfac6e2"
+  integrity sha512-OP/s5a94frIPXwjzEcv5S/tpQfc6XhxYUnmWpgdqMWGgYCuErA3SzozaRAMQgSZWKeTJxht9aWAkUY+0UzvOFg==
 
-"@babel/runtime@^7.16.3":
-  version "7.17.9"
-  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.17.9.tgz#d19fbf802d01a8cb6cf053a64e472d42c434ba72"
-  integrity sha512-lSiBBvodq29uShpWGNbgFdKYNiFDo5/HIYsaCEY9ff4sb10x9jizo2+pRrSyF4jKZCXqgzuqBOQKbUm90gQwJg==
+"@babel/runtime@^7.18.6":
+  version "7.20.1"
+  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.20.1.tgz#1148bb33ab252b165a06698fde7576092a78b4a9"
+  integrity sha512-mrzLkl6U9YLF8qpqI7TB82PESyEGjm/0Ly91jG575eVxMMlb8fYfOXFZIJ8XfLrJZQbm7dlKry2bJmXBUEkdFg==
   dependencies:
-    regenerator-runtime "^0.13.4"
+    regenerator-runtime "^0.13.10"
 
 "@fortawesome/fontawesome-free@^6.1":
-  version "6.1.1"
-  resolved "https://registry.yarnpkg.com/@fortawesome/fontawesome-free/-/fontawesome-free-6.1.1.tgz#bf5d45611ab74890be386712a0e5d998c65ee2a1"
-  integrity sha512-J/3yg2AIXc9wznaVqpHVX3Wa5jwKovVF0AMYSnbmcXTiL3PpRPfF58pzWucCwEiCJBp+hCNRLWClTomD8SseKg==
+  version "6.2.0"
+  resolved "https://registry.yarnpkg.com/@fortawesome/fontawesome-free/-/fontawesome-free-6.2.0.tgz#ba3510825b332816fe7190f28827f8cb33a298b5"
+  integrity sha512-CNR7qRIfCwWHNN7FnKUniva94edPdyQzil/zCwk3v6k4R6rR2Fr8i4s3PM7n/lyfPA6Zfko9z5WDzFxG9SW1uQ==
 
-"@mdi/font@^6.6":
-  version "6.6.96"
-  resolved "https://registry.yarnpkg.com/@mdi/font/-/font-6.6.96.tgz#4eee6faee5f44d3ec401d354fb95775cd6699575"
-  integrity sha512-FbcvG9z17hwZ7IwX5XeOR1UYGoLq+gTKq6XNPvJFuCpn599GdiPCJbAmmDBJb+jMYXjKYr0lCxfouWGxDA82sA==
+"@mdi/font@^7.0":
+  version "7.0.96"
+  resolved "https://registry.yarnpkg.com/@mdi/font/-/font-7.0.96.tgz#9853c222623072f5575b4039c8c195ea929b61fc"
+  integrity sha512-rzlxTfR64hqY8yiBzDjmANfcd8rv+T5C0Yedv/TWk2QyAQYdc66e0kaN1ipmnYU3RukHRTRcBARHzzm+tIhL7w==
 
 "@pnotify/bootstrap4@^5":
   version "5.2.0"
@@ -67,10 +64,19 @@
   dependencies:
     "@pnotify/core" "^5.2.0"
 
+"@vue/compiler-sfc@2.7.13":
+  version "2.7.13"
+  resolved "https://registry.yarnpkg.com/@vue/compiler-sfc/-/compiler-sfc-2.7.13.tgz#818944f4a9616b752d48dac6a56bffe2db88bdff"
+  integrity sha512-zzu2rLRZlgIU+OT3Atbr7Y6PG+LW4wVQpPfNRrGDH3dM9PsrcVfa+1pKb8bW467bGM3aDOvAnsYLWVpYIv3GRg==
+  dependencies:
+    "@babel/parser" "^7.18.4"
+    postcss "^8.4.14"
+    source-map "^0.6.1"
+
 add@^2.0.6:
   version "2.0.6"
   resolved "https://registry.yarnpkg.com/add/-/add-2.0.6.tgz#248f0a9f6e5a528ef2295dbeec30532130ae2235"
-  integrity sha1-JI8Kn25aUo7yKV2+7DBTITCuIjU=
+  integrity sha512-j5QzrmsokwWWp6kUcJQySpbG+xfOBqqKnup3OIk1pz+kB/80SLorZ9V8zHFLO92Lcd+hbvq8bT+zOGoPkmBV0Q==
 
 animate.css@^4.0:
   version "4.1.1"
@@ -85,7 +91,7 @@ base64-arraybuffer@^1.0.2:
 block-ui@^2.70.1:
   version "2.70.1"
   resolved "https://registry.yarnpkg.com/block-ui/-/block-ui-2.70.1.tgz#c862d64ee6288fb78123377c6680bc7ab262103f"
-  integrity sha1-yGLWTuYoj7eBIzd8ZoC8erJiED8=
+  integrity sha512-Hx69Bw368lQ9+zOcisvWpoHBsZi9owHQ1YBwLZXFhOMXv59VjBSHHCDWfTaByYSUoNZgTt/sjR1juEbyqwWpwQ==
   dependencies:
     jquery ">=1.7.x"
 
@@ -133,14 +139,14 @@ bootstrap-daterangepicker@^3.0.4:
   resolved "https://github.com/jmschabdach/bootstrap-tabdrop#1eb8b8aeaa79d7ca211059daff7981c9908327a1"
 
 bootstrap@^4.3.1:
-  version "4.6.1"
-  resolved "https://registry.yarnpkg.com/bootstrap/-/bootstrap-4.6.1.tgz#bc25380c2c14192374e8dec07cf01b2742d222a2"
-  integrity sha512-0dj+VgI9Ecom+rvvpNZ4MUZJz8dcX7WCX+eTID9+/8HgOkv3dsRzi8BGeZJCQU6flWQVYxwTQnEZFrmJSEO7og==
+  version "4.6.2"
+  resolved "https://registry.yarnpkg.com/bootstrap/-/bootstrap-4.6.2.tgz#8e0cd61611728a5bf65a3a2b8d6ff6c77d5d7479"
+  integrity sha512-51Bbp/Uxr9aTuy6ca/8FbFloBUJZLHwnhTcnjIeRn2suQWsWzcuJhGjKDB5eppVte/8oCdOL3VuwxvZDUggwGQ==
 
 chart.js@>2.7.0:
-  version "3.7.1"
-  resolved "https://registry.yarnpkg.com/chart.js/-/chart.js-3.7.1.tgz#0516f690c6a8680c6c707e31a4c1807a6f400ada"
-  integrity sha512-8knRegQLFnPQAheZV8MjxIXc5gQEfDFD897BJgv/klO/vtIyFFmgMXrNfgrXpbTr/XbTturxRgxIXx/Y+ASJBA==
+  version "3.9.1"
+  resolved "https://registry.yarnpkg.com/chart.js/-/chart.js-3.9.1.tgz#3abf2c775169c4c71217a107163ac708515924b8"
+  integrity sha512-Ro2JbLmvg83gXF5F4sniaQ+lTbSv18E+TIf2cOeiH1Iqd2PGFOtem+DUufMZsCJwFE7ywPOpfXFBwRTGq7dh6w==
 
 chart.js@^2.9.4:
   version "2.9.4"
@@ -177,15 +183,10 @@ chartjs-plugin-funnel@^1.1.5:
   dependencies:
     chart.js ">2.7.0"
 
-ckeditor-image-to-base@^0.0.3:
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/ckeditor-image-to-base/-/ckeditor-image-to-base-0.0.3.tgz#c99b5c835251833452e7881f18813f16aed85972"
-  integrity sha512-ybLbACTNaDOuidqsdsHgJ/cnQDqrbmMUlbfqLG5kqNeKCeAE7MLEVqpOCids3cWMXqUgdKw7JuOy+8SqgtjnXQ==
-
 clipboard@>=2.0.0:
-  version "2.0.10"
-  resolved "https://registry.yarnpkg.com/clipboard/-/clipboard-2.0.10.tgz#e61f6f7139ac5044c58c0484dcac9fb2a918bfd6"
-  integrity sha512-cz3m2YVwFz95qSEbCDi2fzLN/epEN9zXBvfgAoGkvGOJZATMl9gtTDVOtBYkx2ODUJl2kvmud7n32sV2BpYR4g==
+  version "2.0.11"
+  resolved "https://registry.yarnpkg.com/clipboard/-/clipboard-2.0.11.tgz#62180360b97dd668b6b3a84ec226975762a70be5"
+  integrity sha512-C+0bbOqkezLIsmWSvlsXS0Q0bmkugu7jcfMIACB+RDEntIzQIkdr148we28AfSloQLRdZlYL/QYyrq05j/3Faw==
   dependencies:
     good-listener "^1.2.2"
     select "^1.1.2"
@@ -205,17 +206,17 @@ color-convert@^1.9.3:
 color-name@1.1.3:
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/color-name/-/color-name-1.1.3.tgz#a7d0558bd89c42f795dd42328f740831ca53bc25"
-  integrity sha1-p9BVi9icQveV3UIyj3QIMcpTvCU=
+  integrity sha512-72fSenhMw2HZMTVHeCA9KCmpEIbzWiQsjN+BHcBbS9vr1mtt+vJjPdksIBNUmKAW8TFUDPJK5SUU3QhE9NEXDw==
 
 color-name@^1.0.0:
   version "1.1.4"
   resolved "https://registry.yarnpkg.com/color-name/-/color-name-1.1.4.tgz#c2a09a87acbde69543de6f63fa3995c826c536a2"
   integrity sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==
 
-core-js@^2.6.5:
-  version "2.6.12"
-  resolved "https://registry.yarnpkg.com/core-js/-/core-js-2.6.12.tgz#d9333dfa7b065e347cc5682219d6f690859cc2ec"
-  integrity sha512-Kb2wC0fvsWfQrgk8HU5lW6U/Lcs8+9aaYcy4ZFc6DDlo4nZ7n70dEgE5rtR0oG6ufKDUnrwfWL1mXR5ljDatrQ==
+core-js@^3.23.5:
+  version "3.26.0"
+  resolved "https://registry.yarnpkg.com/core-js/-/core-js-3.26.0.tgz#a516db0ed0811be10eac5d94f3b8463d03faccfe"
+  integrity sha512-+DkDrhoR4Y0PxDz6rurahuB+I45OsEUv8E1maPTB6OuHRohMMcznBq9TMpdpDMm/hUPob/mJJS3PqgbHpMTQgw==
 
 css-element-queries@^1.2.3:
   version "1.2.3"
@@ -229,42 +230,47 @@ css-line-break@^2.1.0:
   dependencies:
     utrie "^1.0.2"
 
-datatables.net-bs4@^1.10.15, datatables.net-bs4@^1.11.3:
-  version "1.11.5"
-  resolved "https://registry.yarnpkg.com/datatables.net-bs4/-/datatables.net-bs4-1.11.5.tgz#7767a27991c75716ce7fef1aa6a41d01bfeaefbd"
-  integrity sha512-tYE9MnyWIW4P8nm41yQnCqW4dUPK3M7qsuxQY5rViFFKDEU0bUUNAnE9+69P5/4Exe4uyXaY05xFkD00niPZUA==
+csstype@^3.1.0:
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/csstype/-/csstype-3.1.1.tgz#841b532c45c758ee546a11d5bd7b7b473c8c30b9"
+  integrity sha512-DJR/VvkAvSZW9bTouZue2sSxDwdTN92uHjqeKVm+0dAqdfNykRzQ95tay8aXMBAAPpUiq4Qcug2L7neoRh2Egw==
+
+datatables.net-bs4@>=1.12.1, datatables.net-bs4@^1.11.3:
+  version "1.13.1"
+  resolved "https://registry.yarnpkg.com/datatables.net-bs4/-/datatables.net-bs4-1.13.1.tgz#b704d9639bbe650c996e614dc37f529e8c09ff47"
+  integrity sha512-GBTOzUT8ooEUMPtjVHktvDk0MyakFGh89F8aHj8VwF1OFLbqTGEAPacO8XAgSfej/Ng3dbFJA6sjrk4gFra8kg==
   dependencies:
-    datatables.net ">=1.11.3"
+    datatables.net ">=1.12.1"
     jquery ">=1.7"
 
 datatables.net-responsive-bs4@^2.2.9:
-  version "2.2.9"
-  resolved "https://registry.yarnpkg.com/datatables.net-responsive-bs4/-/datatables.net-responsive-bs4-2.2.9.tgz#18166b9e99c439b8b19bdd7edef8b78572b17b3f"
-  integrity sha512-f6MS0aL7XqjYcFSjup/JRDezbK3cCYFjAB+4vl8dwnGqRP13xwTjXiNqlrRT+fhJJzTQhaHveRpvFUn1qsyn7g==
+  version "2.4.0"
+  resolved "https://registry.yarnpkg.com/datatables.net-responsive-bs4/-/datatables.net-responsive-bs4-2.4.0.tgz#4f4b3bc09a1f403baf9153067a49d9de66ad6f39"
+  integrity sha512-zCAxwcuaLneJd3Yy1eKZU3wksIj4IFvcaQEXrFeVBgsl6iH3H+uqW9apwdadDL8agsBHdsln08qYjkz8bYY7Bg==
   dependencies:
-    datatables.net-bs4 "^1.10.15"
-    datatables.net-responsive "2.2.9"
+    datatables.net-bs4 ">=1.12.1"
+    datatables.net-responsive ">=2.3.0"
     jquery ">=1.7"
 
-datatables.net-responsive@2.2.9:
-  version "2.2.9"
-  resolved "https://registry.yarnpkg.com/datatables.net-responsive/-/datatables.net-responsive-2.2.9.tgz#846d4436691b13261e8e436dc988affe4d262f36"
-  integrity sha512-C+mOY/mG17zzaYPtgqAOsC4JlGddGkKmO/ADNEtNZ41bcPV1/3jJzkOWT3DCZ400NmkXLDz4WObWlPT8WCgfzg==
+datatables.net-responsive@>=2.3.0:
+  version "2.4.0"
+  resolved "https://registry.yarnpkg.com/datatables.net-responsive/-/datatables.net-responsive-2.4.0.tgz#91658679483e3ef6cda8b9bc5c1b7eff076a8e70"
+  integrity sha512-Acws4aEPJZX/+CQsXpuDBHfrwgl3XxWEc/zlsnJCXE/GGbqjVAtQt7SM6EBcdReMv1FbyWUlF/Uw+de11NT46A==
   dependencies:
-    datatables.net "^1.10.15"
+    datatables.net ">=1.12.1"
     jquery ">=1.7"
 
-datatables.net@>=1.11.3, datatables.net@^1.10.15, datatables.net@^1.11.3:
-  version "1.11.5"
-  resolved "https://registry.yarnpkg.com/datatables.net/-/datatables.net-1.11.5.tgz#858a69953a01e1d5b18786769802117b04b8e3c9"
-  integrity sha512-nlFst2xfwSWaQgaOg5sXVG3cxYC0tH8E8d65289w9ROgF2TmLULOOpcdMpyxxUim/qEwVSEem42RjkTWEpr3eA==
+datatables.net@>=1.12.1, datatables.net@^1.11.3:
+  version "1.13.1"
+  resolved "https://registry.yarnpkg.com/datatables.net/-/datatables.net-1.13.1.tgz#199f7cb63f4536c135e161f95254212835a1c130"
+  integrity sha512-cX5dDHsbVdLLYKsWOSE0MvuGUcV88zU5dZ/taK2puJV6F9Fw0CFsP3+U/kr+qpDSFOBLWISRyM4Q9wWWovPTNg==
   dependencies:
     jquery ">=1.7"
 
 dayjs@^1.8.16:
-  version "1.11.0"
-  resolved "https://registry.yarnpkg.com/dayjs/-/dayjs-1.11.0.tgz#009bf7ef2e2ea2d5db2e6583d2d39a4b5061e805"
-  integrity sha512-JLC809s6Y948/FuCZPm5IX8rRhQwOiyMb2TfVVQEixG7P8Lm/gt5S7yoQZmC8x1UehI9Pb7sksEt4xx14m+7Ug==
+  version "1.11.6"
+  resolved "https://registry.yarnpkg.com/dayjs/-/dayjs-1.11.6.tgz#2e79a226314ec3ec904e3ee1dd5a4f5e5b1c7afb"
+  integrity sha512-zZbY5giJAinCG+7AGaw0wIhNZ6J8AhWuSXKvuc1KAyMiRsvGQWqh4L+MomvhdAYjN+lqvVCMq1I41e3YHvXkyQ==
 
 delegate@^3.1.2:
   version "3.2.0"
@@ -274,21 +280,21 @@ delegate@^3.1.2:
 device-uuid@^1.0.4:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/device-uuid/-/device-uuid-1.0.4.tgz#f6973e58f19b92a237aeca7b16a395ae7195a883"
-  integrity sha1-9pc+WPGbkqI3rsp7FqOVrnGVqIM=
+  integrity sha512-nNbUKlCuXZ1BV4zKFr9z8VxypL1PCNExRoNtRx/mNKFcOEDWUdT3E1B4vw7LBWftBmixkrjQIjpdLov3EmEJjA==
 
-emoji-mart-vue-fast@^10.2.0:
-  version "10.2.1"
-  resolved "https://registry.yarnpkg.com/emoji-mart-vue-fast/-/emoji-mart-vue-fast-10.2.1.tgz#9bf55fbb93a2654e4416a177086d5eeb280d9c0b"
-  integrity sha512-PtKihhsXBEEw1jHwnoRyJAnJP1OlK4EJrEze58EbUUV7iHWGLub+yuiNSj2Uo1JBHraz4fw/pH98nFysVoe0qg==
+emoji-mart-vue-fast@^11:
+  version "11.2.0"
+  resolved "https://registry.yarnpkg.com/emoji-mart-vue-fast/-/emoji-mart-vue-fast-11.2.0.tgz#3183aae3c7a984f0e77ba02129297d88596d3e4e"
+  integrity sha512-dEVAJAbQop+efR8Zn4bvPQtSREwsVZccQxEBHdi1GNPO0JC9H6l0FswuCli/TrZXAQr1KS7dGEUhS9A1gURFRA==
   dependencies:
-    "@babel/polyfill" "^7.12.1"
-    "@babel/runtime" "^7.16.3"
+    "@babel/runtime" "^7.18.6"
+    core-js "^3.23.5"
     vue-virtual-scroller "^1.0.10"
 
 flag-icons@^6.0.0:
-  version "6.2.0"
-  resolved "https://registry.yarnpkg.com/flag-icons/-/flag-icons-6.2.0.tgz#afc990e7b55c82dc1d02fd5b20c1bcf305c0a9f8"
-  integrity sha512-cFpV72wTVaRhcU6dzyD3rtCbx+8AtFXHxlidtXMCqssBbuUTmHzc6GlGDb8XfxtMZGx9I/HzsLe6En3RjUWsCw==
+  version "6.6.6"
+  resolved "https://registry.yarnpkg.com/flag-icons/-/flag-icons-6.6.6.tgz#9ddff81e1126778ca6a5a1e0e2cfac2e865f2cb7"
+  integrity sha512-4lHDKxldnQ7q617pf9Dx9nAetT+9zcMpUexbRrc9kjLw9KJgZ83zA5Dky3Vv7ZDzUjAiZ46x/cy5P0HnEnqA2A==
 
 floatthead@^2.1.3:
   version "2.2.4"
@@ -298,14 +304,14 @@ floatthead@^2.1.3:
 footable@^2.0.6:
   version "2.0.6"
   resolved "https://registry.yarnpkg.com/footable/-/footable-2.0.6.tgz#24e2d0c4a61648e03fc0313817be853aa59c09d0"
-  integrity sha1-JOLQxKYWSOA/wDE4F76FOqWcCdA=
+  integrity sha512-OSkHeQ3pSt2rVchLlUa02axnnCd/C8eaK4KJriglJtR+QWg4caNkooOqvb1owzJiZ9+/bEhnXCic3mv8vLKM2A==
   dependencies:
     jquery ">=1.4.4"
 
-fullcalendar@3.10.3:
-  version "3.10.3"
-  resolved "https://registry.yarnpkg.com/fullcalendar/-/fullcalendar-3.10.3.tgz#b96c335b6fd4d76147783500418ae32aca771930"
-  integrity sha512-fZiDIIkhZ7fwTYfWYHzzCmS2zPKK8VMMG/MZzuvr7ANjajmptsxcwa9xLHZP5mKMDO8duhFkVfPATKnnQeGdgQ==
+fullcalendar@^5:
+  version "5.11.3"
+  resolved "https://registry.yarnpkg.com/fullcalendar/-/fullcalendar-5.11.3.tgz#866a062efac2ad5ae3c73aaf345223d617fe1c84"
+  integrity sha512-SgqiMEA+lWLyEd2jEwtIxdfx41j2CZr4KK00D2Gepj1MnGOjaEi13athnU6xvqMQXXjgJNj+vmlUP69QiuGncQ==
 
 gantt-elastic@^1.0.12:
   version "1.0.12"
@@ -319,14 +325,14 @@ gantt-elastic@^1.0.12:
 good-listener@^1.2.2:
   version "1.2.2"
   resolved "https://registry.yarnpkg.com/good-listener/-/good-listener-1.2.2.tgz#d53b30cdf9313dffb7dc9a0d477096aa6d145c50"
-  integrity sha1-1TswzfkxPf+33JoNR3CWqm0UXFA=
+  integrity sha512-goW1b+d9q/HIwbVYZzZ6SsTr4IgE+WA44A0GmPIQstuOrgsFcT7VEJ48nmr9GaRtNu0XTKacFLGnBPAM6Afouw==
   dependencies:
     delegate "^3.1.2"
 
 gridstack@^5.0.0:
-  version "5.0.0"
-  resolved "https://registry.yarnpkg.com/gridstack/-/gridstack-5.0.0.tgz#b3b3f54f0bfda505d1e67c033d079b74622e00e3"
-  integrity sha512-FpXQ2gWUCcBW7QON7GEqP7NZFWZPpuGfze4dzRMQ1ikaRZ7Y2qfc9Gbc04Qukjst2AuPQcuW/mEJkh+2XnnCsA==
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/gridstack/-/gridstack-5.1.1.tgz#2d11bbc0fed98cd6e8da573d5b71582b38eb6abc"
+  integrity sha512-cmJ8VAxzBQi96P9Z1JS01hhaMUGv+G0VM+YxBLoUcol1hB9c/9o+u5ejvIqxN7L/h26ox8f/6Vv42gkr/VA6EQ==
 
 html2canvas@^1.0.0-alpha.12:
   version "1.4.1"
@@ -339,7 +345,7 @@ html2canvas@^1.0.0-alpha.12:
 html5shiv@^3.7.3:
   version "3.7.3"
   resolved "https://registry.yarnpkg.com/html5shiv/-/html5shiv-3.7.3.tgz#d78a84a367bcb9a710100d57802c387b084631d2"
-  integrity sha1-14qEo2e8uacQEA1XgCw4ewhGMdI=
+  integrity sha512-SZwGvLGNtgp8GbgFX7oXEp8OR1aBt5LliX6dG0kdD1kl3KhMonN0QcSa/A3TsTgFewaGCbIryQunjayWDXzxmw==
 
 inputmask@^5.0.7:
   version "5.0.7"
@@ -369,36 +375,36 @@ jquery-lazy@^1.7.7:
 jquery-outside-events@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/jquery-outside-events/-/jquery-outside-events-1.0.0.tgz#da48d0c3d1df80de2f9ac8b112660d67d28a464b"
-  integrity sha1-2kjQw9HfgN4vmsixEmYNZ9KKRks=
+  integrity sha512-M7JIWgtvReEtQN64DkKl4ldyNUY8VDdbSUHjcbI/WHlCBYQFY6EcpUT1qUfZPfCqT6SsRkX6spLja9zvzAJIsg==
 
 jquery-slimscroll@^1.3.8:
   version "1.3.8"
   resolved "https://registry.yarnpkg.com/jquery-slimscroll/-/jquery-slimscroll-1.3.8.tgz#8481c44e7a47687653908a28f7f70aed64c84e36"
-  integrity sha1-hIHETnpHaHZTkIoo9/cK7WTITjY=
+  integrity sha512-3cNGNCq6i3b+rZQOx1tSBlSFewk4X35eUuQmoRVSA4MSytw3rGPvCw6cEB2oEHf+u15RVzgfh4hN+/3dDNzwiQ==
   dependencies:
     jquery ">= 1.7"
 
-jquery-ui-dist@^1.13.0:
-  version "1.13.1"
-  resolved "https://registry.yarnpkg.com/jquery-ui-dist/-/jquery-ui-dist-1.13.1.tgz#47dcc1bf9cec141221ece59b2c8eaabad846ec0e"
-  integrity sha512-Y711Pu4BRVrAlL58KSxX4ail74jaCJZaZcdNDLava+MgZeNwmVWmyYiK7KxyoJu1MB73eSunjJvYDbOuNrOA7w==
+jquery-ui-dist@^1.13.2:
+  version "1.13.2"
+  resolved "https://registry.yarnpkg.com/jquery-ui-dist/-/jquery-ui-dist-1.13.2.tgz#899fbb3c6210de19ace10657cf844a3b97f3be70"
+  integrity sha512-oVDRd1NLtTbBwpRKAYdIRgpWVDzeBhfy7Gu0RmY6JEaZtmBq6kDn1pm5SgDiAotrnDS+RoTRXO6xvcNTxA9tOA==
   dependencies:
     jquery ">=1.8.0 <4.0.0"
 
 jquery.class.js@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/jquery.class.js/-/jquery.class.js-1.0.0.tgz#43616c36d76eff36caf2139ddacda621aa24ed30"
-  integrity sha1-Q2FsNtdu/zbK8hOd2s2mIaok7TA=
+  integrity sha512-TKrc0qRYnm3+t6Bro34+4CeerNRacd5cyp5hiapLZJHvqXKi04F4BGelToKL/+d/sPe0lIY6HwCTaceeiKurpQ==
 
 "jquery@>= 1.7", jquery@>=1.10, jquery@>=1.4.4, jquery@>=1.6, jquery@>=1.7, jquery@>=1.7.0, "jquery@>=1.7.1 <4.0.0", jquery@>=1.7.2, jquery@>=1.7.x, "jquery@>=1.8.0 <4.0.0", jquery@>=1.9.1, jquery@^3.5:
-  version "3.6.0"
-  resolved "https://registry.yarnpkg.com/jquery/-/jquery-3.6.0.tgz#c72a09f15c1bdce142f49dbf1170bdf8adac2470"
-  integrity sha512-JVzAR/AjBvVt2BmYhxRCSYysDsPcssdmTFnzyLEts9qNwmjmu4JTAMYubEfwVOSwpQ1I1sKKFcxhZCI2buerfw==
+  version "3.6.1"
+  resolved "https://registry.yarnpkg.com/jquery/-/jquery-3.6.1.tgz#fab0408f8b45fc19f956205773b62b292c147a16"
+  integrity sha512-opJeO4nCucVnsjiXOE+/PcCgYw9Gwpvs/a6B1LL/lQhwWwpbVEVYDZ1FokFr8PRc7ghYlrFPuyHuiiDNTQxmcw==
 
 jstree-bootstrap-theme@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/jstree-bootstrap-theme/-/jstree-bootstrap-theme-1.0.1.tgz#7d5edc73a846e8da7f94f57a1cc5ddee9d9eab4b"
-  integrity sha1-fV7cc6hG6Np/lPV6HMXd7p2eq0s=
+  integrity sha512-H1F1NOwfPnsQAzsLPRBRR0zO4pfXD5tUHfRj9psT/2+eEMMotG1mYtU3gP5Lsr67TKbsE53M8HLv93EAL+zC2A==
   dependencies:
     jquery ">=1.9.1"
 
@@ -420,44 +426,63 @@ leaflet.markercluster@^1.4.1:
   integrity sha512-vPTw/Bndq7eQHjLBVlWpnGeLa3t+3zGiuM7fJwCkiMFq+nmRuG3RI3f7f4N4TDX7T4NpbAXpR2+NTRSEGfCSeA==
 
 leaflet@^1.5.1:
-  version "1.7.1"
-  resolved "https://registry.yarnpkg.com/leaflet/-/leaflet-1.7.1.tgz#10d684916edfe1bf41d688a3b97127c0322a2a19"
-  integrity sha512-/xwPEBidtg69Q3HlqPdU3DnrXQOvQU/CCHA1tcDQVzOwm91YMYaILjNp7L4Eaw5Z4sOYdbBz6koWyibppd8Zqw==
+  version "1.9.2"
+  resolved "https://registry.yarnpkg.com/leaflet/-/leaflet-1.9.2.tgz#168b6c6ef1d4d1e8409bde2c4ad050c249c4dbe6"
+  integrity sha512-Kc77HQvWO+y9y2oIs3dn5h5sy2kr3j41ewdqCMEUA4N89lgfUUfOBy7wnnHEstDpefiGFObq12FdopGRMx4J7g==
 
 moment@^2.10.2, moment@^2.23.0, moment@^2.9.0:
-  version "2.29.2"
-  resolved "https://registry.yarnpkg.com/moment/-/moment-2.29.2.tgz#00910c60b20843bcba52d37d58c628b47b1f20e4"
-  integrity sha512-UgzG4rvxYpN15jgCmVJwac49h9ly9NurikMWGPdVxm8GZD6XjkKPxDTjQQ43gtGgnV3X0cAyWDdP2Wexoquifg==
+  version "2.29.4"
+  resolved "https://registry.yarnpkg.com/moment/-/moment-2.29.4.tgz#3dbe052889fe7c1b2ed966fcb3a77328964ef108"
+  integrity sha512-5LC9SOxjSc2HF6vO2CyuTDNivEdoz2IvyJJGj6X8DJ0eFyfszE0QiEd+iXmBvUP3WHxSjFH/vIsA0EN00cgr8w==
 
 mousetrap@^1.6.3:
   version "1.6.5"
   resolved "https://registry.yarnpkg.com/mousetrap/-/mousetrap-1.6.5.tgz#8a766d8c272b08393d5f56074e0b5ec183485bf9"
   integrity sha512-QNo4kEepaIBwiT8CDhP98umTetp+JNfQYBWvC1pc6/OAibuXtRcxZ58Qz8skvEHYvURne/7R8T5VoOI7rDsEUA==
 
+nanoid@^3.3.4:
+  version "3.3.4"
+  resolved "https://registry.yarnpkg.com/nanoid/-/nanoid-3.3.4.tgz#730b67e3cd09e2deacf03c027c81c9d9dbc5e8ab"
+  integrity sha512-MqBkQh/OHTS2egovRtLk45wEyNXwF+cokD+1YPf9u5VfJiRdAiRwB2froX5Co9Rh20xs4siNPm8naNotSD6RBw==
+
 overlayscrollbars@^1.10.0:
-  version "1.13.1"
-  resolved "https://registry.yarnpkg.com/overlayscrollbars/-/overlayscrollbars-1.13.1.tgz#0b840a88737f43a946b9d87875a2f9e421d0338a"
-  integrity sha512-gIQfzgGgu1wy80EB4/6DaJGHMEGmizq27xHIESrzXq0Y/J0Ay1P3DWk6tuVmEPIZH15zaBlxeEJOqdJKmowHCQ==
+  version "1.13.3"
+  resolved "https://registry.yarnpkg.com/overlayscrollbars/-/overlayscrollbars-1.13.3.tgz#992c96fd2c8535802d1e56c40bc12ec03076c626"
+  integrity sha512-1nB/B5kaakJuHXaLXLRK0bUIilWhUGT6q5g+l2s5vqYdLle/sd0kscBHkQC1kuuDg9p9WR4MTdySDOPbeL/86g==
 
 perfect-scrollbar@^1.3.0:
   version "1.5.5"
   resolved "https://registry.yarnpkg.com/perfect-scrollbar/-/perfect-scrollbar-1.5.5.tgz#41a211a2fb52a7191eff301432134ea47052b27f"
   integrity sha512-dzalfutyP3e/FOpdlhVryN4AJ5XDVauVWxybSkLZmakFE2sS3y3pc4JnSprw8tGmHvkaG5Edr5T7LBTZ+WWU2g==
 
+picocolors@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/picocolors/-/picocolors-1.0.0.tgz#cb5bdc74ff3f51892236eaf79d68bc44564ab81c"
+  integrity sha512-1fygroTLlHu66zi26VoTDv8yRgm0Fccecssto+MhsZ0D/DGW2sm8E8AjW7NU5VVTRt5GxbeZ5qBuJr+HyLYkjQ==
+
 popper.js@^1.15.0:
   version "1.16.1"
   resolved "https://registry.yarnpkg.com/popper.js/-/popper.js-1.16.1.tgz#2a223cb3dc7b6213d740e40372be40de43e65b1b"
   integrity sha512-Wb4p1J4zyFTbM+u6WuO4XstYx4Ky9Cewe4DWrel7B0w6VVICvPwdOpotjzcf6eD8TsckVnIMNONQyPIUFOUbCQ==
 
-quasar@^1.6.1:
-  version "1.18.9"
-  resolved "https://registry.yarnpkg.com/quasar/-/quasar-1.18.9.tgz#51e2e5e5888db8424743ea7c9f7bc295018dc264"
-  integrity sha512-TkHXOrhS3C7HIV8xYVeQwCfmKiO8WJRhElQXtx/ksbQplKXNZs7TFHlMq2QnYnHR895MDXFqzqIHq5UYU24rXw==
+postcss@^8.4.14:
+  version "8.4.18"
+  resolved "https://registry.yarnpkg.com/postcss/-/postcss-8.4.18.tgz#6d50046ea7d3d66a85e0e782074e7203bc7fbca2"
+  integrity sha512-Wi8mWhncLJm11GATDaQKobXSNEYGUHeQLiQqDFG1qQ5UTDPTEvKw0Xt5NsTpktGTwLps3ByrWsBrG0rB8YQ9oA==
+  dependencies:
+    nanoid "^3.3.4"
+    picocolors "^1.0.0"
+    source-map-js "^1.0.2"
 
-regenerator-runtime@^0.13.4:
-  version "0.13.9"
-  resolved "https://registry.yarnpkg.com/regenerator-runtime/-/regenerator-runtime-0.13.9.tgz#8925742a98ffd90814988d7566ad30ca3b263b52"
-  integrity sha512-p3VT+cOEgxFsRRA9X4lkI1E+k2/CtnKtU4gcxyaCUreilL/vqI6CdZ3wxVUx3UOUg+gnUOQQcRI7BmSI656MYA==
+quasar@^1.6.1:
+  version "1.22.1"
+  resolved "https://registry.yarnpkg.com/quasar/-/quasar-1.22.1.tgz#0a71c47f35760864ef107a5020d50da00163fd39"
+  integrity sha512-z1dtJTM706v0Tygs1v34q4dsljmFqlTyN6AEJ2CQiUj3Gla11qy/m3Sv08weCHfebfsb/QWbue90aF1nEpAnUQ==
+
+regenerator-runtime@^0.13.10:
+  version "0.13.10"
+  resolved "https://registry.yarnpkg.com/regenerator-runtime/-/regenerator-runtime-0.13.10.tgz#ed07b19616bcbec5da6274ebc75ae95634bfc2ee"
+  integrity sha512-KepLsg4dU12hryUO7bp/axHAKvwGOCV0sGloQtpagJ12ai+ojVDqkeGSiRX1zlq+kjIMZ1t7gpze+26QqtdGqw==
 
 resize-observer-polyfill@^1.5.1:
   version "1.5.1"
@@ -467,22 +492,22 @@ resize-observer-polyfill@^1.5.1:
 respond.js@^1.4.2:
   version "1.4.2"
   resolved "https://registry.yarnpkg.com/respond.js/-/respond.js-1.4.2.tgz#fd5c07450acce6090916d8d090b86b672dd9748b"
-  integrity sha1-/VwHRQrM5gkJFtjQkLhrZy3ZdIs=
+  integrity sha512-CnKoEKjfyyrldG/D05DW0qtAyLQ4sm4si4Bq4GDsMPd1KMUAuQI224aybMkG/D5IVOB6PYdtYvjbeiAJo1V0rA==
 
 sass-material-colors@^0.0.5:
   version "0.0.5"
   resolved "https://registry.yarnpkg.com/sass-material-colors/-/sass-material-colors-0.0.5.tgz#b944539236c94e2d4ece35d2ee3fa22f10b2ed43"
-  integrity sha1-uURTkjbJTi1OzjXS7j+iLxCy7UM=
+  integrity sha512-WqBonSUkR5U9xs9adPVIymIdcT2Ku7PN0Q57yFfcLHj/E63wDqZ/Y5i/m9RmkRyr/jmR85g6ZIS053fyAR8G2A==
 
 scrollparent@^2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/scrollparent/-/scrollparent-2.0.1.tgz#715d5b9cc57760fb22bdccc3befb5bfe06b1a317"
-  integrity sha1-cV1bnMV3YPsivczDvvtb/gaxoxc=
+  integrity sha512-HSdN78VMvFCSGCkh0oYX/tY4R3P1DW61f8+TeZZ4j2VLgfwvw0bpRSOv4PCVKisktIwbzHCfZsx+rLbbDBqIBA==
 
 select2-theme-bootstrap4@^1.0.0:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/select2-theme-bootstrap4/-/select2-theme-bootstrap4-1.0.1.tgz#aa476930988cb61b05c77d1173a937688d2bb4be"
-  integrity sha512-gn9zN+ZppzsjRCQzHMfhDyizcCNlzbsB059qAXjyEaFYx7OA3677LYEIbYiGmliuF6y9Dbuae8X8Rk/Z4SBleQ==
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/select2-theme-bootstrap4/-/select2-theme-bootstrap4-1.0.2.tgz#309236ddf521e3f70eb1f9c107813fb2f0069d7f"
+  integrity sha512-/tAPPIIAzjsywl78lFfu7YopFnL9HjnM2pxaYxju38ZBBW5tqK9eollhFJJqBCSa+gLJT9uP2iFt6vJYw5REmw==
 
 select2@^4.0.8:
   version "4.0.13"
@@ -492,7 +517,17 @@ select2@^4.0.8:
 select@^1.1.2:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/select/-/select-1.1.2.tgz#0e7350acdec80b1108528786ec1d4418d11b396d"
-  integrity sha1-DnNQrN7ICxEIUoeG7B1EGNEbOW0=
+  integrity sha512-OwpTSOfy6xSs1+pwcNrv0RBMOzI39Lp3qQKUTPVVPRjCdNa5JH/oPRiqsesIskK8TVgmRiHwO4KXlV2Li9dANA==
+
+source-map-js@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/source-map-js/-/source-map-js-1.0.2.tgz#adbc361d9c62df380125e7f161f71c826f1e490c"
+  integrity sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==
+
+source-map@^0.6.1:
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/source-map/-/source-map-0.6.1.tgz#74722af32e9614e9c287a8d0bbde48b5e2f1a263"
+  integrity sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==
 
 split.js@^1.5.10:
   version "1.6.5"
@@ -502,7 +537,7 @@ split.js@^1.5.10:
 store@^2.0.12:
   version "2.0.12"
   resolved "https://registry.yarnpkg.com/store/-/store-2.0.12.tgz#8c534e2a0b831f72b75fc5f1119857c44ef5d593"
-  integrity sha1-jFNOKguDH3K3X8XxEZhXxE711ZM=
+  integrity sha512-eO9xlzDpXLiMr9W1nQ3Nfp9EzZieIQc10zPPMP5jsVV7bLOziSFFBP0XoDXACEIFtdI+rIz0NwWVA/QVJ8zJtw==
 
 text-segmentation@^1.0.3:
   version "1.0.3"
@@ -544,18 +579,21 @@ vue-resize@^0.4.5:
   integrity sha512-bhP7MlgJQ8TIkZJXAfDf78uJO+mEI3CaLABLjv0WNzr4CcGRGPIAItyWYnP6LsPA4Oq0WE+suidNs6dgpO4RHg==
 
 vue-virtual-scroller@^1.0.10:
-  version "1.0.10"
-  resolved "https://registry.yarnpkg.com/vue-virtual-scroller/-/vue-virtual-scroller-1.0.10.tgz#fdf243240001f05bd79aa77f2e2e60403760e2fb"
-  integrity sha512-Hn4qSBDhRY4XdngPioYy/ykDjrLX/NMm1fQXm/4UQQ/Xv1x8JbHGFZNftQowTcfICgN7yc31AKnUk1UGLJ2ndA==
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/vue-virtual-scroller/-/vue-virtual-scroller-1.1.2.tgz#b8a6362f177abf3f2149ce1eac18013c71fe353b"
+  integrity sha512-SkUyc7QHCJFB5h1Fya7LxVizlVzOZZuFVipBGHYoTK8dwLs08bIz/tclvRApYhksaJIm/nn51inzO2UjpGJPMQ==
   dependencies:
     scrollparent "^2.0.1"
     vue-observe-visibility "^0.4.4"
     vue-resize "^0.4.5"
 
 vue@^2.6.10, vue@^2.6.11:
-  version "2.6.14"
-  resolved "https://registry.yarnpkg.com/vue/-/vue-2.6.14.tgz#e51aa5250250d569a3fbad3a8a5a687d6036e235"
-  integrity sha512-x2284lgYvjOMj3Za7kqzRcUSxBboHqtgRE2zlos1qWaOye5yUmHn42LB1250NJBLRwEcdrB0JRwyPTEPhfQjiQ==
+  version "2.7.13"
+  resolved "https://registry.yarnpkg.com/vue/-/vue-2.7.13.tgz#e9e499cc6da46dc7941c2510193b15aa6a84a79f"
+  integrity sha512-QnM6ULTNnPmn71eUO+4hdjfBIA3H0GLsBnchnI/kS678tjI45GOUZhXd0oP/gX9isikXz1PAzSnkPspp9EUNfQ==
+  dependencies:
+    "@vue/compiler-sfc" "2.7.13"
+    csstype "^3.1.0"
 
 whatwg-fetch@^3.6.2:
   version "3.6.2"

@@ -160,7 +160,7 @@ class Settings_WebserviceUsers_Record_Model extends Settings_Vtiger_Record_Model
 	 */
 	public function getUserSession(string $container): array
 	{
-		$dataReader = (new \App\Db\Query())->from(\Api\Core\Containers::$listTables[$container]['session'])
+		$dataReader = (new \App\Db\Query())->from(\Api\Core\Containers::LIST_TABLES[$container]['session'])
 			->where(['user_id' => $this->getId()])
 			->orderBy(['changed' => SORT_DESC])
 			->limit(30)
@@ -181,7 +181,7 @@ class Settings_WebserviceUsers_Record_Model extends Settings_Vtiger_Record_Model
 	 */
 	public function getUserHistoryAccessActivity(string $container): array
 	{
-		$dataReader = (new \App\Db\Query())->from(\Api\Core\Containers::$listTables[$container]['loginHistory'])
+		$dataReader = (new \App\Db\Query())->from(\Api\Core\Containers::LIST_TABLES[$container]['loginHistory'])
 			->where(['user_id' => $this->getId()])
 			->orderBy(['id' => SORT_DESC])
 			->limit(30)
@@ -219,7 +219,7 @@ class Settings_WebserviceUsers_Record_Model extends Settings_Vtiger_Record_Model
 						$params = \App\Json::decode($value);
 						$value = '';
 						foreach ($params as $paramsKey => $paramsValue) {
-							$value .= \App\Language::translate(self::$customParamsLabels[$paramsKey] ?? $paramsKey, 'Settings.WebserviceUsers') . ": $paramsValue \n";
+							$value .= \App\Language::translate(self::$customParamsLabels[$paramsKey] ?? $paramsKey, 'Settings:WebserviceUsers') . ": $paramsValue \n";
 						}
 						$row[$key] = \App\Layout::truncateText($value, 50, true);
 					}
@@ -258,7 +258,7 @@ class Settings_WebserviceUsers_Record_Model extends Settings_Vtiger_Record_Model
 					$row[$key] = \App\Layout::truncateText($value, 50, true);
 					break;
 				case 'device_id':
-					$row[$key] = "<div class=\"js-popover-tooltip ml-2 mr-2 d-inline mt-2\" data-js=\"popover\" data-content=\"$value\">" . \App\TextParser::textTruncate($value, 14) . '</div>';
+					$row[$key] = "<div class=\"js-popover-tooltip ml-2 mr-2 d-inline mt-2\" data-js=\"popover\" data-content=\"$value\">" . \App\TextUtils::textTruncate($value, 14) . '</div>';
 					break;
 				default:
 					break;

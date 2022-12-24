@@ -19,11 +19,11 @@ class Users_String_UIType extends Vtiger_Base_UIType
 			return;
 		}
 		if (106 === $this->getFieldModel()->getUIType()) {
-			$textLength = App\TextParser::getTextLength($value);
+			$textLength = App\TextUtils::getTextLength($value);
 			$maximumLength = $this->getFieldModel()->get('maximumlength');
 			$range = explode(',', $maximumLength);
 			if ((int) $range[0] > $textLength || (int) $range[1] < $textLength || !preg_match('/^[a-zA-Z0-9_.@-]+$/', $value)) {
-				throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getFieldName() . '||' . $this->getFieldModel()->getModuleName() . '||' . $value, 406);
+				throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getName() . '||' . $this->getFieldModel()->getModuleName() . '||' . $value, 406);
 			}
 			$this->validate = true;
 		} else {

@@ -108,13 +108,13 @@ class User
 	 *
 	 * @return array
 	 */
-	public static function getPrivilegesFile($userId)
+	public static function getPrivilegesFile($userId): array
 	{
 		if (isset(static::$userPrivilegesCache[$userId])) {
 			return self::$userPrivilegesCache[$userId];
 		}
 		if (!file_exists("user_privileges/user_privileges_{$userId}.php")) {
-			return null;
+			return [];
 		}
 		$privileges = require "user_privileges/user_privileges_{$userId}.php";
 
@@ -243,9 +243,9 @@ class User
 	 *
 	 * @return array
 	 */
-	public function getGroups()
+	public function getGroups(): array
 	{
-		return $this->privileges['groups'] ?? null;
+		return $this->privileges['groups'] ?? [];
 	}
 
 	/**
@@ -255,9 +255,7 @@ class User
 	 */
 	public function getGroupNames()
 	{
-		return array_filter(\App\Fields\Owner::getInstance('CustomView')->getGroups(false), function ($key) {
-			return \in_array($key, $this->getGroups());
-		}, ARRAY_FILTER_USE_KEY);
+		return array_filter(\App\Fields\Owner::getInstance('CustomView')->getGroups(false), fn ($key) => \in_array($key, $this->getGroups()), ARRAY_FILTER_USE_KEY);
 	}
 
 	/**
@@ -265,9 +263,19 @@ class User
 	 *
 	 * @return string
 	 */
-	public function getRole()
+	public function getRole(): string
 	{
 		return $this->privileges['details']['roleid'];
+	}
+
+	/**
+	 * Get user role Id.
+	 *
+	 * @return string
+	 */
+	public function getRoleName(): string
+	{
+		return $this->privileges['roleName'];
 	}
 
 	/**
@@ -483,7 +491,11 @@ class User
 			return [];
 		}
 		$imageData['path'] = ROOT_DIRECTORY . \DIRECTORY_SEPARATOR . $imageData['path'];
-		$imageData['url'] = "file.php?module=Users&action=MultiImage&field=imagename&record={$this->getId()}&key={$imageData['key']}";
+		if (file_exists($imageData['path'])) {
+			$imageData['url'] = "file.php?module=Users&action=MultiImage&field=imagename&record={$this->getId()}&key={$imageData['key']}";
+		} else {
+			$imageData = [];
+		}
 		Cache::save('UserImageById', $this->getId(), $imageData);
 		return $imageData;
 	}

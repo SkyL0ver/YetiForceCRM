@@ -30,11 +30,9 @@
 			{if $OWNERS}
 				<optgroup label="{\App\Language::translate($BLOCK_NAME)}">
 					{foreach key=OWNER_ID item=OWNER_NAME from=$OWNERS}
-						<option value="{$OWNER_ID}"
-							data-picklistvalue="{$OWNER_NAME}" {if $FIELD_VALUE eq $OWNER_ID} selected="selected" {/if}
-							data-userId="{$CURRENT_USER_ID}"
+						<option value="{$OWNER_ID}" data-picklistvalue="{$OWNER_NAME}" {if $FIELD_VALUE eq $OWNER_ID} selected="selected" {/if} data-userId="{$CURRENT_USER_ID}"
 							{if $SHOW_FAVORITE_OWNERS}
-								data-url="index.php?module={$MODULE_NAME}&action=Fields&mode=changeFavoriteOwner&fieldName={$FIELD_NAME}&owner={$OWNER_ID}" data-state="{$ACTIVE}" data-icon-active="fas fa-star" data-icon-inactive="far fa-star" data-template="<span class='c-option-template--state-icons'>{$OWNER_NAME}<span class='js-select-option-actions o-filter-actions noWrap float-right'><span data-js='click|class:icons' class='mx-1 js-select-option-event{if $ACTIVE == 'active'} fas fa-star{else} far fa-star{/if}'></span></span></span>"
+								data-url="index.php?module={$MODULE_NAME}&action=Fields&mode=changeFavoriteOwner&fieldName={$FIELD_NAME}&owner={$OWNER_ID}" data-state="{$ACTIVE}" data-icon-active="fas" data-icon-inactive="far" data-template="<span class='c-option-template--state-icons'>{$OWNER_NAME}<span class='js-select-option-actions o-filter-actions noWrap float-right'><span data-js='click|class:icons' class='mx-1 js-select-option-event {if $ACTIVE == 'active'}fas{else}far{/if} fa-star'></span></span></span>"
 							{/if}>
 							{$OWNER_NAME}
 						</option>
@@ -59,7 +57,7 @@
 							<option value="">{\App\Language::translate('LBL_SELECT_OPTION')}</option>
 						</optgroup>
 					{/if}
-					{if App\Config::module('Users','FAVORITE_OWNERS')}
+					{if $SHOW_FAVORITE_OWNERS}
 						{assign var=FAVORITE_OWNERS value=$OWNER_FIELD->getFavorites($FIELD_MODEL->getFieldDataType())}
 						{if $FAVORITE_OWNERS}
 							{assign var=FAVORITE_OWNERS value=array_intersect_key($ALL_ACTIVEUSER_LIST, $FAVORITE_OWNERS) + array_intersect_key($ALL_ACTIVEGROUP_LIST, $FAVORITE_OWNERS)}
@@ -70,7 +68,7 @@
 					{/if}
 					{OPTGRUOP BLOCK_NAME='LBL_USERS' OWNERS=$ALL_ACTIVEUSER_LIST}
 					{OPTGRUOP BLOCK_NAME='LBL_GROUPS' OWNERS=$ALL_ACTIVEGROUP_LIST}
-					{if !empty($FIELD_VALUE) && $FOUND_SELECT_VALUE == 0 && !($ROLE_RECORD_MODEL->get('allowassignedrecordsto') == 5 && count($ALL_ACTIVEGROUP_LIST) != 0 && $FIELD_VALUE == '')}
+					{if !empty($FIELD_VALUE) && $FOUND_SELECT_VALUE == 0 && $RECORD && !$RECORD->isNew() && !($ROLE_RECORD_MODEL->get('allowassignedrecordsto') == 5 && count($ALL_ACTIVEGROUP_LIST) != 0)}
 						{assign var=OWNER_NAME value=\App\Fields\Owner::getLabel($FIELD_VALUE)}
 						<option value="{$FIELD_VALUE}" data-picklistvalue="{$OWNER_NAME}" selected="selected"
 							data-userId="{$CURRENT_USER_ID}">
@@ -94,5 +92,5 @@
 			</select>
 		</div>
 	{/if}
-	<!-- tpl-Base-Edit-Field-Owner -->
+	<!-- /tpl-Base-Edit-Field-Owner -->
 {/strip}

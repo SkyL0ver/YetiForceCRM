@@ -32,7 +32,7 @@ class Record extends \Api\Core\BaseAction
 		$moduleName = $this->controller->request->getModule();
 		if ('POST' === $this->controller->method) {
 			$this->recordModel = \Users_Record_Model::getCleanInstance($moduleName);
-			if (!$this->recordModel->isCreateable()) {
+			if (!$this->recordModel->isCreatable()) {
 				throw new \Api\Core\Exception('No permissions to create user', 403);
 			}
 		} else {
@@ -48,6 +48,8 @@ class Record extends \Api\Core\BaseAction
 
 	/**
 	 * Get user detail.
+	 *
+	 * @api
 	 *
 	 * @return array
 	 *
@@ -154,6 +156,8 @@ class Record extends \Api\Core\BaseAction
 	/**
 	 * Create record.
 	 *
+	 * @api
+	 *
 	 * @return array
 	 *
 	 * @OA\Post(
@@ -167,10 +171,16 @@ class Record extends \Api\Core\BaseAction
 	 *			@OA\XmlContent(ref="#/components/schemas/User_Create_Details"),
 	 *		),
 	 *		@OA\Parameter(name="X-ENCRYPTED", in="header", @OA\Schema(ref="#/components/schemas/Header-Encrypted"), required=true),
-	 *		@OA\Response(response=200, description="Contents of the response contains only id",
+	 *		@OA\Response(
+	 *			response=200, description="Contents of the response contains only id",
 	 *			@OA\JsonContent(ref="#/components/schemas/User_Post_Record_Response"),
 	 *			@OA\XmlContent(ref="#/components/schemas/User_Post_Record_Response"),
 	 *			@OA\Link(link="GetUserById", ref="#/components/links/GetUserById")
+	 *		),
+	 *		@OA\Response(
+	 *			response=406, description="No input data",
+	 *			@OA\JsonContent(ref="#/components/schemas/Exception"),
+	 *			@OA\XmlContent(ref="#/components/schemas/Exception"),
 	 *		),
 	 * ),
 	 * @OA\Schema(
@@ -213,7 +223,7 @@ class Record extends \Api\Core\BaseAction
 				}
 			}
 		}
-		\Api\WebserviceStandard\Fields::loadWebserviceFields($this->recordModel->getModule()->getFields(), $this);
+		\Api\WebserviceStandard\Fields::loadWebserviceFields($this->recordModel->getModule(), $this);
 		$saveModel = new \Api\WebserviceStandard\Save();
 		$saveModel->init($this);
 		$saveModel->saveRecord($this->controller->request);

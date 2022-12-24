@@ -136,14 +136,7 @@ $.Class(
 		 */
 		saveAjaxValidation: function (params) {
 			const aDeferred = $.Deferred();
-			let validation = true;
-			if (
-				typeof app.pageController.getForm !== 'undefined' &&
-				app.pageController.getForm().find('#preSaveValidation').length !== 0
-			) {
-				validation = parseInt(app.pageController.getForm().find('#preSaveValidation').val());
-			}
-			if (validation) {
+			if (this.getInstance().checkPreSaveValidation()) {
 				let paramsTemp = JSON.parse(JSON.stringify(params));
 				paramsTemp.data.mode = 'preSaveValidation';
 				AppConnector.request(paramsTemp)
@@ -276,8 +269,9 @@ $.Class(
 				filterFields: filterFields
 			};
 			let searchParamsElement = $('input[name="searchParams"]', container);
-			if (searchParamsElement.length > 0) {
-				params['search_params'] = searchParamsElement.val();
+			let searchParams = searchParamsElement.length > 0 ? JSON.parse(searchParamsElement.val()) : null;
+			if (searchParams && searchParams[popupReferenceModule]) {
+				params['search_params'] = searchParams[popupReferenceModule];
 			}
 			let modalParamsElement = $('input[name="modalParams"]', container);
 			if (modalParamsElement.length > 0) {
@@ -308,7 +302,7 @@ $.Class(
 				parentElem = $(e.target).closest('td');
 			}
 			let params = this.getRecordsListParams(parentElem);
-			app.showRecordsList(params, (modal, instance) => {
+			app.showRecordsList(params, (_modal, instance) => {
 				instance.setSelectEvent((data) => {
 					this.setReferenceFieldValue(parentElem, data);
 				});
@@ -357,7 +351,7 @@ $.Class(
 							} else if (data['result']['type'][value[0]] === 'multipicklist') {
 								let mapFieldElementMultiselect = formElement.find('[name="' + key + '[]"]');
 								if (mapFieldElementMultiselect.length > 0) {
-									let multipleAttr = mapFieldElement.attr('multiple');
+									let multipleAttr = mapFieldElementMultiselect.attr('multiple');
 									let splitValues = response[value[0]].split(' |##| ');
 									if (typeof multipleAttr !== 'undefined' && multipleAttr !== false && splitValues.length > 0) {
 										mapFieldElementMultiselect.val(splitValues).trigger('change');
@@ -392,19 +386,6 @@ $.Class(
 						}
 					});
 				});
-			}
-		},
-		setFieldValue: function (params) {
-			let fieldElement = this.getForm().find(`[name="${params['fieldName']}"]`);
-			let fieldinfo = fieldElement.data('fieldinfo');
-			if (fieldElement.is('select')) {
-				if (fieldElement.find(`option[value="${params['value']}"]`).length) {
-					fieldElement.val(params['value']).trigger('change');
-				} else if (fieldinfo.picklistvalues.hasOwnProperty(params['value'])) {
-					fieldElement.append(new Option(params['value'], params['value'], true, true)).trigger('change');
-				}
-			} else {
-				fieldElement.val(params['value']);
 			}
 		},
 		getRelationOperation: function () {
@@ -608,27 +589,24 @@ $.Class(
 			App.Fields.DateTime.register(container);
 		},
 		referenceCreateHandler: function (container) {
-			let thisInstance = this;
-			let postQuickCreateSave = function (data) {
-				thisInstance.setReferenceFieldValue(container, {
-					name: data.result._recordLabel,
-					id: data.result._recordId
-				});
-			};
-			let params = { callbackFunction: postQuickCreateSave };
-			if (app.getViewName() === 'Edit' && !app.getRecordId()) {
-				let formElement = this.getForm();
-				let formData = formElement.serializeFormData();
-				for (let i in formData) {
-					if (!formData[i] || $.inArray(i, ['_csrf', 'action']) != -1) {
-						delete formData[i];
-					}
+			let formData = this.getForm().serializeFormData();
+			for (let i in formData) {
+				if (!formData[i] || $.inArray(i, ['_csrf', 'action']) != -1) {
+					delete formData[i];
 				}
-				params.data = {};
-				params.data.sourceRecordData = formData;
 			}
-			let referenceModuleName = this.getReferencedModuleName(container);
-			App.Components.QuickCreate.createRecord(referenceModuleName, params);
+			App.Components.QuickCreate.createRecord(this.getReferencedModuleName(container), {
+				data: {
+					sourceModule: formData['module'],
+					sourceRecordData: formData
+				},
+				callbackFunction: (data) => {
+					this.setReferenceFieldValue(container, {
+						name: data.result._recordLabel,
+						id: data.result._recordId
+					});
+				}
+			});
 		},
 		/**
 		 * Function which will register event for create of reference record
@@ -945,7 +923,7 @@ $.Class(
 							enabled: true
 						}
 					});
-					editViewForm.find('.js-toggle-panel').find('.js-block-content').removeClass('d-none');
+					app.event.trigger('EditView.preValidation', editViewForm);
 					if (editViewForm.validationEngine('validate')) {
 						//Once the form is submiting add data attribute to that form element
 						editViewForm.data('submit', 'true');
@@ -967,11 +945,15 @@ $.Class(
 				}
 			});
 		},
-		/*
-		 * Function to check the view permission of a record after save
+		/**
+		 * Pre-save events
+		 * @param {jQuery} form
 		 */
 		registerRecordPreSaveEventEvent: function (form) {
-			form.on(Vtiger_Edit_Js.recordPreSave, (e, data) => {
+			app.event.on('EditView.preValidation', (_e, view) => {
+				view.find('.js-block-content.d-none').siblings('.blockHeader').trigger('click');
+			});
+			form.on(Vtiger_Edit_Js.recordPreSave, (e, _data) => {
 				this.preSaveValidation(form).done((response) => {
 					if (response !== true) {
 						e.preventDefault();
@@ -1059,74 +1041,6 @@ $.Class(
 			}
 
 			return aDeferred.promise();
-		},
-		/**
-		 * Function to register event for setting up picklistdependency
-		 * for a module if exist on change of picklist value
-		 */
-		registerEventForPicklistDependencySetup: function (container) {
-			let picklistDependcyElemnt = $('[name="picklistDependency"]', container);
-			if (picklistDependcyElemnt.length <= 0) {
-				return;
-			}
-			let picklistDependencyMapping = JSON.parse(picklistDependcyElemnt.val());
-
-			let sourcePicklists = Object.keys(picklistDependencyMapping);
-			if (sourcePicklists.length <= 0) {
-				return;
-			}
-
-			let sourcePickListNames = [],
-				i;
-			for (i = 0; i < sourcePicklists.length; i++) {
-				sourcePickListNames.push('[name="' + sourcePicklists[i] + '"]');
-			}
-			sourcePickListNames = sourcePickListNames.join(',');
-			let sourcePickListElements = container.find(sourcePickListNames);
-
-			sourcePickListElements.on('change', function (e) {
-				let currentElement = $(e.currentTarget),
-					configuredDependencyObject = picklistDependencyMapping[currentElement.attr('name')],
-					targetObjectForSelectedSourceValue = configuredDependencyObject[currentElement.val()],
-					picklistmap = configuredDependencyObject['__DEFAULT__'];
-
-				if (typeof targetObjectForSelectedSourceValue === 'undefined') {
-					targetObjectForSelectedSourceValue = picklistmap;
-				}
-				$.each(picklistmap, function (targetPickListName, targetPickListValues) {
-					let targetPickListMap = targetObjectForSelectedSourceValue[targetPickListName];
-					if (typeof targetPickListMap === 'undefined') {
-						targetPickListMap = targetPickListValues;
-					}
-					let targetPickList = $('[name="' + targetPickListName + '"]', container);
-					if (targetPickList.length <= 0) {
-						return;
-					}
-
-					let listOfAvailableOptions = targetPickList.data('availableOptions');
-					if (typeof listOfAvailableOptions === 'undefined') {
-						listOfAvailableOptions = $('option', targetPickList);
-						targetPickList.data('available-options', listOfAvailableOptions);
-					}
-
-					let targetOptions = new $(),
-						optionSelector = [];
-					optionSelector.push('');
-					for (i = 0; i < targetPickListMap.length; i++) {
-						optionSelector.push(targetPickListMap[i]);
-					}
-
-					$.each(listOfAvailableOptions, function (i, e) {
-						if ($.inArray($(e).val(), optionSelector) !== -1) {
-							targetOptions = targetOptions.add($(e));
-						}
-					});
-					targetPickList.html(targetOptions).val(targetOptions.filter('[selected]').val()).trigger('change');
-				});
-			});
-
-			//To Trigger the change on load
-			sourcePickListElements.trigger('change');
 		},
 		registerLeavePageWithoutSubmit: function (form) {
 			if (
@@ -1229,83 +1143,89 @@ $.Class(
 			const self = this;
 			this.getForm()
 				.find('.js-search-address')
-				.each(function (index, item) {
-					let search = $(item);
+				.each(function (_index, e) {
+					let search = $(e);
 					let container = search.closest('.js-block-content');
 					let input = search.find('.js-autoload-address');
-					input.autocomplete({
-						source: function (request, response) {
-							AppConnector.request({
-								module: self.moduleName,
-								action: 'Fields',
-								mode: 'findAddress',
-								type: search.find('.js-select-operator').val(),
-								value: request.term
-							})
-								.done(function (requestData) {
-									if (requestData.result === false) {
-										app.showNotify({
-											text: app.vtranslate('JS_ERROR'),
-											type: 'error'
-										});
-									} else if (requestData.result.length) {
-										response(requestData.result);
-									} else {
-										response([{ label: app.vtranslate('JS_NO_RESULTS_FOUND'), value: '' }]);
-									}
+					input
+						.autocomplete({
+							source: function (request, response) {
+								AppConnector.request({
+									module: self.moduleName,
+									action: 'Fields',
+									mode: 'findAddress',
+									type: search.find('.js-select-operator').val(),
+									value: request.term
 								})
-								.fail(function (textStatus, errorThrown, jqXHR) {
-									app.showNotify({
-										text: jqXHR.responseJSON.error.message,
-										type: 'error',
-										animation: 'show'
+									.done(function (requestData) {
+										if (requestData.result === false) {
+											app.showNotify({
+												text: app.vtranslate('JS_ERROR'),
+												type: 'error'
+											});
+										} else if (requestData.result.length) {
+											response(requestData.result);
+										} else {
+											response([{ label: app.vtranslate('JS_NO_RESULTS_FOUND'), value: '' }]);
+										}
+									})
+									.fail(function (_textStatus, _errorThrown, jqXHR) {
+										app.showNotify({
+											text: jqXHR.responseJSON.error.message,
+											type: 'error',
+											animation: 'show'
+										});
+										response([{ label: app.vtranslate('JS_NO_RESULTS_FOUND'), value: '' }]);
 									});
-									response([{ label: app.vtranslate('JS_NO_RESULTS_FOUND'), value: '' }]);
-								});
-						},
-						minLength: input.data('min'),
-						select: function (event, ui) {
-							$.each(ui.item.address, function (index, value) {
-								let field = container.find('.fieldValue [name^=' + index + ']');
-								if (field.length && value) {
-									if (typeof value !== 'object') {
-										value = [value];
-									}
-									$.each(value, function (index, v) {
-										let select = false,
-											element = false;
-										if (field.prop('tagName') === 'SELECT') {
-											if (typeof v === 'object') {
-												$.each(v, function (index, x) {
-													element = field.find('option[data-' + index + "='" + x + "']");
-													if (x && element.length) {
+							},
+							minLength: input.data('min'),
+							select: function (_event, ui) {
+								$.each(ui.item.address, function (index, value) {
+									let field = container.find('.fieldValue [name^=' + index + ']');
+									if (field.length && value) {
+										if (typeof value !== 'object') {
+											value = [value];
+										}
+										$.each(value, function (_idx, v) {
+											let select = false,
+												element = false;
+											if (field.prop('tagName') === 'SELECT') {
+												if (typeof v === 'object') {
+													$.each(v, function (idx, x) {
+														element = field.find('option[data-' + idx + "='" + x + "']");
+														if (x && element.length) {
+															select = element.val();
+														}
+													});
+												} else {
+													element = field.find('option:contains(' + v + ')');
+													if (v && element.length) {
 														select = element.val();
 													}
-												});
+													element = field.find('option[value="' + v + '"]');
+													if (v && element.length) {
+														select = element.val();
+													}
+												}
 											} else {
-												element = field.find('option:contains(' + v + ')');
-												if (v && element.length) {
-													select = element.val();
-												}
-												element = field.find('option[value="' + v + '"]');
-												if (v && element.length) {
-													select = element.val();
-												}
+												select = v;
 											}
-										} else {
-											select = v;
-										}
-										if (select) {
-											field.val(select).change();
-										}
-									});
-								} else {
-									field.val('').change();
-								}
-							});
-							ui.item.value = input.val();
-						}
-					});
+											if (select) {
+												field.val(select).change();
+											}
+										});
+									} else {
+										field.val('').change();
+									}
+								});
+								ui.item.value = input.val();
+							}
+						})
+						.autocomplete('instance')._renderItem = function (ul, item) {
+						return $('<li>')
+							.append(`<div><span class="fi fi-${item.countryCode} mr-2"></span>${item.label}</div>`)
+							.appendTo(ul);
+					};
 				});
 		},
 		setEnabledFields: function (element) {
@@ -1612,11 +1532,16 @@ $.Class(
 		 * @param {object} data
 		 */
 		triggerRecordEditEvents: function (data) {
-			const self = this;
-			let form = this.getForm();
+			const self = this,
+				form = this.getForm();
 			if (typeof data['changeValues'] == 'object') {
-				$.each(data['changeValues'], function (key, field) {
+				$.each(data['changeValues'], function (_, field) {
 					self.setFieldValue(field);
+				});
+			}
+			if (typeof data['changeOptions'] != 'undefined') {
+				$.each(data['changeOptions'], function (fieldName, options) {
+					self.setFieldOptions(fieldName, options);
 				});
 			}
 			if (typeof data['hoverField'] != 'undefined') {
@@ -1629,44 +1554,126 @@ $.Class(
 				app.showModalWindow(null, data['showModal']['url']);
 			}
 			if (typeof data['showFields'] != 'undefined') {
-				$.each(data['showFields'], function (key, fieldName) {
+				$.each(data['showFields'], function (_, fieldName) {
 					form.find(`.js-field-block-column[data-field="${fieldName}"]`).removeClass('d-none');
 					self.checkVisibilityBlocks();
 				});
 			}
 			if (typeof data['hideFields'] != 'undefined') {
-				$.each(data['hideFields'], function (key, fieldName) {
+				$.each(data['hideFields'], function (_, fieldName) {
 					form.find(`.js-field-block-column[data-field="${fieldName}"]`).addClass('d-none');
 					self.checkVisibilityBlocks();
 				});
 			}
 		},
 		/**
+		 * Set field value
+		 * @param {object} params
+		 */
+		setFieldValue: function (params) {
+			const fieldElement = this.getForm().find(`[name="${params['fieldName']}"]`),
+				fieldInfo = fieldElement.data('fieldinfo');
+			if (fieldElement.is('select')) {
+				if (fieldElement.find(`option[value="${params['value']}"]`).length) {
+					fieldElement.val(params['value']).trigger('change');
+				} else if (fieldInfo.picklistvalues.hasOwnProperty(params['value'])) {
+					fieldElement.append(new Option(params['value'], params['value'], true, true)).trigger('change');
+				}
+			} else {
+				fieldElement.val(params['value']);
+			}
+		},
+		/**
+		 * Set field options
+		 * @param {string} fieldName
+		 * @param {object} options
+		 */
+		setFieldOptions: function (fieldName, options) {
+			const fieldElement = this.getForm().find(`[name="${fieldName}"]`),
+				fieldInfo = fieldElement.data('fieldinfo');
+			if (fieldElement.is('select') && fieldInfo) {
+				const val = fieldElement.val() ?? '',
+					fieldValue = fieldElement.closest('.fieldValue'),
+					currentValues = [...fieldElement.get(0).options]
+						.map((o) => o.value)
+						.filter((e) => e !== '')
+						.sort();
+				let newOptions = new $();
+				if (!fieldInfo.mandatory) {
+					newOptions = newOptions.add(
+						new Option(app.vtranslate('JS_SELECT_AN_OPTION'), '', false, !val || !options.includes(val))
+					);
+				}
+				$.each(options, (_, e) => {
+					newOptions = newOptions.add(new Option(fieldInfo['picklistvalues'][e], e, false, val == e));
+				});
+
+				const newValues = [...newOptions.map((_, e) => e.value)].filter((e) => e !== '').sort();
+				if (currentValues.length === newValues.length && currentValues.every((e, i) => e === newValues[i])) {
+					return;
+				}
+
+				let selected = newOptions.filter(':selected').length > 0;
+				fieldElement.html(newOptions);
+				let change = val && val !== fieldElement.val();
+				if ((val === '' && !selected) || change) {
+					fieldElement.val(null);
+				}
+				if (change) {
+					fieldValue.addClass('border border-info');
+					fieldElement.trigger('change');
+					setTimeout(function () {
+						fieldValue.removeClass('border border-info');
+					}, 5000);
+				}
+			}
+		},
+		/**
+		 * Check if pre save validation is active
+		 * @returns {bool}
+		 */
+		checkPreSaveValidation: function () {
+			let validation = true;
+			if (
+				typeof app.pageController.getForm !== 'undefined' &&
+				app.pageController.getForm().find('#preSaveValidation').length !== 0
+			) {
+				validation = app.pageController.getForm().find('#preSaveValidation').val() == 1;
+			}
+			return validation;
+		},
+		/**
 		 * Register change value handler events
 		 * @param {jQuery} container
 		 */
 		registerChangeValueHandlerEvent: function (container) {
-			let event = container.find('.js-change-value-event');
-			if (event.length <= 0) {
+			const event = container.find('.js-change-value-event');
+			if (event.length <= 0 || event.val() === '[]') {
 				return;
 			}
-			const self = this;
-			let fields = JSON.parse(event.val());
-			$.each(fields, function (key, fieldName) {
-				let fieldElement = container.find(`[name="${fieldName}"],[name="${fieldName}[]"]`);
-				fieldElement.on(
-					`change ${Vtiger_Edit_Js.referenceSelectionEvent} ${Vtiger_Edit_Js.referenceDeSelectionEvent}`,
-					function () {
-						let formData = container.serializeFormData();
-						formData['action'] = 'ChangeValueHandler';
-						delete formData['view'];
-						AppConnector.request(formData).done(function (response) {
-							$.each(response.result, function (key, data) {
-								self.triggerRecordEditEvents(data);
-							});
-						});
-					}
-				);
+			const fields = JSON.parse(event.val());
+			$.each(fields, (_, fieldName) => {
+				container
+					.find(`[name="${fieldName}"],[name="${fieldName}[]"]`)
+					.on(`change ${Vtiger_Edit_Js.referenceSelectionEvent} ${Vtiger_Edit_Js.referenceDeSelectionEvent}`, () => {
+						this.sendChangeValueHandlerEvent(container.serializeFormData());
+					});
+			});
+			this.sendChangeValueHandlerEvent(container.serializeFormData());
+		},
+		/**
+		 * Send change value handler events
+		 * @param {object} formData
+		 */
+		sendChangeValueHandlerEvent: function (formData) {
+			formData['action'] = 'ChangeValueHandler';
+			delete formData['view'];
+			let progress = $.progressIndicator({ position: 'html', blockInfo: { enabled: true } });
+			AppConnector.request(formData).done((response) => {
+				$.each(response.result, (_, data) => {
+					this.triggerRecordEditEvents(data);
+				});
+				progress.progressIndicator({ mode: 'hide' });
 			});
 		},
 		/**
@@ -1697,7 +1704,6 @@ $.Class(
 			this.registerClearReferenceSelectionEvent(container);
 			this.registerPreventingEnterSubmitEvent(container);
 			this.registerTimeFields(container);
-			this.registerEventForPicklistDependencySetup(container);
 			this.registerRecordPreSaveEventEvent(container);
 			this.registerReferenceSelectionEvent(container);
 			this.registerChangeValueHandlerEvent(container);
@@ -1721,6 +1727,7 @@ $.Class(
 			App.Fields.Password.register(container);
 			App.Components.ActivityNotifier.register(container);
 			App.Fields.MultiAttachment.register(container);
+			App.Fields.MapCoordinates.registerEdit(container);
 		},
 		registerEvents: function () {
 			let editViewForm = this.getForm();

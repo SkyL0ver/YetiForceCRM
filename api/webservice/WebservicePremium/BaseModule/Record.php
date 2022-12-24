@@ -20,17 +20,19 @@ use OpenApi\Annotations as OA;
 class Record extends \Api\WebserviceStandard\BaseModule\Record
 {
 	/** {@inheritdoc}  */
-	public $allowedHeaders = ['x-parent-id', 'x-header-fields'];
+	public $allowedHeaders = ['x-parent-id', 'x-header-fields', 'x-fields-params'];
 
 	/**
 	 * Get record detail.
+	 *
+	 * @api
 	 *
 	 * @return array
 	 *
 	 *	@OA\Get(
 	 *		path="/webservice/WebservicePremium/{moduleName}/Record/{recordId}",
-	 *		summary="Data for the record",
 	 *		description="Gets the details of a record",
+	 *		summary="Data for the record",
 	 *		tags={"BaseModule"},
 	 *		security={{"basicAuth" : {}, "ApiKeyAuth" : {}, "token" : {}}},
 	 *		operationId="getRecord",
@@ -39,6 +41,9 @@ class Record extends \Api\WebserviceStandard\BaseModule\Record
 	 *		@OA\Parameter(name="X-ENCRYPTED", in="header", @OA\Schema(ref="#/components/schemas/Header-Encrypted"), required=true),
 	 *		@OA\Parameter(name="x-raw-data", in="header", @OA\Schema(type="integer", enum={0, 1}), description="Gets raw data", required=false, example=1),
 	 *		@OA\Parameter(name="x-parent-id", in="header", @OA\Schema(type="integer"), description="Parent record id", required=false, example=5),
+	 * 		@OA\Parameter(name="x-fields-params", in="header", description="JSON array - list of fields to be returned in the specified way", required=false,
+	 *			@OA\JsonContent(ref="#/components/schemas/Fields-Settings"),
+	 *		),
 	 *		@OA\Parameter(
 	 *			name="x-header-fields",
 	 *			description="Get header fields",
@@ -65,6 +70,13 @@ class Record extends \Api\WebserviceStandard\BaseModule\Record
 	 *			@OA\XmlContent(ref="#/components/schemas/Exception"),
 	 *		),
 	 *	),
+	 *  @OA\Schema(
+	 *		schema="Fields-Settings",
+	 *		title="Custom field settings",
+	 *		description="A list of custom parameters that can affect the return value of a given field.",
+	 *		type="object",
+	 * 		example={"password" : {"showHiddenData" : true}}
+	 *  ),
 	 *	@OA\Schema(
 	 *		schema="BaseModule_Get_Record_Response",
 	 *		title="Base module - Response body for Record",
@@ -178,6 +190,8 @@ class Record extends \Api\WebserviceStandard\BaseModule\Record
 	/**
 	 * Delete record.
 	 *
+	 * @api
+	 *
 	 * @return bool
 	 *
 	 *	@OA\Delete(
@@ -214,6 +228,8 @@ class Record extends \Api\WebserviceStandard\BaseModule\Record
 	/**
 	 * Edit record.
 	 *
+	 * @api
+	 *
 	 * @return array
 	 *
 	 *	@OA\Put(
@@ -231,10 +247,16 @@ class Record extends \Api\WebserviceStandard\BaseModule\Record
 	 *		@OA\Parameter(name="moduleName", in="path", @OA\Schema(type="string"), description="Module name", required=true, example="Contacts"),
 	 *		@OA\Parameter(name="recordId", in="path", @OA\Schema(type="integer"), description="Record id", required=true, example=116),
 	 *		@OA\Parameter(name="X-ENCRYPTED", in="header", @OA\Schema(ref="#/components/schemas/Header-Encrypted"), required=true),
-	 *		@OA\Response(response=200, description="Contents of the response contains only id",
+	 *		@OA\Response(
+	 *			response=200, description="Contents of the response contains only id",
 	 *			@OA\JsonContent(ref="#/components/schemas/BaseModule_Put_Record_Response"),
 	 *			@OA\XmlContent(ref="#/components/schemas/BaseModule_Put_Record_Response"),
 	 *			@OA\Link(link="GetRecordById", ref="#/components/links/GetRecordById")
+	 *		),
+	 *		@OA\Response(
+	 *			response=406, description="No input data",
+	 *			@OA\JsonContent(ref="#/components/schemas/Exception"),
+	 *			@OA\XmlContent(ref="#/components/schemas/Exception"),
 	 *		),
 	 * 	),
 	 *	@OA\Schema(
@@ -281,6 +303,8 @@ class Record extends \Api\WebserviceStandard\BaseModule\Record
 	/**
 	 * Create record.
 	 *
+	 * @api
+	 *
 	 * @return array
 	 *
 	 *	@OA\Post(
@@ -298,11 +322,15 @@ class Record extends \Api\WebserviceStandard\BaseModule\Record
 	 *		@OA\Parameter(name="moduleName", in="path", @OA\Schema(type="string"), description="Module name", required=true, example="Contacts"),
 	 *		@OA\Parameter(name="X-ENCRYPTED", in="header", @OA\Schema(ref="#/components/schemas/Header-Encrypted"), required=true),
 	 *		@OA\Response(
-	 *			response=200,
-	 *			description="Contents of the response contains only id",
+	 *			response=200, description="Contents of the response contains only id",
 	 *			@OA\JsonContent(ref="#/components/schemas/BaseModule_Post_Record_Response"),
 	 *			@OA\XmlContent(ref="#/components/schemas/BaseModule_Post_Record_Response"),
 	 *			@OA\Link(link="GetRecordById", ref="#/components/links/GetRecordById")
+	 *		),
+	 *		@OA\Response(
+	 *			response=406, description="No input data",
+	 *			@OA\JsonContent(ref="#/components/schemas/Exception"),
+	 *			@OA\XmlContent(ref="#/components/schemas/Exception"),
 	 *		),
 	 *	),
 	 *	@OA\Schema(

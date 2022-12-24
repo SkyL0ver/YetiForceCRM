@@ -23,6 +23,9 @@
 						{if isset($LISTVIEW_LINKS['LISTVIEW'])}
 							{assign var=LINKS value=array_merge($LINKS,$LISTVIEW_LINKS['LISTVIEW'])}
 						{/if}
+						{if 'Tiles' eq $VIEW}
+							{include file=\App\Layout::getTemplatePath('TilesSize.tpl')}
+						{/if}
 						{include file=\App\Layout::getTemplatePath('ButtonViewLinks.tpl') LINKS=$LINKS TEXT_HOLDER='LBL_ACTIONS' BTN_ICON='fa fa-list' CLASS='listViewMassActions mr-sm-1 mb-1 mb-sm-0 c-btn-block-sm-down'}
 						{foreach item=LINK from=$LISTVIEW_LINKS['LISTVIEWBASIC']}
 							{include file=\App\Layout::getTemplatePath('ButtonLink.tpl', $MODULE) BUTTON_VIEW='listView' CLASS='mr-sm-1 mb-1 c-btn-block-sm-down'}
@@ -78,10 +81,9 @@
 								<div class="filterActionsDiv d-none">
 									<hr>
 									<ul class="filterActions list-unstyled m-2">
-										<li id="createFilter" data-value="create"
-											data-createurl="{$CUSTOM_VIEW->getCreateUrl()}"><a href="#"><span
-													class="fas fa-plus-circle"></span> {\App\Language::translate('LBL_CREATE_NEW_FILTER')}
-											</a></li>
+										<li id="createFilter" data-value="create" data-createurl="{$CUSTOM_VIEW->getCreateUrl()}">
+											<a href="#"><span class="fas fa-plus-circle"></span> {\App\Language::translate('LBL_CREATE_NEW_FILTER')}</a>
+										</li>
 									</ul>
 								</div>
 							{/if}
@@ -90,27 +92,26 @@
 							<input type="hidden" value="0" id="customFilter" />
 						{/if}
 					</div>
+
 					<div class="c-list__right-container d-flex flex-nowrap u-overflow-scroll-non-desktop">
 						{include file=\App\Layout::getTemplatePath('ListViewActions.tpl')}
 					</div>
 				</div>
 			</div>
 			{if $CUSTOM_VIEWS|@count gt 0}
-				<ul class="c-tab--border nav nav-tabs" role="tablist">
+				<ul class="c-tab--border nav nav-tabs" role="list">
 					{foreach key=GROUP_LABEL item=GROUP_CUSTOM_VIEWS from=$CUSTOM_VIEWS}
 						{foreach item="CUSTOM_VIEW" from=$GROUP_CUSTOM_VIEWS}
 							{if $CUSTOM_VIEW->isFeatured()}
 								<li class="nav-item js-filter-tab c-tab--small font-weight-bold"
-									data-cvid="{$CUSTOM_VIEW->getId()}" data-js="click">
+									data-cvid="{$CUSTOM_VIEW->getId()}" role="listitem" data-js="click">
 									<a class="nav-link{if $VIEWID == $CUSTOM_VIEW->getId()} active{/if}" href="#"
-										{if $CUSTOM_VIEW->get('color')}style="color: {$CUSTOM_VIEW->get('color')}; border-color: {$CUSTOM_VIEW->get('color')} {$CUSTOM_VIEW->get('color')} #fff" {/if}
-										data-toggle="tab" role="tab"
-										aria-selected="{if $VIEWID == $CUSTOM_VIEW->getId()}true{else}false{/if}">
+										{if $CUSTOM_VIEW->get('color')}style="color: {\App\Purifier::encodeHtml($CUSTOM_VIEW->get('color'))}; border-color: {\App\Purifier::encodeHtml($CUSTOM_VIEW->get('color'))} {\App\Purifier::encodeHtml($CUSTOM_VIEW->get('color'))} #fff" {/if}
+										data-toggle="tab">
 										{\App\Language::translate($CUSTOM_VIEW->get('viewname'), $MODULE)}
 										{if $CUSTOM_VIEW->get('description')}
-											<span class="js-popover-tooltip ml-1" data-toggle="popover"
-												data-placement="top"
-												data-content="{\App\Purifier::encodeHtml($CUSTOM_VIEW->get('description'))}" data-js="popover">
+											<span class="js-popover-tooltip ml-1" data-toggle="popover" data-placement="top"
+												data-content="{\App\Purifier::encodeHtml(\App\Purifier::purifyHtml($CUSTOM_VIEW->get('description')))}" data-js="popover">
 												<span class="fas fa-info-circle"></span>
 											</span>
 										{/if}

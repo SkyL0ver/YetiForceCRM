@@ -387,21 +387,22 @@ jQuery.Class(
 			} else if (viewName === 'Detail') {
 				instance = Vtiger_Detail_Js.getInstance();
 				instance.reloadFunctionName = 'loadRelatedList';
-			} else if (viewName == 'List') {
+			} else if (viewName === 'List' || viewName === 'Tiles') {
 				instance = new Vtiger_List_Js();
 				instance.reloadFunctionName = 'getListViewRecords';
 				instance.execute = ['updatePagination'];
-			} else if (viewName == 'ListPreview') {
+			} else if (viewName === 'ListPreview') {
 				instance = window.pageController;
 				instance.reloadFunctionName = 'getListViewRecords';
 				instance.execute = ['updatePagination'];
 			}
+
 			return instance;
 		},
 		reloadList: function (params) {
 			let thisInstance = this;
 			if (params == undefined) {
-				params = { page: 1 };
+				params = { page: 1, totalCount: 0 };
 			}
 			let instance = this.getInstanceByView();
 			if (instance) {

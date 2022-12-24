@@ -25,7 +25,9 @@
 		<div class="js-sla-policy-template js-sla-policy-template--container form-group row d-none" data-js="container"></div>
 		<div class="js-sla-policy-custom form-group row d-none" data-js="container">
 			<div class="col-12">
-				{include file=\App\Layout::getTemplatePath('CustomConditions.tpl', $MODULE_NAME)}
+				<div class="js-custom-conditions" data-js="container">
+					{include file=\App\Layout::getTemplatePath('CustomConditions.tpl', $MODULE_NAME)}
+				</div>
 			</div>
 		</div>
 		<div class="row">

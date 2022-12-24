@@ -613,7 +613,7 @@ class PackageImport extends PackageExport
 	 */
 	public function importModule()
 	{
-		$tabname = $this->_modulexml->name;
+		$moduleName = (string) $this->_modulexml->name;
 		$tabLabel = $this->_modulexml->label;
 		$tabVersion = $this->_modulexml->version;
 		$isextension = false;
@@ -632,7 +632,7 @@ class PackageImport extends PackageExport
 		$vtigerMaxVersion = $this->_modulexml->dependencies->vtiger_max_version;
 
 		$moduleInstance = new Module();
-		$moduleInstance->name = $tabname;
+		$moduleInstance->name = $moduleName;
 		$moduleInstance->label = $tabLabel;
 		$moduleInstance->isentitytype = (true !== $isextension);
 		$moduleInstance->version = (!$tabVersion) ? 0 : $tabVersion;
@@ -1209,7 +1209,7 @@ class PackageImport extends PackageExport
 						break;
 					case 'displayType':
 						$displayType = (int) $fieldNode->displaytype;
-						if (!\in_array($displayType, $fieldModel->displayTypeBase())) {
+						if (!isset($fieldModel->displayTypeBase()[$displayType])) {
 							throw new \App\Exceptions\IllegalValue("ERR_NOT_ALLOWED_VALUE||{$name}||" . $displayType, 406);
 						}
 						$fieldModel->set($name, $displayType);

@@ -5,8 +5,9 @@
  * @package   Action
  *
  * @copyright YetiForce S.A.
- * @license YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
- * @author Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
 
 /**
@@ -14,6 +15,16 @@
  */
 class ModComments_SaveAjax_Action extends Vtiger_SaveAjax_Action
 {
+	/** {@inheritdoc} */
+	public function checkPermission(App\Request $request)
+	{
+		parent::checkPermission($request);
+		$parentCommentId = $request->isEmpty('parent_comments') ? 0 : $request->getInteger('parent_comments');
+		if ($parentCommentId && (!\App\Record::isExists($parentCommentId, $request->getModule()) || 'Active' !== \App\Record::getState($parentCommentId))) {
+			throw new \App\Exceptions\NoPermittedToRecord('ERR_NO_PERMISSIONS_FOR_THE_RECORD', 406);
+		}
+	}
+
 	/** {@inheritdoc} */
 	public function getRecordModelFromRequest(App\Request $request)
 	{
@@ -23,8 +34,9 @@ class ModComments_SaveAjax_Action extends Vtiger_SaveAjax_Action
 			$request->set('assigned_user_id', App\User::getCurrentUserRealId());
 		}
 		if (!empty($fields)) {
+			$viewName = $this->record->isNew() ? 'Create' : 'Edit';
 			foreach ($this->record->getModule()->getFields() as $fieldName => $fieldModel) {
-				if (!$fieldModel->isWritable()) {
+				if (!$fieldModel->isWritable($viewName)) {
 					continue;
 				}
 				if ($request->has($fieldName) && !\in_array($fieldName, $fields)) {

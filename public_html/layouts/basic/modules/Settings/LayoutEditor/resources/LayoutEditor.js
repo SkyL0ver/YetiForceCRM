@@ -265,6 +265,7 @@ $.Class(
 				})
 				.fail(function (error) {
 					Settings_Vtiger_Index_Js.showMessage({
+						textTrusted: false,
 						text: error.message
 					});
 				});
@@ -709,7 +710,11 @@ $.Class(
 							saveButton.attr('disabled', 'disabled');
 							thisInstance.validateFieldsValue(form).done((response) => {
 								if (!response) {
-									if (fieldTypeValue == 'Picklist' || fieldTypeValue == 'MultiSelectCombo') {
+									if (
+										fieldTypeValue == 'Picklist' ||
+										fieldTypeValue == 'MultiSelectCombo' ||
+										fieldTypeValue == 'MultipicklistTags'
+									) {
 										thisInstance.checkPicklistExist(fieldNameValue).done((result) => {
 											if (result) {
 												thisInstance.saveCustomField(blockId, form);
@@ -888,25 +893,48 @@ $.Class(
 					}
 				}
 				if (selectedOption.data('predefinedvalueexists')) {
-					var pickListUi = form.find('.preDefinedValueExists');
-					pickListUi.removeClass('d-none');
+					form.find('.preDefinedValueExists').removeClass('d-none');
 				}
 				if (selectedOption.data('picklistoption')) {
-					var pickListOption = form.find('.picklistOption');
-					pickListOption.removeClass('d-none');
+					form.find('.picklistOption').removeClass('d-none');
 				}
-				if (selectedOption.val() == 'Related1M') {
-					form.find('.preDefinedModuleList').removeClass('d-none');
-				}
-				if (selectedOption.val() == 'Tree' || selectedOption.val() == 'CategoryMultipicklist') {
-					form.find('.preDefinedTreeList').removeClass('d-none');
-				}
-				if (selectedOption.val() == 'ServerAccess') {
-					form.find('.js-server-access-list').removeClass('d-none');
-				}
-				if (selectedOption.val() == 'MultiReferenceValue') {
-					form.find('.preMultiReferenceValue').removeClass('d-none');
-					thisInstance.loadMultiReferenceFields(form);
+				const type = selectedOption.val();
+				switch (type) {
+					case 'Related1M':
+					case 'MultiReference':
+						const moduleList = form.find('.preDefinedModuleList .referenceModule');
+						form.find('.preDefinedModuleList').removeClass('d-none');
+						moduleList.select2('destroy');
+						if (type === 'MultiReference') {
+							moduleList.removeAttr('multiple');
+						} else {
+							moduleList.attr('multiple', '');
+						}
+						App.Fields.Picklist.showSelect2ElementView(moduleList);
+						break;
+					case 'Tree':
+					case 'CategoryMultipicklist':
+						form.find('.preDefinedTreeList').removeClass('d-none');
+						break;
+					case 'ServerAccess':
+						form.find('.js-server-access-list').removeClass('d-none');
+						break;
+					case 'MultiReferenceValue':
+						form.find('.preMultiReferenceValue').removeClass('d-none');
+						thisInstance.loadMultiReferenceFields(form);
+						break;
+					case 'MapCoordinates':
+						form.find('.coordinateOption').removeClass('d-none');
+						break;
+					case 'MultipicklistTags':
+						let picklistTags = form.find('.preDefinedValueExists');
+						picklistTags.find('.redColor').remove();
+						let pickListValues = picklistTags.find('#pickListValues');
+						pickListValues.attr(
+							'data-validation-engine',
+							pickListValues.data('validation-engine').replace('required, ', '')
+						);
+						break;
 				}
 			});
 		},
@@ -1706,17 +1734,13 @@ $.Class(
 			});
 		},
 		/**
-		 * Function to register switch
+		 * Function to register switch module type
 		 */
 		registerSwitch: function () {
-			var container = this.container;
-			container.find('.js-switch--inventory').on('click', function (event) {
+			this.container.find('.js-switch--inventory').on('click', (event) => {
 				event.preventDefault();
-				var switchBtn = $(event.currentTarget);
-				var state = switchBtn.data('value');
-				var message = app.vtranslate('JS_EXTENDED_MODULE');
 				app.showConfirmModal({
-					title: message,
+					title: app.vtranslate('JS_EXTENDED_MODULE'),
 					confirmedCallback: () => {
 						let progress = $.progressIndicator({
 							message: app.vtranslate('JS_SAVE_LOADER_INFO'),
@@ -1726,12 +1750,12 @@ $.Class(
 							}
 						});
 						let params = {};
-						params['sourceModule'] = container.find('[name="layoutEditorModules"]').val();
-						params['type'] = state;
-						app.saveAjax('changeModuleType', null, params).done(function (data) {
+						params['sourceModule'] = this.container.find('[name="layoutEditorModules"]').val();
+						params['type'] = event.currentTarget.dataset.value;
+						app.saveAjax('changeModuleType', null, params).done((data) => {
 							if (data.result) {
 								if (data.result.success) {
-									container.find('.js-switch--inventory').prop('disabled', true);
+									this.container.find('.js-switch--inventory').prop('disabled', true);
 									Settings_Vtiger_Index_Js.showMessage({
 										type: 'success',
 										text: data.result.message
@@ -1782,7 +1806,6 @@ $.Class(
 			container.find('.editInventoryField').on('click', function (e) {
 				let currentTarget = $(e.currentTarget);
 				var selectedModule = $('#layoutEditorContainer').find('[name="layoutEditorModules"]').val();
-				var blockId = currentTarget.closest('.inventoryBlock').data('block-id');
 				var editField = currentTarget.closest('.editFields');
 				var progress = $.progressIndicator();
 				app.showModalWindow(
@@ -1795,7 +1818,7 @@ $.Class(
 						editField.data('name'),
 					function (container) {
 						app.showPopoverElementView(container.find('.js-help-info'));
-						thisInstance.registerStep2(container, blockId);
+						thisInstance.registerStep2(container);
 						progress.progressIndicator({ mode: 'hide' });
 					}
 				);
@@ -1831,7 +1854,7 @@ $.Class(
 								'&type=' +
 								type,
 							(modalContainer) => {
-								thisInstance.registerStep2(modalContainer, blockId);
+								thisInstance.registerStep2(modalContainer);
 								progress.progressIndicator({ mode: 'hide' });
 							}
 						);
@@ -1841,56 +1864,22 @@ $.Class(
 		},
 		/**
 		 * Function to save inventory field
+		 * @param {jQuery} container
 		 */
-		registerStep2: function (container, blockId) {
-			let thisInstance = this;
-			let containerInventory = thisInstance.getInventoryViewLayout();
+		registerStep2: function (container) {
 			let form = container.find('form');
-			let selectedModule = this.container.find('[name="layoutEditorModules"]').val();
 			form.validationEngine(app.validationEngineOptions);
-			form.on('submit', function (e) {
+			form.on('submit', (e) => {
+				e.preventDefault();
 				let formData = form.serializeFormData();
-				let paramsName = container.find('#params');
-				if (paramsName.length) {
-					paramsName = JSON.parse(paramsName.val());
-					let params = {};
-					for (let i in formData) {
-						if ($.inArray(i, paramsName) != -1) {
-							let value = formData[i];
-							if (i === 'modules' && typeof value === 'string') {
-								value = [value];
-							}
-							params[i] = value;
-							delete formData[i];
-						}
-					}
-					formData.params = JSON.stringify(params);
-				}
-				let errorExists = form.validationEngine('validate');
-				if (errorExists != false) {
-					formData.block = blockId;
-					formData.sourceModule = selectedModule;
-					app.saveAjax('saveInventoryField', null, formData).done(function (data) {
-						let result = data.result,
-							success = data.success;
+				if (form.validationEngine('validate')) {
+					app.saveAjax('saveInventoryField', null, formData).done((data) => {
 						app.hideModalWindow();
-						if (success && result && result.edit) {
-							let liElement = containerInventory.find('[data-id="' + result.data.id + '"]');
-							liElement.find('.fieldLabel').text(result.data.translate);
-						} else if (success && result) {
-							let newLiElement = containerInventory.find('.newLiElement').clone(true, true);
-							newLiElement
-								.removeClass('d-none newLiElement')
-								.find('.editFields')
-								.attr('data-id', result.data.id)
-								.attr('data-sequence', result.data.sequence)
-								.attr('data-name', result.data.columnName)
-								.attr('data-type', result.data.invtype)
-								.find('.fieldLabel')
-								.text(result.data.translate);
-							containerInventory
-								.find('[data-block-id="' + result.data.block + '"] .connectedSortable')
-								.append(newLiElement);
+						if (data.result && data.success) {
+							let selectedModule = this.container.find('[name="layoutEditorModules"]').val();
+							window.location.href =
+								'index.php?module=LayoutEditor&parent=Settings&view=Index&tab=inventoryViewLayout&sourceModule=' +
+								selectedModule;
 						} else {
 							app.showNotify({
 								text: app.vtranslate('JS_ERROR'),
@@ -1899,9 +1888,6 @@ $.Class(
 						}
 					});
 				}
-			});
-			container.find('form').on('submit', function (event) {
-				event.preventDefault();
 			});
 		},
 		/**
@@ -1960,9 +1946,6 @@ $.Class(
 								Settings_Vtiger_Index_Js.showMessage(param);
 								progressIndicatorElement.progressIndicator({ mode: 'hide' });
 							});
-					},
-					rejectedCallback: () => {
-						progressIndicatorElement.progressIndicator({ mode: 'hide' });
 					}
 				});
 			});

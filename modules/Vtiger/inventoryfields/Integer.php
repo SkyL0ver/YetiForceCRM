@@ -17,7 +17,7 @@ class Vtiger_Integer_InventoryField extends Vtiger_Basic_InventoryField
 	protected $columnName = 'int';
 	protected $dbType = [\yii\db\Schema::TYPE_INTEGER, 11];
 	protected $onlyOne = false;
-	protected $maximumLength = '99999999999999999999';
+	protected $maximumLength = '2147483647';
 	protected $purifyType = \App\Purifier::INTEGER;
 
 	/** {@inheritdoc} */
@@ -44,5 +44,11 @@ class Vtiger_Integer_InventoryField extends Vtiger_Basic_InventoryField
 	public function getDisplayValue($value, array $rowData = [], bool $rawText = false)
 	{
 		return \App\Fields\Integer::formatToDisplay($value);
+	}
+
+	/** {@inheritdoc} */
+	public function compare($value, $prevValue, string $column): bool
+	{
+		return (int) $value === (int) $prevValue;
 	}
 }

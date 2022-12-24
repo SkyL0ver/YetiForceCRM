@@ -165,7 +165,7 @@ class FieldBasic
 		}
 		if (!empty($this->columntype)) {
 			Utils::addColumn($this->table, $this->column, $this->columntype);
-			if (10 === $this->uitype) {
+			if (10 === $this->uitype || 318 === $this->uitype) {
 				$nameIndex = "{$this->table}_{$this->column}_idx";
 				$indexes = $db->getSchema()->getTableIndexes($this->table, true);
 				$isCreateIndex = true;
@@ -211,8 +211,8 @@ class FieldBasic
 		])->execute();
 		$this->id = (int) $db->getLastInsertID('vtiger_field_fieldid_seq');
 		Profile::initForField($this);
-		$this->clearCache();
 		\App\Log::trace("Creating field $this->name ... DONE", __METHOD__);
+		$this->afterFieldChange();
 	}
 
 	public function __update()
@@ -240,8 +240,25 @@ class FieldBasic
 				}
 			}
 		}
-		$this->clearCache();
+		$this->afterFieldChange();
 		\App\Log::trace("Deleteing Field $this->name ... DONE", __METHOD__);
+	}
+
+	/**
+	 * Function performed after field modification.
+	 *
+	 * @return void
+	 */
+	public function afterFieldChange(): void
+	{
+		switch ($this->uitype) {
+			case 331:
+				\App\Fields\MapCoordinates::reloadHandler();
+				break;
+			default:
+				break;
+		}
+		$this->clearCache();
 	}
 
 	/**

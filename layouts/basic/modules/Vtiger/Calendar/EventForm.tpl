@@ -18,9 +18,6 @@
 			{/if}
 			<input type="hidden" id="preSaveValidation" value="{!empty(\App\EventHandler::getByType(\App\EventHandler::EDIT_VIEW_PRE_SAVE, $MODULE_NAME))}" />
 			<input type="hidden" class="js-change-value-event" value="{\App\EventHandler::getVarsByType(\App\EventHandler::EDIT_VIEW_CHANGE_VALUE, $MODULE_NAME, [$RECORD, $FROM_VIEW])}" />
-			{if !empty($PICKIST_DEPENDENCY_DATASOURCE)}
-				<input type="hidden" name="picklistDependency" value='{\App\Purifier::encodeHtml($PICKIST_DEPENDENCY_DATASOURCE)}' />
-			{/if}
 			{if !empty($MAPPING_RELATED_FIELD)}
 				<input type="hidden" name="mappingRelatedField" value='{\App\Purifier::encodeHtml($MAPPING_RELATED_FIELD)}' />
 			{/if}
@@ -63,7 +60,7 @@
 							{assign var="isReferenceField" value=$FIELD_MODEL->getFieldDataType()}
 							{assign var="refrenceList" value=$FIELD_MODEL->getReferenceList()}
 							{assign var="refrenceListCount" value=count($refrenceList)}
-							{assign var="PARAMS" value=$FIELD_MODEL->getFieldParams()}
+							{assign var=PARAMS value=$FIELD_MODEL->getFieldParams()}
 							<div class="row fieldsLabelValue pl-0 pr-0 mb-2 {$WIDTHTYPE} {$WIDTHTYPE_GROUP}">
 								{if !(isset($PARAMS['hideLabel']) && in_array($VIEW, $PARAMS['hideLabel']))}
 									<div class="col-12 u-fs-sm">
@@ -107,8 +104,7 @@
 						{if !empty($RECORD_ID) && $VIEW === 'EventForm'}
 							<a href="#" role="button" class="btn btn-danger js-summary-close-edit ml-auto u-h-fit">
 								<span title="{\App\Language::translate('LBL_CLOSE', $MODULE_NAME)}"
-									class="fas fa-times">
-								</span>
+									class="fas fa-times"></span>
 							</a>
 						{/if}
 					</div>

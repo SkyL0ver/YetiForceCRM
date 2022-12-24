@@ -319,6 +319,8 @@ abstract class Base extends \App\Controller\Base
 			'~layouts/resources/helper.js',
 			'~layouts/resources/Connector.js',
 			'~layouts/resources/ProgressIndicator.js',
+			'~layouts/resources/integrations/pbx/Base.js',
+			'~layouts/resources/integrations/mail/Base.js',
 			'libraries.clipboard.dist.clipboard',
 		];
 		$languageHandlerShortName = \App\Language::getShortLanguageName();
@@ -330,6 +332,15 @@ abstract class Base extends \App\Controller\Base
 		if (\App\Debuger::isDebugBar()) {
 			$jsFileNames[] = '~layouts/resources/debugbar/logs.js';
 		}
+		if (\App\Session::has('authenticated_user_id')) {
+			if (\App\Integrations\Pbx::isActive()) {
+				$jsFileNames[] = '~layouts/resources/integrations/pbx/' . \App\Integrations\Pbx::getInstance()->get('type') . '.js';
+			}
+			if ('Base' !== \App\Mail::getMailComposer()) {
+				$jsFileNames[] = '~layouts/resources/integrations/mail/' . \App\Mail::getMailComposer() . '.js';
+			}
+		}
+
 		return $this->checkAndConvertJsScripts($jsFileNames);
 	}
 
@@ -480,9 +491,10 @@ abstract class Base extends \App\Controller\Base
 				'rowHeight' => $userModel->getDetail('rowheight'),
 				'userId' => $userModel->getId(),
 				'purifierAllowedDomains' => \App\Config::security('purifierAllowedDomains', []),
+				'globalSearchDefaultOperator' => \App\RecordSearch::OPERATORS[$userModel->getDetail('default_search_operator')],
+				'maxUploadLimit' => \App\Config::getMaxUploadSize(),
 				// Modifying this file or functions that affect the footer appearance will violate the license terms!!!
 				'disableBranding' => \App\YetiForce\Shop::check('YetiForceDisableBranding'),
-				'globalSearchDefaultOperator' => \App\RecordSearch::OPERATORS[$userModel->getDetail('default_search_operator')],
 			];
 		}
 		foreach ($jsEnv as $key => $value) {

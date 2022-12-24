@@ -17,7 +17,7 @@ class Settings_WidgetsManagement_Module_Model extends Settings_Vtiger_Module_Mod
 			'LBL_NEW_ACCOUNTS', 'LBL_NEGLECTED_ACCOUNTS', 'LBL_UPDATES',
 			'LBL_NOTIFICATION_BY_SENDER', 'LBL_NOTIFICATION_BY_RECIPIENT', 'DW_SUMMATION_BY_USER', 'Leads by Status',
 			'Leads by Industry', 'Leads by Source', 'Leads by Status Converted', 'Employees Time Control', 'LBL_ALL_TIME_CONTROL',
-			'LBL_CLOSED_TICKETS_BY_PRIORITY', 'LBL_CLOSED_TICKETS_BY_USER', 'LBL_ACCOUNTS_BY_INDUSTRY'
+			'LBL_CLOSED_TICKETS_BY_PRIORITY', 'LBL_CLOSED_TICKETS_BY_USER', 'LBL_ACCOUNTS_BY_INDUSTRY', 'Mails List'
 		];
 	}
 
@@ -367,7 +367,9 @@ class Settings_WidgetsManagement_Module_Model extends Settings_Vtiger_Module_Mod
 				$active = 1;
 			}
 			$db->createCommand()->insert('vtiger_module_dashboard_widgets', [
-				'linkid' => $data['linkid'], 'userid' => \App\User::getCurrentUserId(), 'templateid' => $templateId,
+				'linkid' => $data['linkid'],
+				'userid' => \App\User::getCurrentUserId(),
+				'templateid' => $templateId,
 				'filterid' => $data['filterid'],
 				'title' => $data['title'],
 				'data' => $data['data'],
@@ -375,7 +377,7 @@ class Settings_WidgetsManagement_Module_Model extends Settings_Vtiger_Module_Mod
 				'owners' => $owners,
 				'isdefault' => $data['isdefault'],
 				'active' => $active,
-				'module' => \App\Module::getModuleId($moduleName),
+				'module' => \vtlib\Link::getLinkData($data['linkid'])['tabid'] ?? \App\Module::getModuleId($moduleName),
 				'cache' => $data['cache'] ?? null,
 				'date' => $data['default_date'] ?? null,
 				'dashboardid' => empty($data['dashboardId']) ? self::getDefaultDashboard() : $data['dashboardId'],
@@ -521,5 +523,65 @@ class Settings_WidgetsManagement_Module_Model extends Settings_Vtiger_Module_Mod
 		\App\Log::trace('Exiting Settings_WidgetsManagement_Module_Model::removeBlock() method ...');
 
 		return ['success' => true];
+	}
+
+	/**
+	 * Manage widgets between roles.
+	 *
+	 * @param array $data
+	 *
+	 * @return void
+	 */
+	public function transfer(array $data): bool
+	{
+		$result = true;
+		$block = self::getBlocksFromModule($data['sourceModule'], $data['authorized'], $data['dashboardId']);
+		$newBlockId = reset($block);
+		if (!$newBlockId) {
+			$newBlockId = $this->addBlock(['authorized' => $data['authorized'], 'dashboardId' => $data['dashboardId']], $data['sourceModule'], null)['id'];
+		}
+		$db = App\Db::getInstance();
+		$transaction = $db->beginTransaction();
+		try {
+			$widgetLinkId = $data['widgetLinkId'];
+			foreach ($widgetLinkId as $id) {
+				$moduleDashboardRow = (new App\Db\Query())->from('vtiger_module_dashboard')->where(['id' => $id])->one();
+				if ($moduleDashboardRow && !$this->exists($moduleDashboardRow, $newBlockId)) {
+					if ('copy' === $data['actionOption']) {
+						$moduleDashboardRow['blockid'] = $newBlockId;
+						unset($moduleDashboardRow['id']);
+						$db->createCommand()->insert('vtiger_module_dashboard', $moduleDashboardRow)->execute();
+					} else {
+						$db->createCommand()->update('vtiger_module_dashboard', ['blockid' => $newBlockId], ['id' => $id])->execute();
+						$db->createCommand()->delete('vtiger_module_dashboard_widgets', ['templateid' => $id])->execute();
+					}
+				} else {
+					$result = false;
+				}
+			}
+			$transaction->commit();
+		} catch (Throwable $e) {
+			$result = false;
+			$transaction->rollBack();
+		}
+		return $result;
+	}
+
+	/**
+	 * Check if widget exists.
+	 *
+	 * @param array $data
+	 * @param int   $dashboardId
+	 *
+	 * @return bool
+	 */
+	public function exists(array $data, int $dashboardId): bool
+	{
+		return (new App\Db\Query())->from('vtiger_module_dashboard')->where([
+			'linkid' => $data['linkid'],
+			'filterid' => $data['filterid'],
+			'data' => $data['data'],
+			'blockid' => $dashboardId,
+		])->exists();
 	}
 }

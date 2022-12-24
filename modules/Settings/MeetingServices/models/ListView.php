@@ -7,6 +7,7 @@
  * @copyright YetiForce S.A.
  * @license YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
+ * @author Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
 /**
@@ -24,7 +25,7 @@ class Settings_MeetingServices_ListView_Model extends Settings_Vtiger_ListView_M
 				'linktype' => 'LISTVIEWBASIC',
 				'linklabel' => 'LBL_ADD_RECORD',
 				'linkdata' => ['url' => $moduleModel->getCreateRecordUrl()],
-				'linkclass' => 'btn-light js-add-record',
+				'linkclass' => 'btn-light js-add-record-modal',
 				'linkicon' => 'fas fa-plus',
 				'showLabel' => 1
 			];

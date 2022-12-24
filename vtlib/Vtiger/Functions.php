@@ -41,7 +41,7 @@ class Functions
 			}
 			\App\Cache::save('moduleTabs', 'all', $moduleList);
 		}
-		$restrictedModules = ['SMSNotifier', 'Dashboard', 'ModComments'];
+		$restrictedModules = ['Dashboard', 'ModComments'];
 		foreach ($moduleList as $id => $module) {
 			if (!$showRestricted && \in_array($module['name'], $restrictedModules)) {
 				unset($moduleList[$id]);
@@ -361,10 +361,12 @@ class Functions
 					];
 					$code = $e->getCode();
 				}
-				http_response_code($code);
+				if (is_numeric($code)) {
+					http_response_code($code);
+				}
 				$viewer = new \Vtiger_Viewer();
 				$viewer->assign('MESSAGE', \Config\Debug::$EXCEPTION_ERROR_TO_SHOW ? $message : \App\Language::translate('ERR_OCCURRED_ERROR'));
-				$viewer->assign('MESSAGE_EXPANDED', \is_array($message));
+				$viewer->assign('MESSAGE_EXPANDED', \Config\Debug::$EXCEPTION_ERROR_TO_SHOW ? \is_array($message) : false);
 				$viewer->assign('HEADER_MESSAGE', \App\Language::translate($messageHeader));
 				$viewer->view('Exceptions/ExceptionError.tpl', 'Vtiger');
 			} else {
@@ -524,18 +526,6 @@ class Functions
 		return $str;
 	}
 
-	public static function getMaxUploadSize()
-	{
-		// find max filesize value
-		$maxFileSize = self::parseBytes(ini_get('upload_max_filesize'));
-		$maxPostSize = self::parseBytes(ini_get('post_max_size'));
-
-		if ($maxPostSize && $maxPostSize < $maxFileSize) {
-			$maxFileSize = $maxPostSize;
-		}
-		return $maxFileSize;
-	}
-
 	public static function getMinimizationOptions($type = 'js')
 	{
 		switch ($type) {
@@ -587,21 +577,18 @@ class Functions
 	 */
 	public static function getConversionRateInfo($currencyId, $date = '')
 	{
-		$currencyUpdateModel = \Settings_CurrencyUpdate_Module_Model::getCleanInstance();
 		$defaultCurrencyId = \App\Fields\Currency::getDefault()['id'];
 		$info = [];
-
 		if (empty($date)) {
 			$yesterday = date('Y-m-d', strtotime('-1 day'));
 			$date = self::getLastWorkingDay($yesterday);
 		}
 		$info['date'] = $date;
-
 		if ($currencyId == $defaultCurrencyId) {
 			$info['value'] = 1.0;
 			$info['conversion'] = 1.0;
 		} else {
-			$value = $currencyUpdateModel->getCRMConversionRate($currencyId, $defaultCurrencyId, $date);
+			$value = \Settings_CurrencyUpdate_Module_Model::getCleanInstance()->getCRMConversionRate($currencyId, $defaultCurrencyId, $date);
 			$info['value'] = empty($value) ? 1.0 : round($value, 5);
 			$info['conversion'] = empty($value) ? 1.0 : round(1 / $value, 5);
 		}

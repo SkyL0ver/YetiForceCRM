@@ -103,7 +103,10 @@ Vtiger_Base_Validator_Js(
 				var fieldInfo = fieldData.fieldinfo;
 				var group = field.closest('.input-group');
 				var phoneCountryList = group.find('.phoneCountryList');
-				field.attr('readonly', true);
+				let isReadOnly = field.get(0).readOnly;
+				if (!isReadOnly) {
+					field.attr('readonly', true);
+				}
 				let moduleName = form.find('[name="module"]').length ? form.find('[name="module"]').val() : app.getModuleName();
 				if (moduleName === 'LayoutEditor') {
 					moduleName = $('#selectedModuleName').val();
@@ -130,7 +133,9 @@ Vtiger_Base_Validator_Js(
 								phoneCountryList.val(data.result.country).trigger('change');
 							}
 						}
-						field.attr('readonly', false);
+						if (!isReadOnly) {
+							field.attr('readonly', false);
+						}
 					})
 					.fail(function (error, err) {
 						thisInstance.setError(app.vtranslate('JS_ERROR'));
@@ -248,15 +253,14 @@ Vtiger_Base_Validator_Js(
 	'Vtiger_Double_Validator_Js',
 	{
 		/**
-		 *Function which invokes field validation
-		 *@param accepts field element as parameter
+		 * Function which invokes field validation
+		 * @param accepts field element as parameter
 		 * @return error if validation fails true on success
 		 */
 		invokeValidation: function (field, rules, i, options) {
-			var doubleValidator = new Vtiger_Double_Validator_Js();
+			let doubleValidator = new Vtiger_Double_Validator_Js();
 			doubleValidator.setElement(field);
-			var response = doubleValidator.validate();
-			if (response != true) {
+			if (!doubleValidator.validate()) {
 				return doubleValidator.getError();
 			}
 		}
@@ -270,11 +274,10 @@ Vtiger_Base_Validator_Js(
 		validate: function () {
 			let response = this._super();
 			if (response === true) {
-				var fieldValue = this.getFieldValue();
-				var doubleRegex = /(^[-+]?\d+)(\.\d+)?$/;
+				let fieldValue = this.getFieldValue();
+				let doubleRegex = /(^[-+]?\d+)(\.\d+)?$/;
 				if (!fieldValue.toString().match(doubleRegex)) {
-					var errorInfo = app.vtranslate('JS_PLEASE_ENTER_DECIMAL_VALUE');
-					this.setError(errorInfo);
+					this.setError(app.vtranslate('JS_PLEASE_ENTER_DECIMAL_VALUE'));
 					return false;
 				}
 				let fieldInfo = this.getElement().data().fieldinfo;
@@ -290,8 +293,7 @@ Vtiger_Base_Validator_Js(
 					minimumLength = ranges[0];
 				}
 				if (fieldValue > parseFloat(maximumLength) || fieldValue < parseFloat(minimumLength)) {
-					errorInfo = app.vtranslate('JS_ERROR_MAX_VALUE');
-					this.setError(errorInfo);
+					this.setError(app.vtranslate('JS_ERROR_MAX_VALUE'));
 					return false;
 				}
 			}
@@ -337,10 +339,8 @@ Vtiger_Base_Validator_Js(
 			}
 			var fieldValue = this.getFieldValue();
 			var negativeRegex = /(^[-]+\d+)$/;
-			var parseFieldValue = App.Fields.Double.formatToDb(this.getFieldValue());
-			if (isNaN(parseFieldValue) || fieldValue < 0 || fieldValue.match(negativeRegex)) {
-				var errorInfo = app.vtranslate('JS_ACCEPT_POSITIVE_NUMBER');
-				this.setError(errorInfo);
+			if (isNaN(fieldValue) || fieldValue < 0 || fieldValue.toString().match(negativeRegex)) {
+				this.setError(app.vtranslate('JS_ACCEPT_POSITIVE_NUMBER'));
 				return false;
 			}
 			var maximumLength = null;
@@ -355,18 +355,24 @@ Vtiger_Base_Validator_Js(
 			let ranges = maximumLength.split(',');
 			if (ranges.length === 2) {
 				if (fieldValue > parseFloat(ranges[1]) || fieldValue < parseFloat(ranges[0])) {
-					errorInfo = app.vtranslate('JS_ERROR_MAX_VALUE');
-					this.setError(errorInfo);
+					this.setError(app.vtranslate('JS_ERROR_MAX_VALUE'));
 					return false;
 				}
 			} else {
 				if (fieldValue > parseFloat(ranges[0]) || fieldValue < 0) {
-					errorInfo = app.vtranslate('JS_ERROR_MAX_VALUE');
-					this.setError(errorInfo);
+					this.setError(app.vtranslate('JS_ERROR_MAX_VALUE'));
 					return false;
 				}
 			}
 			return true;
+		},
+
+		/**
+		 * Overwrites base function to avoid trimming and validate white spaces
+		 * @return fieldValue
+		 * */
+		getFieldValue: function () {
+			return App.Fields.Double.formatToDb(this.getElement().val());
 		}
 	}
 );
@@ -380,10 +386,9 @@ Vtiger_PositiveNumber_Validator_Js(
 		 * @return error if validation fails true on success
 		 */
 		invokeValidation: function (field, rules, i, options) {
-			var percentageInstance = new Vtiger_Percentage_Validator_Js();
+			let percentageInstance = new Vtiger_Percentage_Validator_Js();
 			percentageInstance.setElement(field);
-			var response = percentageInstance.validate();
-			if (response != true) {
+			if (!percentageInstance.validate()) {
 				return percentageInstance.getError();
 			}
 		}
@@ -396,15 +401,22 @@ Vtiger_PositiveNumber_Validator_Js(
 		 */
 		validate() {
 			const response = this._super();
-			if (response != true) {
+			if (response !== true) {
 				return response;
 			} else {
-				if (App.Fields.Double.formatToDb(this.getFieldValue()) > 100) {
+				if (this.getFieldValue() > 100) {
 					this.setError(app.vtranslate('JS_PERCENTAGE_VALUE_SHOULD_BE_LESS_THAN_100'));
 					return false;
 				}
 				return true;
 			}
+		},
+		/**
+		 * Overwrites base function to avoid trimming and validate white spaces
+		 * @return fieldValue
+		 * */
+		getFieldValue: function () {
+			return App.Fields.Double.formatToDb(this.getElement().val());
 		}
 	}
 );
@@ -593,7 +605,7 @@ Vtiger_PositiveNumber_Validator_Js(
 				return response;
 			}
 			let field = this.getElement(),
-				fieldValue = App.Fields.Double.formatToDb(this.getFieldValue()),
+				fieldValue = this.getFieldValue(),
 				fieldData = field.data(),
 				fieldInfo = fieldData.fieldinfo,
 				errorInfo;
@@ -627,7 +639,7 @@ Vtiger_Base_Validator_Js(
 			var fieldInfo = fieldData.fieldinfo;
 			var fieldValue = this.getFieldValue();
 			try {
-				var fieldDateInstance = Vtiger_Helper_Js.getDateInstance(fieldValue, fieldDateFormat);
+				var fieldDateInstance = App.Fields.Date.getDateInstance(fieldValue, fieldDateFormat);
 			} catch (err) {
 				this.setError(err);
 				return false;
@@ -662,7 +674,7 @@ Vtiger_Base_Validator_Js(
 			var fieldInfo = fieldData.fieldinfo;
 			var fieldValue = this.getFieldValue();
 			try {
-				var fieldDateInstance = Vtiger_Helper_Js.getDateInstance(fieldValue, fieldDateFormat);
+				var fieldDateInstance = App.Fields.Date.getDateInstance(fieldValue, fieldDateFormat);
 			} catch (err) {
 				this.setError(err);
 				return false;
@@ -702,7 +714,7 @@ Vtiger_Base_Validator_Js(
 			var fieldInfo = fieldData.fieldinfo;
 			var fieldValue = this.getFieldValue();
 			try {
-				var fieldDateInstance = Vtiger_Helper_Js.getDateInstance(fieldValue, fieldDateFormat);
+				var fieldDateInstance = App.Fields.Date.getDateInstance(fieldValue, fieldDateFormat);
 			} catch (err) {
 				this.setError(err);
 				return false;
@@ -796,7 +808,7 @@ Vtiger_Base_Validator_Js(
 			var dateFormat = field.data('dateFormat');
 			var fieldValue = field.val();
 			try {
-				var dateTimeInstance = Vtiger_Helper_Js.getDateInstance(fieldValue, dateFormat);
+				var dateTimeInstance = App.Fields.Date.getDateInstance(fieldValue, dateFormat);
 			} catch (err) {
 				this.setError(err);
 				return false;
@@ -841,7 +853,7 @@ Vtiger_Base_Validator_Js(
 				if (dependentFieldInContext.length > 0) {
 					if (typeof dependentFieldInContext.data('dateFormat') === 'undefined' && fieldDateTime) {
 						fieldDateTime += ' ' + dependentFieldInContext.val();
-						fieldDateTimeInstance[j] = Vtiger_Helper_Js.getDateInstance(fieldDateTime, dateFormat);
+						fieldDateTimeInstance[j] = App.Fields.Date.getDateInstance(fieldDateTime, dateFormat);
 						j++;
 					} else if (typeof dependentFieldInContext.data('dateFormat') !== 'undefined') {
 						var dateFormat = dependentFieldInContext.data('dateFormat');
@@ -888,7 +900,7 @@ Vtiger_Base_Validator_Js(
 					var dateFormat = dependentFieldInContext.data('dateFormat');
 					var time = jQuery('input[name=time_start]', contextFormElem);
 					var fieldValue = dependentFieldInContext.val() + ' ' + time.val();
-					var dependentFieldDateInstance = Vtiger_Helper_Js.getDateInstance(fieldValue, dateFormat);
+					var dependentFieldDateInstance = App.Fields.Date.getDateInstance(fieldValue, dateFormat);
 					var comparedDateVal = todayDateInstance - dependentFieldDateInstance;
 					if (comparedDateVal < 0 && status == 'Held') {
 						var errorInfo =
@@ -953,7 +965,7 @@ Vtiger_Base_Validator_Js(
 			var dateFormat = field.data('dateFormat');
 			var fieldValue = field.val();
 			try {
-				var dateTimeInstance = Vtiger_Helper_Js.getDateInstance(fieldValue, dateFormat);
+				var dateTimeInstance = App.Fields.Date.getDateInstance(fieldValue, dateFormat);
 			} catch (err) {
 				this.setError(err);
 				return false;
@@ -1116,7 +1128,7 @@ Vtiger_Base_Validator_Js(
 					fieldValue = [fieldValue];
 				}
 				fieldValue.forEach((key) => {
-					Vtiger_Helper_Js.getDateInstance(key, fieldDateFormat);
+					App.Fields.Date.getDateInstance(key, fieldDateFormat);
 				});
 			} catch (err) {
 				var errorInfo = app.vtranslate('JS_PLEASE_ENTER_VALID_DATE');
@@ -1291,7 +1303,7 @@ Vtiger_greaterThanDependentField_Validator_Js(
 
 			let dateFieldValue = field.val() + ' ' + timeFieldValue,
 				dateFormat = field.data('dateFormat');
-			return Vtiger_Helper_Js.getDateInstance(dateFieldValue, dateFormat);
+			return App.Fields.Date.getDateInstance(dateFieldValue, dateFormat);
 		}
 	}
 );
@@ -1312,7 +1324,7 @@ Vtiger_Base_Validator_Js(
 			var fieldInfo = fieldData.fieldinfo;
 			var fieldValue = this.getFieldValue();
 			try {
-				var fieldDateInstance = Vtiger_Helper_Js.getDateInstance(fieldValue, fieldDateFormat);
+				var fieldDateInstance = App.Fields.Date.getDateInstance(fieldValue, fieldDateFormat);
 			} catch (err) {
 				this.setError(err);
 				return false;
@@ -1408,6 +1420,13 @@ Vtiger_WholeNumber_Validator_Js(
 				}
 			}
 			return true;
+		},
+		/**
+		 * Overwrites base function to avoid trimming and validate white spaces
+		 * @return fieldValue
+		 */
+		getFieldValue: function () {
+			return App.Fields.Double.formatToDb(this.getElement().val());
 		}
 	}
 );
@@ -1642,15 +1661,25 @@ Vtiger_Base_Validator_Js(
 			}
 			const field = this.getElement();
 			const fieldValue = field.val();
-			if (
-				field.data('fieldinfo').maximumlength &&
-				(typeof TextEncoder === 'function'
-					? new TextEncoder().encode(fieldValue).byteLength > field.data('fieldinfo').maximumlength
-					: fieldValue.length > field.data('fieldinfo').maximumlength)
-			) {
-				this.setError(app.vtranslate('JS_MAXIMUM_TEXT_SIZE_IN_BYTES') + ' ' + field.data('fieldinfo').maximumlength);
-				return false;
+			let maximumlength = field.data('fieldinfo').maximumlength;
+
+			if(maximumlength){
+				let currentTextLenght = typeof TextEncoder === 'function' ? new TextEncoder().encode(fieldValue).byteLength : fieldValue.length;
+				let [min, max] = maximumlength.split(',');
+				if(max == undefined){
+					max = min;
+					min = null;
+				}
+				if (currentTextLenght && min && currentTextLenght < parseInt(min)) {
+					this.setError(app.vtranslate('JS_ENTERED_VALUE_IS_TOO_SHORT'));
+					return false;
+				}
+				if (max && currentTextLenght > parseInt(max)) {
+					this.setError(app.vtranslate('JS_MAXIMUM_TEXT_SIZE_IN_BYTES') + ': ' + parseInt(max));
+					return false;
+				}
 			}
+
 			return true;
 		}
 	}
@@ -1683,3 +1712,94 @@ Vtiger_Base_Validator_Js(
 	}
 );
 Vtiger_Double_Validator_Js('Vtiger_Advpercentage_Validator_Js', {});
+
+Vtiger_Base_Validator_Js(
+	'Vtiger_Mapcoordinates_Validator_Js',
+	{
+		/**
+		 * Function which invokes field validation
+		 * @param {jQuery} field - accepts field element as parameter
+		 * @return string|true - error text if validation fails, true on success
+		 */
+		invokeValidation(field, rules, i, options) {
+			let validatorInstance = new Vtiger_Mapcoordinates_Validator_Js();
+			validatorInstance.setElement(field);
+			let result = validatorInstance.validate();
+			if (result == true) {
+				return result;
+			} else {
+				return validatorInstance.getError();
+			}
+		}
+	},
+	{
+		/**
+		 * Function to validate the coordinates field data
+		 * @return {boolean}
+		 */
+		validate() {
+			let fieldValue = this.getFieldValue();
+			if (fieldValue !== '') {
+				let element = this.getElement();
+				let key = element.data('key');
+				let result = false;
+				switch (element.data('type')) {
+					case 'decimal':
+						result = this.validateDecimal(fieldValue, key);
+						break;
+					case 'degrees':
+						result = this.validateDegrees(fieldValue, key);
+						break;
+					default:
+						result = this.validateCodeplus(fieldValue);
+						break;
+				}
+				if (!result) {
+					this.setError(app.vtranslate('JS_INVALID_COORDINATES'));
+				}
+				return result;
+			}
+		},
+
+		/**
+		 * Function to validate the coordinates decimal field data
+		 * @return {boolean}
+		 */
+		validateDecimal(fieldValue, key) {
+			const lat = /^\(?[+-]?(90(\.0+)?|[1-8]?\d(\.\d+)?)$/;
+			const lon = /^\s?[+-]?(180(\.0+)?|1[0-7]\d(\.\d+)?|\d{1,2}(\.\d+)?)\)?$/;
+			let result = false;
+			if (key === 'lat') {
+				result = lat.test(fieldValue);
+			} else {
+				result = lon.test(fieldValue);
+			}
+			return result;
+		},
+
+		/**
+		 * Function to validate the coordinates degrees field data
+		 * @return {boolean}
+		 */
+		validateDegrees(fieldValue, key) {
+			const dmsLat = /^(([1-8]?\d)\D+([1-5]?\d|60)\D+([1-5]?\d|60)(\.\d+)?|90\D+0\D+0)\D+[NSns]?$/i;
+			const dmsLon = /^\s*([1-7]?\d{1,2}\D+([1-5]?\d|60)\D+([1-5]?\d|60)(\.\d+)?|180\D+0\D+0)\D+[EWew]?$/i;
+			let result = false;
+			if (key === 'lat') {
+				result = dmsLat.test(fieldValue);
+			} else {
+				result = dmsLon.test(fieldValue);
+			}
+			return result;
+		},
+
+		/**
+		 * Function to validate the coordinates code plus field data
+		 * @return {boolean}
+		 */
+		validateCodeplus(fieldValue) {
+			const regex = /^[a-z0-9 +]+$/i;
+			return regex.test(fieldValue);
+		}
+	}
+);

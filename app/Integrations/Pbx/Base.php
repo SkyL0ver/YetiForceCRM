@@ -1,6 +1,6 @@
 <?php
 /**
- * Base PBX integrations file.
+ * Base PBX driver integrations file.
  *
  * @package Integration
  *
@@ -12,26 +12,69 @@
 namespace App\Integrations\Pbx;
 
 /**
- * Base PBX integrations class.
+ * Base PBX driver integrations class.
  */
 abstract class Base
 {
-	/**
-	 * @var string Class name
-	 */
-	public $name = '';
+	/** @var string Class name */
+	const NAME = '';
+
+	/** @var string[] Values to configure. */
+	const CONFIG_FIELDS = [];
+
+	/** @var \App\Integrations\Pbx PBX main integration instance. */
+	protected $pbx;
 
 	/**
-	 * Values to configure.
+	 * Base PBX driver constructor.
 	 *
-	 * @var string[]
+	 * @param \App\Integrations\Pbx $pbx
 	 */
-	public $configFields = [];
+	public function __construct(\App\Integrations\Pbx $pbx)
+	{
+		$this->pbx = $pbx;
+	}
 
 	/**
 	 * Perform phone call.
 	 *
-	 * @param \App\Integrations\Pbx $pbx
+	 * @param string $targetPhone
+	 * @param int    $record
+	 *
+	 * @return array
 	 */
-	abstract public function performCall(\App\Integrations\Pbx $pbx);
+	abstract public function performCall(string $targetPhone, int $record): array;
+
+	/**
+	 * Whether a call is active with the PBX integration.
+	 *
+	 * @return bool
+	 */
+	public function isActive(): bool
+	{
+		return true;
+	}
+
+	/**
+	 * Save phone calls.
+	 *
+	 * @param \App\Request $request
+	 *
+	 * @return array
+	 */
+	public function saveCalls(\App\Request $request): array
+	{
+		throw new \App\Exceptions\AppException('Method not supported');
+	}
+
+	/**
+	 * Save settings.
+	 *
+	 * @param array $data
+	 *
+	 * @return void
+	 */
+	public function saveSettings(array $data): void
+	{
+	}
 }

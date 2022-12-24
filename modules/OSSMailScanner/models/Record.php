@@ -146,21 +146,6 @@ class OSSMailScanner_Record_Model extends Vtiger_Record_Model
 	}
 
 	/**
-	 * Return folders config.
-	 *
-	 * @param bool|string $folder
-	 *
-	 * @return array|string
-	 */
-	public static function getConfigFolderList($folder = false)
-	{
-		if ($folder) {
-			return (new \App\Db\Query())->select(['parameter'])->from('vtiger_ossmailscanner_config')->where(['and', ['conf_type' => 'folders'], ['like', 'value', $folder]])->orderBy('parameter')->scalar();
-		}
-		return (new \App\Db\Query())->select(['parameter', 'value'])->from('vtiger_ossmailscanner_config')->where(['conf_type' => 'folders'])->orderBy(['parameter' => SORT_DESC])->createCommand()->queryAllByGroup(0);
-	}
-
-	/**
 	 * Return mailscanner config.
 	 *
 	 * @param bool|string $confType
@@ -186,25 +171,6 @@ class OSSMailScanner_Record_Model extends Vtiger_Record_Model
 		$dataReader->close();
 
 		return $return;
-	}
-
-	/**
-	 * Update config widget param.
-	 *
-	 * @param string $confType
-	 * @param string $type
-	 * @param string $value
-	 *
-	 * @return string
-	 */
-	public function setConfigWidget($confType, $type, $value)
-	{
-		if (null === $value || 'null' === $value) {
-			$value = null;
-		}
-		App\Db::getInstance()->createCommand()->update('vtiger_ossmailscanner_config', ['value' => $value], ['conf_type' => $confType, 'parameter' => $type])->execute();
-
-		return App\Language::translate('LBL_SAVE', 'OSSMailScanner');
 	}
 
 	/**
@@ -332,10 +298,19 @@ class OSSMailScanner_Record_Model extends Vtiger_Record_Model
 		$params = [];
 		if (empty($account['actions'])) {
 			$params['actions'] = ['CreatedEmail', 'BindAccounts', 'BindContacts', 'BindLeads'];
+		} else {
+			if (\is_string($account['actions'])) {
+				$actions = explode(',', $account['actions']);
+			} else {
+				$actions = $account['actions'];
+			}
+			if (!\in_array('CreatedEmail', $actions)) {
+				array_unshift($actions, 'CreatedEmail', );
+			}
+			$params['actions'] = $actions;
 		}
 		$return = self::executeActions($account, $mail, $folder, $params);
 		unset($mail);
-
 		return $return;
 	}
 
@@ -602,6 +577,9 @@ class OSSMailScanner_Record_Model extends Vtiger_Record_Model
 			case 2:
 				$return = 'Manually stopped';
 				break;
+			case 3:
+				$return = 'Error';
+				break;
 			default:
 				break;
 		}
@@ -632,7 +610,7 @@ class OSSMailScanner_Record_Model extends Vtiger_Record_Model
 				'user' => $row['user'],
 				'stop_user' => $row['stop_user'],
 				'count' => $row['count'],
-				'action' => $row['count'],
+				'action' => $row['action'],
 				'info' => $row['info'],
 			];
 		}
@@ -733,34 +711,6 @@ class OSSMailScanner_Record_Model extends Vtiger_Record_Model
 	public static function getCronTask()
 	{
 		return \vtlib\Cron::getInstance('LBL_MAIL_SCANNER_ACTION')->refreshData();
-	}
-
-	/**
-	 * Verification cron.
-	 */
-	public static function verificationCron()
-	{
-		$config = self::getConfig('cron');
-		$duration = $config['time'] ?? 0;
-		$email = $config['email'] ?? '';
-		$dbCommand = App\Db::getInstance()->createCommand();
-		$dataReader = (new App\Db\Query())->from('vtiger_ossmails_logs')->where(['status' => 1])->createCommand()->query();
-		while ($row = $dataReader->read()) {
-			$startTime = strtotime($row['start_time']);
-			if ($duration && $email
-			&& strtotime('now') > $startTime + ($duration * 60)
-			&& !(new \App\Db\Query())->from('vtiger_ossmailscanner_log_cron')->where(['laststart' => $startTime])->exists()) {
-				$dbCommand->insert('vtiger_ossmailscanner_log_cron', ['laststart' => $startTime, 'status' => 0, 'created_time' => date('Y-m-d H:i:s')])->execute();
-				$url = \App\Config::main('site_URL');
-				$mailStatus = \App\Mailer::addMail([
-					'to' => $email,
-					'subject' => App\Language::translate('Email_FromName', 'OSSMailScanner'),
-					'content' => App\Language::translate('Email_Body', 'OSSMailScanner') . "\r\n<br><a href='{$url}'>{$url}</a>",
-				]);
-				$dbCommand->update('vtiger_ossmailscanner_log_cron', ['status' => (int) $mailStatus], ['laststart' => $startTime])->execute();
-			}
-		}
-		$dataReader->close();
 	}
 
 	/**

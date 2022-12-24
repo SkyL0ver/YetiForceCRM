@@ -47,12 +47,8 @@ class Settings_PDF_Record_Model extends Settings_Vtiger_Record_Model
 		return $this;
 	}
 
-	/**
-	 * Function to get the list view actions for the record.
-	 *
-	 * @return <Array> - Associate array of Vtiger_Link_Model instances
-	 */
-	public function getRecordLinks()
+	/** {@inheritdoc} */
+	public function getRecordLinks(): array
 	{
 		$links = [];
 
@@ -237,6 +233,7 @@ class Settings_PDF_Record_Model extends Settings_Vtiger_Record_Model
 				$value = \App\Pdf\Pdf::getDriverLabel($value);
 				break;
 			default:
+				$value = \App\Purifier::encodeHtml($value);
 				break;
 		}
 		return $value;

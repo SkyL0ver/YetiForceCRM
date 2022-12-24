@@ -40,12 +40,8 @@ class Users_Field_Model extends Vtiger_Field_Model
 		return parent::isViewEnabled();
 	}
 
-	/**
-	 * Function to check if the field is export table.
-	 *
-	 * @return bool
-	 */
-	public function isExportTable()
+	/** {@inheritdoc} */
+	public function isExportable(): bool
 	{
 		return $this->isViewable() || 99 === $this->getUIType();
 	}
@@ -113,9 +109,11 @@ class Users_Field_Model extends Vtiger_Field_Model
 	/**
 	 * Function to check whether this field editable or not.
 	 *
+	 * @param string $viewName
+	 *
 	 * @return bool true/false
 	 */
-	public function isEditable(): bool
+	public function isEditable(string $viewName = 'Edit'): bool
 	{
 		if (null === $this->get('editable')) {
 			if (115 === $this->get('uitype') && (!\App\User::getCurrentUserModel()->isAdmin() || \App\User::getCurrentUserId() === $this->get('recordId'))) {
@@ -124,8 +122,8 @@ class Users_Field_Model extends Vtiger_Field_Model
 				$permission = \App\User::getCurrentUserModel()->isAdmin();
 			} elseif ('authy_secret_totp' === $this->getColumnName()) {
 				$permission = $this->get('recordId') === \App\User::getCurrentUserId();
-			} elseif (!$this->get('editable')) {
-				$permission = parent::isEditable();
+			} else {
+				$permission = parent::isEditable($viewName);
 			}
 			$this->set('editable', $permission);
 		}
@@ -145,11 +143,11 @@ class Users_Field_Model extends Vtiger_Field_Model
 	}
 
 	/** {@inheritdoc} */
-	public function isWritable()
+	public function isWritable(string $viewName = 'Edit'): bool
 	{
 		if (('is_admin' === $this->getName()) && \App\User::getCurrentUserModel()->isAdmin()) {
 			return true;
 		}
-		return parent::isWritable();
+		return parent::isWritable($viewName);
 	}
 }

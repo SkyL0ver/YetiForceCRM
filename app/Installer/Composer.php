@@ -109,10 +109,6 @@ class Composer
 	 * @var array
 	 */
 	public static $clearVendorFiles = [
-		'dg/rss-php' => [
-			'example-atom.php',
-			'example-rss.php',
-		],
 		'ezyang/htmlpurifier' => [
 			'plugins',
 		],
@@ -157,7 +153,6 @@ class Composer
 	 * @var array
 	 */
 	public static $copyDirectories = [
-		'public_html/libraries/ckeditor-image-to-base' => 'public_html/vendor/ckeditor/ckeditor/plugins/ckeditor-image-to-base',
 	];
 
 	/**
@@ -178,7 +173,7 @@ class Composer
 			return;
 		}
 		$publicDir = $rootDir . \DIRECTORY_SEPARATOR . 'public_html' . \DIRECTORY_SEPARATOR;
-		$types = ['js', 'css', 'woff', 'woff2', 'ttf', 'png', 'gif', 'jpg', 'json'];
+		$types = ['js', 'css', 'woff', 'woff2', 'ttf', 'png', 'gif', 'jpg', 'json', 'svg'];
 		$list = '';
 		foreach (static::$publicPackage as $package => $method) {
 			$src = 'vendor' . \DIRECTORY_SEPARATOR . $package;

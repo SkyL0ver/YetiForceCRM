@@ -39,6 +39,7 @@ class Calendar_ActivityStateModal_View extends Vtiger_BasicModal_View
 		$viewer = $this->getViewer($request);
 		$viewer->assign('LINKS', $this->getLinks());
 		$viewer->assign('RECORD', $this->record);
+		$viewer->assign('TIME_POSTPONE', \App\Config::module('Calendar', 'timePostponeIntervals', []));
 		$viewer->assign('SCRIPTS', $this->getScripts($request));
 		$viewer->view($this->getTpl(), $moduleName);
 	}
@@ -59,7 +60,7 @@ class Calendar_ActivityStateModal_View extends Vtiger_BasicModal_View
 	public function getLinks(): array
 	{
 		$links = [];
-		if ($this->record->isEditable() && \App\Config::main('isActiveSendingMails') && \App\Privilege::isPermitted('OSSMail') && 1 === \App\User::getCurrentUserModel()->getDetail('internal_mailer')) {
+		if ($this->record->isEditable() && \App\Mail::checkInternalMailClient()) {
 			$links[] = Vtiger_Link_Model::getInstanceFromValues([
 				'linklabel' => 'LBL_SEND_CALENDAR',
 				'linkdata' => ['url' => "index.php?module={$this->record->getModuleName()}&view=SendInvitationModal&record={$this->record->getId()}"],

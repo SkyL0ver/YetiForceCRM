@@ -36,9 +36,6 @@
 					{if !empty($LIST_FILTER_FIELDS)}
 						<input type="hidden" name="listFilterFields" value='{\App\Purifier::encodeHtml($LIST_FILTER_FIELDS)}' />
 					{/if}
-					{if !empty($PICKIST_DEPENDENCY_DATASOURCE)}
-						<input type="hidden" name="picklistDependency" value='{\App\Purifier::encodeHtml($PICKIST_DEPENDENCY_DATASOURCE)}' />
-					{/if}
 					<input type="hidden" name="module" value="{$MODULE}" />
 					<input type="hidden" name="action" value="MassSave" />
 					<input type="hidden" name="viewname" value="{$CVID}" />
@@ -48,7 +45,7 @@
 					<input type="hidden" name="operator" value="{$OPERATOR}" />
 					<input type="hidden" name="search_value" value="{$ALPHABET_VALUE}" />
 					<input type="hidden" name="search_params" value="{\App\Purifier::encodeHtml(\App\Json::encode($SEARCH_PARAMS))}" />
-
+					<input type="hidden" name="advancedConditions" value="{\App\Purifier::encodeHtml(\App\Json::encode($ADVANCED_CONDITIONS))}" />
 					<div class="modal-body">
 						<ul class="nav nav-tabs massEditTabs">
 							{foreach key=BLOCK_LABEL item=BLOCK_FIELDS from=$RECORD_STRUCTURE name=blockIterator}

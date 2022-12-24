@@ -46,7 +46,7 @@ class Vtiger_MultiAttachment_UIType extends Vtiger_Base_UIType
 		}
 		$fieldInfo = $this->getFieldModel()->getFieldInfo();
 		foreach ($value as $item) {
-			if (5 !== \count($item) || empty($item['key']) || empty($item['name']) || empty($item['size']) || empty($item['path']) || !\array_key_exists('type', $item) || 50 !== App\TextParser::getTextLength($item['key'])) {
+			if (5 !== \count($item) || empty($item['key']) || empty($item['name']) || empty($item['size']) || empty($item['path']) || !\array_key_exists('type', $item) || 50 !== App\TextUtils::getTextLength($item['key'])) {
 				throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getName() . '||' . $this->getFieldModel()->getModuleName() . '||' . \App\Json::encode($value), 406);
 			}
 			if (\count($value) > (int) $fieldInfo['limit']) {
@@ -126,7 +126,7 @@ class Vtiger_MultiAttachment_UIType extends Vtiger_Base_UIType
 		}
 
 		$length = $length ?: ($this->getFieldModel()->get('maxlengthtext') ?: null);
-		$text = \App\Purifier::encodeHtml(\App\TextParser::textTruncate(implode(', ', $names), $length));
+		$text = \App\Purifier::encodeHtml(\App\TextUtils::textTruncate(implode(', ', $names), $length));
 
 		$value = $this->getValueEncoded($value, $record);
 		$result = '<div class="js-multi-attachment c-multi-attachment"><div class="js-multi-attachment__result js-multi-attachment__values" data-value="' . $value . '"></div></div>';
@@ -170,7 +170,7 @@ class Vtiger_MultiAttachment_UIType extends Vtiger_Base_UIType
 	}
 
 	/** {@inheritdoc} */
-	public function getApiDisplayValue($value, Vtiger_Record_Model $recordModel)
+	public function getApiDisplayValue($value, Vtiger_Record_Model $recordModel, array $params = [])
 	{
 		$value = \App\Json::decode($value);
 		if (!$value || !\is_array($value)) {
@@ -386,9 +386,12 @@ class Vtiger_MultiAttachment_UIType extends Vtiger_Base_UIType
 		$params = $this->getFieldModel()->getFieldParams();
 		$fieldInfo['limit'] = $params['limit'] ?? static::LIMIT;
 		$fieldInfo['formats'] = $params['formats'] ?? [];
-		$fieldInfo['maxFileSize'] = $params['maxFileSize'] ?? \App\Config::main('upload_maxsize');
-		$fieldInfo['maxFileSizeDisplay'] = \vtlib\Functions::showBytes($fieldInfo['maxFileSize']);
-
+		$maxUploadSize = App\Config::getMaxUploadSize();
+		if (isset($params['maxFileSize']) && $params['maxFileSize'] < $maxUploadSize) {
+			$maxUploadSize = $params['maxFileSize'];
+		}
+		$fieldInfo['maxFileSize'] = $maxUploadSize;
+		$fieldInfo['maxFileSizeDisplay'] = \vtlib\Functions::showBytes($maxUploadSize);
 		return $fieldInfo;
 	}
 
@@ -404,10 +407,11 @@ class Vtiger_MultiAttachment_UIType extends Vtiger_Base_UIType
 	{
 		$db = \App\Db::getInstance();
 		$attach = [];
+		$maxSize = $this->getFieldInfo()['maxFileSize'];
 		foreach (\App\Fields\File::transform($files, true) as $key => $transformFiles) {
 			foreach ($transformFiles as $fileDetails) {
 				$file = \App\Fields\File::loadFromRequest($fileDetails);
-				if (!$file->validate()) {
+				if ($file->getSize() > $maxSize || !$file->validate()) {
 					$attach[] = ['name' => $file->getName(true), 'error' => $file->validateError];
 					continue;
 				}
@@ -418,7 +422,7 @@ class Vtiger_MultiAttachment_UIType extends Vtiger_Base_UIType
 					'size' => $file->getSize(),
 					'path' => $file->getPath(),
 					'key' => $key,
-					'type' => $file->getMimeType()
+					'type' => $file->getMimeType(),
 				];
 				$this->validate([$tempValue]);
 
@@ -506,7 +510,7 @@ class Vtiger_MultiAttachment_UIType extends Vtiger_Base_UIType
 				'size' => $file->getSize(),
 				'path' => $savePath . $key,
 				'key' => $key,
-				'type' => $file->getMimeType()
+				'type' => $file->getMimeType(),
 			];
 		}
 		$file->delete();

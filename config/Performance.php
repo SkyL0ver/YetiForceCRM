@@ -80,9 +80,6 @@ class Performance
 	/** The maximum number of emails that cron can send during a single execution. Pay attention to the server limits. */
 	public static $CRON_MAX_NUMBERS_SENDING_MAILS = 1000;
 
-	/** The maximum number of sms that cron can send during a single execution */
-	public static $CRON_MAX_NUMBERS_SENDING_SMS = 10;
-
 	/** The maximum number of attachments that cron can delete during a single execution */
 	public static $CRON_MAX_ATACHMENTS_DELETE = 1000;
 
@@ -137,9 +134,6 @@ class Performance
 	/** Popover record's trigger delay in ms */
 	public static $RECORD_POPOVER_DELAY = 500;
 
-	/** Empty value when there is selected item in picklist dependency */
-	public static $PICKLIST_DEPENDENCY_DEFAULT_EMPTY = true;
-
 	/** Number of items displayed in picklists. */
 	public static $picklistLimit = 50;
 
@@ -159,14 +153,14 @@ class Performance
 	public static $LOGIN_HISTORY_VIEW_LIMIT = 10;
 
 	/**
-	 * Functionality notifying about activity on the record.
+	 * Functionality notifying about activity on the record
 	 *
 	 * @var bool
 	 */
 	public static $recordActivityNotifier = false;
 
 	/**
-	 * Interval for Record activity notifier.
+	 * Interval for Record activity notifier
 	 *
 	 * @var int Number of seconds
 	 */

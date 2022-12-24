@@ -24,7 +24,7 @@ class Users_Save_Action extends Vtiger_Save_Action
 			$this->record = Vtiger_Record_Model::getInstanceById($record, $moduleName);
 		} else {
 			$this->record = Vtiger_Record_Model::getCleanInstance($moduleName);
-			if (!$this->record->isCreateable()) {
+			if (!$this->record->isCreatable()) {
 				throw new \App\Exceptions\NoPermittedToRecord('ERR_NO_PERMISSIONS_FOR_THE_RECORD', 406);
 			}
 		}
@@ -69,8 +69,6 @@ class Users_Save_Action extends Vtiger_Save_Action
 				return false;
 			}
 			$this->saveRecord($request);
-			$settingsModuleModel = Settings_Users_Module_Model::getInstance();
-			$settingsModuleModel->refreshSwitchUsers();
 			if ($request->getBoolean('relationOperation')) {
 				$parentRecordModel = Vtiger_Record_Model::getInstanceById($request->getInteger('sourceRecord'), $request->getByType('sourceModule', 2));
 				$loadUrl = $parentRecordModel->getDetailViewUrl();

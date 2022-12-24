@@ -10,24 +10,26 @@
 {strip}
 	<br />
 	<div>
-		<table class="table table-bordered table-sm listViewEntriesTable">
+		<table class="table table-bordered table-sm listViewEntriesTable js-workflow-tasks-list">
 			<thead>
 				<tr class="listViewHeaders">
 					<th width="10%">{\App\Language::translate('LBL_ACTIVE',$QUALIFIED_MODULE)}</th>
 					<th width="30%">{\App\Language::translate('LBL_TASK_TYPE',$QUALIFIED_MODULE)}</th>
-					<th>{\App\Language::translate('LBL_TASK_TITLE',$QUALIFIED_MODULE)}</th>
+					<th width="60%">{\App\Language::translate('LBL_TASK_TITLE',$QUALIFIED_MODULE)}</th>
 				</tr>
 			</thead>
 			<tbody>
 				{foreach from=$TASK_LIST item=TASK}
-					<tr class="listViewEntries">
-						<td><input type="checkbox" class="taskStatus" data-statusurl="{$TASK->getChangeStatusUrl()}" {if $TASK->isActive()} checked="" {/if} /></td>
-						<td>{\App\Language::translate($TASK->getTaskType()->getLabel(),$QUALIFIED_MODULE)}</td>
-						<td>{$TASK->getName()}
+					<tr class="listViewEntries js-workflow-task" data-id="{$TASK->getId()}">
+						<td width="10%">
+							<a class="px-2 u-cursor-move js-drag" data-js="ui-sortable-handle"><img class="align-baseline" src="{\App\Layout::getImagePath('drag.png')}" title="{\App\Language::translate('LBL_DRAG',$QUALIFIED_MODULE)}" /></a> <input type="checkbox" class="taskStatus" data-statusurl="{$TASK->getChangeStatusUrl()|escape}" {if $TASK->isActive()} checked="" {/if} />
+						</td>
+						<td width="30%">{\App\Language::translate($TASK->getTaskType()->getLabel(),$QUALIFIED_MODULE)}</td>
+						<td width="60%">{\App\Purifier::encodeHtml($TASK->getName())}
 							<div class="float-right actions">
 								<span class="actionImages">
 									{if $TASK->isEditable()}
-										<a data-url="{$TASK->getEditViewUrl()}">
+										<a data-url="{$TASK->getEditViewUrl()|escape}">
 											<span class="yfi yfi-full-editing-view" title="{\App\Language::translate('LBL_EDIT',$QUALIFIED_MODULE)}"></span>
 										</a>&nbsp;&nbsp;
 									{else}
@@ -35,7 +37,7 @@
 											<span class="fas fa-info-circle"></span>
 										</div>
 									{/if}
-									<a class="deleteTask" data-deleteurl="{$TASK->getDeleteActionUrl()}">
+									<a class="deleteTask" data-deleteurl="{$TASK->getDeleteActionUrl()|escape}">
 										<span class="fas fa-trash-alt" title="{\App\Language::translate('LBL_DELETE',$QUALIFIED_MODULE)}"></span>
 									</a>
 								</span>

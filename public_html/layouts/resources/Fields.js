@@ -139,7 +139,7 @@ window.App.Fields = {
 			if (typeof customParams !== 'undefined') {
 				params = $.extend(params, customParams);
 			}
-			elements.each((index, element) => {
+			elements.each((_index, element) => {
 				$(element).datepicker(
 					$.extend(
 						true,
@@ -224,11 +224,11 @@ window.App.Fields = {
 				.on('click', (e) => {
 					$(e.currentTarget).parent().next('.dateRangeField')[0].focus();
 				});
-			elements.each((index, element) => {
+			elements.each((_index, element) => {
 				let el = $(element);
 				let currentParams = $.extend(true, params, el.data('params'));
 				el.daterangepicker(currentParams)
-					.on('apply.daterangepicker', function (ev, picker) {
+					.on('apply.daterangepicker', function (_ev, picker) {
 						$(this).val(
 							picker.startDate.format(currentParams.locale.format) +
 								',' +
@@ -243,11 +243,134 @@ window.App.Fields = {
 						App.Fields.Utils.positionPicker(ev, picker);
 						picker.container.addClass('js-visible');
 					})
-					.on('hide.daterangepicker', (ev, picker) => {
+					.on('hide.daterangepicker', (_ev, picker) => {
 						picker.container.removeClass('js-visible');
 					});
 				App.Fields.Utils.registerMobileDateRangePicker(el);
 			});
+		},
+		/**
+		 * Function to get Date Instance
+		 * @param {string} dateTime
+		 * @param {string} dateFormat user date format
+		 * @returns {Date}
+		 */
+		getDateInstance: function (dateTime, dateFormat = CONFIG.dateFormat) {
+			let dateTimeComponents = dateTime.split(' '),
+				dateComponent = dateTimeComponents[0],
+				timeComponent = dateTimeComponents[1],
+				seconds = '00',
+				dotMode = '-';
+			if (dateFormat.indexOf('.') !== -1) {
+				dotMode = '.';
+			} else if (dateFormat.indexOf('/') !== -1) {
+				dotMode = '/';
+			}
+			let splittedDate = dateComponent.split(dotMode),
+				splittedDateFormat = dateFormat.split(dotMode),
+				year = splittedDate[splittedDateFormat.indexOf('yyyy')],
+				month = splittedDate[splittedDateFormat.indexOf('mm')],
+				day = splittedDate[splittedDateFormat.indexOf('dd')],
+				dateInstance = Date.parse(year + '/' + month + '/' + day);
+
+			if (isNaN(dateInstance) || year.length !== 4 || month.length > 2 || day.length > 2 || dateInstance == null) {
+				throw app.vtranslate('JS_INVALID_DATE');
+			}
+			//Before creating date object time is set to 00
+			//because as while calculating date object it depends system timezone
+			if (typeof timeComponent === 'undefined') {
+				timeComponent = '00:00:00';
+			}
+			let timeSections = timeComponent.split(':');
+			if (typeof timeSections[2] !== 'undefined') {
+				seconds = timeSections[2];
+			}
+			//Am/Pm component exits
+			if (typeof dateTimeComponents[2] !== 'undefined') {
+				if (dateTimeComponents[2].toLowerCase() === 'pm' && timeSections[0] !== '12') {
+					timeSections[0] = parseInt(timeSections[0], 10) + 12;
+				}
+				if (dateTimeComponents[2].toLowerCase() === 'am' && timeSections[0] === '12') {
+					timeSections[0] = '00';
+				}
+			}
+			month = month - 1;
+			return new Date(year, month, day, timeSections[0], timeSections[1], seconds);
+		},
+		/**
+		 * Format the Date object to a date in the format DB format, example: `2018-07-23`
+		 * @param {Date} date
+		 * @returns {string}
+		 */
+		dateToDbFormat: function (date) {
+			let d = date.getDate();
+			let m = date.getMonth() + 1;
+			let y = date.getFullYear();
+			d = d <= 9 ? '0' + d : d;
+			m = m <= 9 ? '0' + m : m;
+			return y + '-' + m + '-' + d;
+		},
+		/**
+		 * Format the Date object to a date in the format user format, example: `2018/07/23`
+		 * @param {Date} date
+		 * @returns {string}
+		 */
+		dateToUserFormat: function (date, format = CONFIG.dateFormat) {
+			if (typeof date === 'string') {
+				date = new Date(date);
+			}
+			let m = date.getMonth() + 1,
+				d = date.getDate();
+			d = d <= 9 ? '0' + d : d;
+			m = m <= 9 ? '0' + m : m;
+			return format.replace('yyyy', date.getFullYear()).replace('mm', m).replace('dd', d);
+		},
+		/**
+		 * Get last day of month
+		 * @param {integer} year
+		 * @param {integer} month
+		 * @returns {integer}
+		 */
+		getLastMonthDay: function (year, month) {
+			let date = new Date(year, month, 0);
+			return date.getDate();
+		},
+		/**
+		 * Get number of days from a given date to now
+		 * @param {Date} dateTime
+		 * @returns {integer}
+		 */
+		howManyDaysFromDate: function (dateTime) {
+			let today = new Date();
+			let toTime = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+			return Math.floor((toTime - dateTime.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+		},
+		/**
+		 * Converting the date format to the format supported in the DatePicker, example: `yyyy-mm-dd` >> `Y-m-d`
+		 * @param {string} dateFormat
+		 * @returns {string}
+		 */
+		convertToDatePickerFormat: function (dateFormat) {
+			switch (dateFormat) {
+				case 'yyyy-mm-dd':
+					return 'Y-m-d';
+				case 'mm-dd-yyyy':
+					return 'm-d-Y';
+				case 'dd-mm-yyyy':
+					return 'd-m-Y';
+				case 'yyyy.mm.dd':
+					return 'Y.m.d';
+				case 'mm.dd.yyyy':
+					return 'm.d.Y';
+				case 'dd.mm.yyyy':
+					return 'd.m.Y';
+				case 'yyyy/mm/dd':
+					return 'Y/m/d';
+				case 'mm/dd/yyyy':
+					return 'm/d/Y';
+				case 'dd/mm/yyyy':
+					return 'd/m/Y';
+			}
 		}
 	},
 	DateTime: class DateTime {
@@ -273,6 +396,20 @@ window.App.Fields = {
 				instances.push(new DateTime(element, params));
 			});
 			return instances;
+		}
+		/**
+		 * Format the Date object to a date in the format user format, example: `2018/07/23 03:00`
+		 * @param {Date} dateTime Date object
+		 * @returns {string} `2018/07/23 03:00`
+		 */
+		static dateToUserFormat(dateTime, format = CONFIG.dateFormat) {
+			format = format.toUpperCase();
+			if (CONFIG.hourFormat == 24) {
+				format += ' HH:mm';
+			} else {
+				format += ' hh:mm A';
+			}
+			return moment(dateTime).format(format);
 		}
 		/**
 		 * Gets default locale data
@@ -341,7 +478,7 @@ window.App.Fields = {
 			}
 			this.container
 				.daterangepicker(params)
-				.on('apply.daterangepicker', function applyDateRangePickerHandler(ev, picker) {
+				.on('apply.daterangepicker', function applyDateRangePickerHandler(_ev, picker) {
 					if (isDateRangePicker) {
 						$(this).val(picker.startDate.format(format));
 					} else {
@@ -353,6 +490,26 @@ window.App.Fields = {
 					picker.container.addClass('js-visible');
 				});
 			App.Fields.Utils.registerMobileDateRangePicker(this.container);
+		}
+	},
+	Time: {
+		/**
+		 * Format the Date object to a date in the format user format, example: `2018/07/23`
+		 * @param {Date} date
+		 * @returns {string}
+		 */
+		dateToUserFormat: function (date, timeFormat) {
+			if (typeof date === 'string') {
+				date = new Date(date);
+			}
+			if (!timeFormat) {
+				if (CONFIG.hourFormat == 24) {
+					timeFormat = 'HH:mm';
+				} else {
+					timeFormat = 'hh:mm A';
+				}
+			}
+			return moment(date).format(timeFormat);
 		}
 	},
 	Colors: {
@@ -442,7 +599,16 @@ window.App.Fields = {
 			});
 		},
 		Editor: class {
+			static initialization = false;
 			constructor(container, params) {
+				if (window.App.Fields.Text.Editor.initialization === false) {
+					CKEDITOR.disableAutoInline = true;
+					CKEDITOR.plugins.addExternal(
+						'base64image',
+						app.getMainParams('siteUrl') + 'layouts/resources/libraries/ckeditor/base64image/'
+					);
+					window.App.Fields.Text.Editor.initialization = true;
+				}
 				this.container = container;
 				this.init(container, params);
 			}
@@ -544,6 +710,7 @@ window.App.Fields = {
 					shiftEnterMode: CKEDITOR.ENTER_P,
 					emojiEnabled: false,
 					mentionsEnabled: false,
+					clipboard_handleImages: false,
 					on: {
 						instanceReady: (evt) => {
 							evt.editor.on('blur', function () {
@@ -561,7 +728,7 @@ window.App.Fields = {
 					},
 					removePlugins: 'scayt',
 					extraPlugins:
-						'colorbutton,pagebreak,colordialog,find,selectall,showblocks,div,print,font,justify,bidi,ckeditor-image-to-base',
+						'colorbutton,pagebreak,colordialog,find,selectall,showblocks,div,print,font,justify,bidi,base64image',
 					toolbar: 'Full',
 					toolbar_Full: [
 						{
@@ -572,7 +739,7 @@ window.App.Fields = {
 						{ name: 'links', items: ['Link', 'Unlink'] },
 						{
 							name: 'insert',
-							items: ['ckeditor-image-to-base', 'Table', 'HorizontalRule', 'SpecialChar', 'PageBreak']
+							items: ['base64image', 'Table', 'HorizontalRule', 'SpecialChar', 'PageBreak']
 						},
 						{ name: 'tools', items: ['Maximize', 'ShowBlocks'] },
 						{ name: 'paragraph', items: ['Outdent', 'Indent', '-', 'Blockquote', 'CreateDiv'] },
@@ -654,7 +821,7 @@ window.App.Fields = {
 						{ name: 'links', items: ['Link', 'Unlink'] },
 						{
 							name: 'insert',
-							items: ['ckeditor-image-to-base', 'Table', 'HorizontalRule', 'PageBreak']
+							items: ['base64image', 'Table', 'HorizontalRule', 'PageBreak']
 						},
 						{ name: 'tools', items: ['Maximize', 'ShowBlocks'] },
 						{ name: 'document', items: ['Source'] },
@@ -751,7 +918,7 @@ window.App.Fields = {
 			 * @param {jQuery} element
 			 * @param {object} e
 			 */
-			validate(element, e) {
+			validate(element) {
 				let status = true,
 					params;
 				if (element.data('purifyMode')) {
@@ -778,11 +945,10 @@ window.App.Fields = {
 					.done(function (data) {
 						element.val(data.result.raw);
 					})
-					.fail(function (error) {
+					.fail(function () {
 						app.showNotify({
 							type: 'error',
-							title: app.vtranslate('JS_UNEXPECTED_ERROR'),
-							text: error
+							text: app.vtranslate('JS_UNEXPECTED_ERROR')
 						});
 						status = false;
 					});
@@ -792,7 +958,7 @@ window.App.Fields = {
 		/**
 		 * Completions class for contenteditable html element for records, users and emojis. Params can be passed in data-completions- of contenteditable element or as argument. Default params:
 		 * {
-		 		completionsCollection: {
+					completionsCollection: {
 						records: true,
 						users: true,
 						emojis: true
@@ -1032,8 +1198,7 @@ window.App.Fields = {
 				const self = this;
 				this.completionsCollection = new Tribute({
 					collection: self.collection,
-					allowSpaces: true,
-					replaceTextSuffix: ''
+					allowSpaces: true
 				});
 				this.completionsCollection.attach(inputDiv[0]);
 				if (this.params.completionsTextarea !== undefined) {
@@ -1217,7 +1382,7 @@ window.App.Fields = {
 				params = {};
 			}
 			if ($(selectElement).length > 1) {
-				return $(selectElement).each((index, element) => {
+				return $(selectElement).each((_, element) => {
 					this.showSelect2ElementView($(element).eq(0), params);
 				});
 			}
@@ -1280,7 +1445,6 @@ window.App.Fields = {
 					self[params.selectCb](select, params);
 				}
 			});
-
 			return selectElement;
 		},
 		/**
@@ -1313,15 +1477,17 @@ window.App.Fields = {
 			if (typeof containerCssClass !== 'undefined') {
 				params.containerCssClass += ' ' + containerCssClass;
 			}
-			params.language.noResults = function (msn) {
+			params.language.noResults = function () {
 				return app.vtranslate('JS_NO_RESULTS_FOUND');
 			};
-
+			params.language.removeAllItems = function () {
+				return app.vtranslate('JS_REMOVE_ALL_ITEMS');
+			};
 			// Sort DOM nodes alphabetically in select box.
 			if (typeof params['customSortOptGroup'] !== 'undefined' && params['customSortOptGroup']) {
 				$('optgroup', selectElement).each(function () {
-					var optgroup = $(this);
-					var options = optgroup
+					let optgroup = $(this);
+					let options = optgroup
 						.children()
 						.toArray()
 						.sort(function (a, b) {
@@ -1340,10 +1506,9 @@ window.App.Fields = {
 			//then we should send our custom function for formatSelectionTooBig
 			if (typeof params.maximumSelectionLength !== 'undefined' && typeof params.formatSelectionTooBig === 'undefined') {
 				//custom function which will return the maximum selection size exceeds message.
-				var formatSelectionExceeds = function (limit) {
+				params.language.maximumSelected = function (limit) {
 					return app.vtranslate('JS_YOU_CAN_SELECT_ONLY') + ' ' + limit.maximum + ' ' + app.vtranslate('JS_ITEMS');
 				};
-				params.language.maximumSelected = formatSelectionExceeds;
 			}
 			if (typeof selectElement.attr('multiple') !== 'undefined' && !params.placeholder) {
 				params.placeholder = app.vtranslate('JS_SELECT_SOME_OPTIONS');
@@ -1355,38 +1520,34 @@ window.App.Fields = {
 					if (data.element && data.element.className) {
 						$(container).addClass(data.element.className);
 					}
-					let actualElement = $(data.element);
-					if (typeof selectElement.data('showAdditionalIcons') !== 'undefined' && actualElement.is('option')) {
-						return (
-							'<div class="js-element__title d-flex justify-content-between" data-js="appendTo"><div class="u-text-ellipsis--no-hover">' +
-							actualElement.text() +
-							'</div></div>'
-						);
-					}
+					const resultContainer = document.createElement('span');
 					if (typeof data.name === 'undefined') {
-						return data.text;
-					}
-					if (data.type == 'optgroup') {
-						return '<strong>' + data.name + '</strong>';
+						resultContainer.innerText = data.text;
+					} else if (data.type == 'optgroup') {
+						const strong = document.createElement('strong');
+						strong.innerText = data.name;
+						strong.appendChild(document.createTextNode(file.name));
+						resultContainer.appendChild(strong);
 					} else {
-						return '<span>' + data.name + '</span>';
+						resultContainer.innerText = data.name;
 					}
-				};
-				params.escapeMarkup = function (markup) {
-					return markup;
+					return resultContainer;
 				};
 			} else if (typeof this[params.templateResult] === 'function') {
 				params.templateResult = this[params.templateResult];
 			}
 			if (typeof params.templateSelection === 'undefined') {
-				params.templateSelection = function (data, container) {
-					if (data.element && data.element.className) {
-						$(container).addClass(data.element.className);
+				params.templateSelection = function (item, container) {
+					if (item.element && item.element.className) {
+						$(container).addClass(item.element.className);
 					}
-					if (data.text === '') {
-						return data.name;
+					const span = document.createElement('span');
+					if (item.text === '') {
+						span.innerText = item.name;
+					} else {
+						span.innerText = item.text;
 					}
-					return data.text;
+					return span;
 				};
 			} else if (typeof this[params.templateSelection] === 'function') {
 				params.templateSelection = this[params.templateSelection];
@@ -1398,9 +1559,9 @@ window.App.Fields = {
 		},
 		/**
 		 * Register ajax params
-		 * @param selectElement
-		 * @param params
-		 * @returns {*}
+		 * @param {jQuery} selectElement
+		 * @param {Object} params
+		 * @returns {Object}
 		 */
 		registerAjaxParams(selectElement, params) {
 			params.tags = false;
@@ -1420,41 +1581,46 @@ window.App.Fields = {
 				dataType: 'json',
 				delay: 250,
 				method: 'POST',
-				data: function (params) {
-					return {
-						value: params.term, // search term
-						page: params.page
-					};
-				},
-				processResults: function (data, params) {
-					var items = new Array();
-					if (data.success == true) {
-						selectElement.find('option').each(function () {
-							var currentTarget = $(this);
-							items.push({
-								label: currentTarget.html(),
-								value: currentTarget.val()
-							});
-						});
-						items = items.concat(data.result.items);
-					}
-					return {
-						results: items,
-						pagination: {
-							more: false
-						}
-					};
-				},
+				data:
+					params['ajax'] && params['ajax']['data']
+						? params['ajax']['data']
+						: function (item) {
+								return {
+									value: item.term, // search term
+									page: item.page
+								};
+						  },
+				processResults:
+					params['ajax'] && params['ajax']['processResults']
+						? params['ajax']['processResults']
+						: function (data, _params) {
+								var items = new Array();
+								if (data.success == true) {
+									selectElement.find('option').each(function () {
+										var currentTarget = $(this);
+										items.push({
+											label: currentTarget.html(),
+											value: currentTarget.val()
+										});
+									});
+									items = items.concat(data.result.items);
+								}
+								return {
+									results: items,
+									pagination: {
+										more: false
+									}
+								};
+						  },
 				cache: false
 			};
 			params.escapeMarkup = function (markup) {
 				if (markup !== 'undefined') return markup;
 			};
-			var minimumInputLength = 3;
+			params.minimumInputLength = 3;
 			if (selectElement.data('minimumInput') !== 'undefined') {
-				minimumInputLength = selectElement.data('minimumInput');
+				params.minimumInputLength = selectElement.data('minimumInput');
 			}
-			params.minimumInputLength = minimumInputLength;
 			params.templateResult = function (data) {
 				if (typeof data.name === 'undefined') {
 					return data.text;
@@ -1465,11 +1631,14 @@ window.App.Fields = {
 					return '<span>' + data.name + '</span>';
 				}
 			};
-			params.templateSelection = function (data, container) {
+			params.templateSelection = function (data, _container) {
+				const span = document.createElement('span');
 				if (data.text === '') {
-					return data.name;
+					span.innerText = data.name;
+				} else {
+					span.innerText = data.text;
 				}
-				return data.text;
+				return span;
 			};
 			return params;
 		},
@@ -1479,25 +1648,22 @@ window.App.Fields = {
 		 * @returns {Mixed|jQuery|HTMLElement}
 		 */
 		prependDataTemplate(optionData) {
-			let template = optionData.text;
+			const span = document.createElement('span');
 			if (optionData.id !== undefined && optionData.id !== '') {
-				template = $(optionData.element.dataset.template);
+				span.innerHTML = optionData.element.dataset.template;
 				if (optionData.element.dataset.state !== undefined) {
+					const icon = span.querySelector('.js-select-option-event');
 					//check if element has icons with different states
 					if (optionData.element.dataset.state === 'active') {
-						template
-							.find('.js-select-option-event')
-							.removeClass(optionData.element.dataset.iconInactive)
-							.addClass(optionData.element.dataset.iconActive);
+						icon.classList.replace(optionData.element.dataset.iconInactive, optionData.element.dataset.iconActive);
 					} else {
-						template
-							.find('.js-select-option-event')
-							.removeClass(optionData.element.dataset.iconActive)
-							.addClass(optionData.element.dataset.iconInactive);
+						icon.classList.replace(optionData.element.dataset.iconActive, optionData.element.dataset.iconInactive);
 					}
 				}
+			} else {
+				span.innerText = optionData.text;
 			}
-			return template;
+			return span;
 		},
 		/**
 		 * Register select sortable
@@ -1566,13 +1732,15 @@ window.App.Fields = {
 					.done((data) => {
 						progressIndicatorElement.progressIndicator({ mode: 'hide' });
 						let response = data.result;
+						const icon = currentTarget.get(0);
+						//check if element has icons with different states
 						if (response && response.result) {
 							if (optionElement.attr('data-state') === 'active') {
 								optionElement.attr('data-state', 'inactive');
-								currentTarget.toggleClass(currentElementData.iconActive + ' ' + currentElementData.iconInactive);
+								icon.classList.replace(currentElementData.iconActive, currentElementData.iconInactive);
 							} else {
 								optionElement.attr('data-state', 'active');
-								currentTarget.toggleClass(currentElementData.iconInactive + ' ' + currentElementData.iconActive);
+								icon.classList.replace(currentElementData.iconInactive, currentElementData.iconActive);
 							}
 							if (response.message) {
 								app.showNotify({ text: response.message, type: 'success' });
@@ -1669,23 +1837,27 @@ window.App.Fields = {
 			return options;
 		},
 		/**
-		 * Set value.
+		 * Set a value for the field
 		 *
-		 * @param   {object}  selectElement  [selectElement description]
-		 * @param   {string}  searchValue
-		 * @param   {string}  type           value|text|all
+		 * @param   {jQuery}  field Field element
+		 * @param   {mixed}  value The value to set
+		 * @param   {object}  params Additional parameters [optional]
 		 *
-		 * @return  {boolean|string}         false or set value
+		 * @return  {mixed} The value that has been set
 		 */
-		setValue(selectElement, searchValue, type = 'value') {
-			const option = this.findOption(selectElement, searchValue, type);
+		setValue(field, value, params) {
+			let type = 'value';
+			if (params && params['type']) {
+				type = params['type'];
+			}
+			const option = this.findOption(field, value, type);
 			if (!option) {
 				return false;
 			}
-			if (selectElement.hasClass('js-lazy-select-active')) {
-				this.createSelectedOption(selectElement, option.text, option.value);
+			if (field.hasClass('js-lazy-select-active')) {
+				this.createSelectedOption(field, option.text, option.value);
 			} else {
-				selectElement.val(option.value).trigger('change');
+				field.val(option.value).trigger('change');
 			}
 			return option.value;
 		},
@@ -1737,7 +1909,7 @@ window.App.Fields = {
 				return selectElement.data('fieldinfo').picklistvalues;
 			} else {
 				let optionsObject = {};
-				selectElement.find('option').each((i, element) => {
+				selectElement.find('option').each((_i, element) => {
 					optionsObject[element.value] = element.text;
 				});
 				return optionsObject;
@@ -2139,7 +2311,7 @@ window.App.Fields = {
 						fieldDisplayElement = this.container.find('input[name="' + sourceFieldElement.attr('name') + '_display"]');
 					AppConnector.request({
 						module: sourceFieldElement.data('module-name'),
-						view: 'TreeModal',
+						view: sourceFieldElement.data('view') || 'TreeModal',
 						template: sourceFieldElement.data('treetemplate'),
 						fieldName: sourceFieldElement.attr('name'),
 						multiple: sourceFieldElement.data('multiple'),
@@ -2801,6 +2973,8 @@ window.App.Fields = {
 	MultiReference: class MultiReference {
 		constructor(container) {
 			this.container = container;
+			this.select = container.find('.js-multi-reference');
+			this.form = container.closest('form');
 			this.init();
 		}
 		/**
@@ -2818,98 +2992,98 @@ window.App.Fields = {
 			return instances;
 		}
 		/**
+		 * Set a value for the field
+		 *
+		 * @param   {jQuery}  field Field element
+		 * @param   {mixed}  value The value to set
+		 * @param   {object}  params Additional parameters [optional]
+		 *
+		 * @return  {mixed} The value that has been set
+		 */
+		static setValue(field, value, params) {
+			if (!(params && params['extend'])) {
+				field.val(null);
+			}
+			const values = field.val();
+			$.each(value, (id, label) => {
+				if (!values.includes(id)) {
+					field.append(new Option(label, id, true, true));
+				}
+			});
+			field.trigger('change');
+			return field.val();
+		}
+		/**
 		 * Initiation
 		 */
 		init() {
-			$('.js-clear-selection', this.container)
-				.off('click')
-				.on('click', () => {
-					this.clear();
-				});
 			$('.js-related-popup', this.container)
 				.off('click')
 				.on('click', () => {
-					let params = {};
-					let field = this.getField();
-					let url = field.data('url');
-					if (url) {
-						params = this.convertUrl(url);
-					}
-					app.showRecordsList($.extend(params, this.getParams()), (modal, instance) => {
+					app.showRecordsList(this.getParams(), (_modal, instance) => {
 						instance.setSelectEvent((data) => {
 							this.setReferenceFieldValue(data);
 						});
 					});
 				});
+			$('.js-create-reference-record', this.container)
+				.off('click')
+				.on('click', () => {
+					this.createHandler();
+				});
 			this.registerAutoComplete();
-		}
-		/**
-		 * Clear selection
-		 */
-		clear() {
-			let element = this.getField();
-			let fieldName = element.attr('name');
-			element.val('');
-			this.container.find(`#${fieldName}_display`).removeAttr('readonly').val('');
 		}
 		/**
 		 * Function which will handle the reference auto complete event registrations
 		 */
 		registerAutoComplete() {
-			let thisInstance = this;
-			let formElement = this.container.closest('form');
-			this.container.find('.js-auto-complete').autocomplete({
-				delay: '600',
-				minLength: '3',
-				source: function (request, response) {
-					let inputElement = $(this.element[0]);
-					let searchValue = request.term;
-					let params = {};
-					params.search_module = $('.js-popup-reference-module', thisInstance.container).val();
-					params.search_value = searchValue;
-					params.module = thisInstance.getField().data('module');
-					params.action = 'BasicAjax';
-					let sourceRecordElement = $('input[name="record"]', formElement);
-					if (sourceRecordElement.length > 0 && sourceRecordElement.val()) {
-						params.src_record = sourceRecordElement.val();
-					}
-					AppConnector.request(params)
-						.done(function (data) {
-							let responseDataList = [];
-							let serverDataFormat = data.result;
-							if (serverDataFormat.length <= 0) {
-								$(inputElement).val('');
-								serverDataFormat = new Array({
-									label: app.vtranslate('JS_NO_RESULTS_FOUND'),
-									type: 'no results'
+			App.Fields.Picklist.showSelect2ElementView(this.select, {
+				ajax: {
+					data: function (item) {
+						return {
+							search_value: item.term ?? '',
+							page: item.page
+						};
+					},
+					processResults: (data, params) => {
+						let items = new Array();
+						if (!params.term) {
+							items.push({
+								type: 'optgroup',
+								name: this.select.attr('placeholder')
+							});
+						} else if (data.success) {
+							$.each(data.result, (_, item) => {
+								items.push({
+									name: item.label,
+									id: item.id
 								});
+							});
+						}
+						return {
+							results: items,
+							pagination: {
+								more: false
 							}
-							for (let id in serverDataFormat) {
-								let responseData = serverDataFormat[id];
-								responseDataList.push(responseData);
-							}
-							response(responseDataList);
-						})
-						.fail(function (error, err) {
-							app.errorLog(error, err);
-						});
-				},
-				select: function (event, ui) {
-					if (typeof ui.item.type !== 'undefined' && ui.item.type == 'no results') {
-						return false;
+						};
 					}
-					let selectedItemData = [];
-					selectedItemData[ui.item.id] = ui.item.value;
-					thisInstance.setReferenceFieldValue(selectedItemData);
+				}
+			});
+		}
+		/**
+		 * Set reference field value
+		 */
+		createHandler() {
+			let formData = this.form.serializeFormData();
+			delete formData['action'];
+			App.Components.QuickCreate.createRecord($('.js-popup-reference-module', this.container).val(), {
+				data: {
+					sourceRecordData: formData
 				},
-				change: function (event, ui) {
-					let element = $(this);
-					if (element.attr('readonly') == undefined) {
-						thisInstance.clear();
+				callbackFunction: (data) => {
+					if (data.success) {
+						this.select.append(new Option(data.result._recordLabel, data.result._recordId, true, true));
 					}
-				},
-				open: function (event, ui) {
-					$(this).data('ui-autocomplete').menu.element.css('z-index', '100001');
 				}
 			});
 		}
@@ -2918,74 +3092,46 @@ window.App.Fields = {
 		 * @param {object} data
 		 */
 		setReferenceFieldValue(data) {
-			let sourceField = this.getField(),
-				fieldName = sourceField.attr('name'),
-				selectedNames = [],
-				ids = [];
-			for (let index in data) {
-				ids.push(index);
-				selectedNames.push(data[index]);
-			}
-			this.clear();
-			sourceField.val(ids.join(','));
-			this.container
-				.find(`#${fieldName}_display`)
-				.val(app.decodeHTML(selectedNames.join(', ')))
-				.attr('readonly', true);
-		}
-		/**
-		 * Gets field
-		 */
-		getField() {
-			return this.container.find('.js-source-field');
-		}
-		/**
-		 * Convert URL to Object
-		 * @param {string} data
-		 */
-		convertUrl(url) {
-			let vars = {};
-			url.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (_, key, value) {
-				vars[key] = value;
+			const values = this.select.val();
+			$.each(data, (id, label) => {
+				if (!values.includes(id)) {
+					this.select.append(new Option(label, id, true, true));
+				}
 			});
-			return vars;
 		}
 		/**
 		 * Gets params
+		 * @returns {Object}
 		 */
 		getParams() {
-			let form = this.container.closest('form');
-			let sourceModule = $('input[name="module"]', form).val();
-			let popupReferenceModule = $('.js-popup-reference-module', this.container).val();
-			let sourceField = this.getField();
-			let sourceFieldName = sourceField.attr('name');
-			let sourceRecordElement = $('input[name="record"]', form);
+			const referenceModule = $('.js-popup-reference-module', this.container).val(),
+				sourceFieldName = this.select.attr('name').slice(0, -2),
+				sourceRecordElement = $('input[name="record"]', this.form),
+				listFilterFieldsJson = this.form.find('input[name="listFilterFields"]').val(),
+				listFilterFields = listFilterFieldsJson ? JSON.parse(listFilterFieldsJson) : [];
 			let sourceRecordId = '';
 			if (sourceRecordElement.length > 0) {
 				sourceRecordId = sourceRecordElement.val();
 			}
-
 			let filterFields = {};
-			let listFilterFieldsJson = form.find('input[name="listFilterFields"]').val();
-			let listFilterFields = listFilterFieldsJson ? JSON.parse(listFilterFieldsJson) : [];
 			if (
 				listFilterFields[sourceFieldName] != undefined &&
-				listFilterFields[sourceFieldName][popupReferenceModule] != undefined
+				listFilterFields[sourceFieldName][referenceModule] != undefined
 			) {
-				$.each(listFilterFields[sourceFieldName][popupReferenceModule], function (index, value) {
-					let mapFieldElement = form.find('[name="' + index + '"]');
+				$.each(listFilterFields[sourceFieldName][referenceModule], (index) => {
+					let mapFieldElement = this.form.find('[name="' + index + '"]');
 					if (mapFieldElement.length && mapFieldElement.val() != '') {
 						filterFields[index] = mapFieldElement.val();
 					}
 				});
 			}
 			return {
-				module: popupReferenceModule,
-				src_module: sourceModule,
+				module: referenceModule,
+				src_module: $('input[name="module"]', this.form).val(),
 				src_field: sourceFieldName,
 				src_record: sourceRecordId,
 				filterFields: filterFields,
-				multi_select: sourceField.data('multiple')
+				multi_select: true
 			};
 		}
 	},
@@ -3032,16 +3178,11 @@ window.App.Fields = {
 		 * Initiation
 		 */
 		init() {
-			let field = this.getField();
+			const field = this.getField();
 			$('.js-pwd-auto-generate', this.container)
 				.off('click')
-				.on('click', () => {
-					this.getResponse({
-						module: field.data('module'),
-						field: field.attr('name'),
-						action: 'Password',
-						mode: 'generatePwd'
-					}).then((response) => {
+				.on('click', (e) => {
+					this.getResponse($(e.currentTarget).data('url')).then((response) => {
 						if (response.success && response.result && response.result.pwd) {
 							this.clear();
 							field.val(response.result.pwd).trigger('keyup').focus();
@@ -3050,14 +3191,8 @@ window.App.Fields = {
 				});
 			$('.js-pwd-validate', this.container)
 				.off('click')
-				.on('click', () => {
-					this.getResponse({
-						module: field.data('module'),
-						field: field.attr('name'),
-						password: field.val(),
-						action: 'Password',
-						mode: 'validatePwd'
-					}).then((response) => {
+				.on('click', (e) => {
+					this.getResponse($(e.currentTarget).data('url') + '&password=' + field.val()).then((response) => {
 						if (response.success && response.result) {
 							let message = response.result.message;
 							if (Array.isArray(message)) {
@@ -3070,21 +3205,34 @@ window.App.Fields = {
 				});
 			$('.js-pwd-clear', this.container)
 				.off('click')
-				.on('click', (e) => {
+				.on('click', () => {
 					this.clear();
+				});
+			$('.js-pwd-copy', this.container)
+				.off('click')
+				.on('click', () => {
+					if (this.container.find('.js-pwd-show').attr('disabled') === 'disabled') {
+						this.getPassword().then((response) => {
+							this.clear();
+							field.val(response.result.text);
+							ClipboardJS.copy(response.result.text);
+							app.showNotify({
+								text: app.vtranslate('JS_NOTIFY_COPY_TEXT'),
+								type: 'success'
+							});
+						});
+					} else {
+						ClipboardJS.copy(this.getField().val());
+						app.showNotify({
+							text: app.vtranslate('JS_NOTIFY_COPY_TEXT'),
+							type: 'success'
+						});
+					}
 				});
 			$('.js-pwd-get', this.container)
 				.off('click')
-				.on('click', (e) => {
-					let form = this.container.closest('form');
-					let recordId = $('input[name="record"]', form).val() || app.getRecordId();
-					this.getResponse({
-						module: field.data('module'),
-						field: field.attr('name'),
-						record: recordId,
-						action: 'Password',
-						mode: 'getPwd'
-					}).then((response) => {
+				.on('click', () => {
+					this.getPassword().then((response) => {
 						this.clear();
 						field.val(response.result.text);
 					});
@@ -3100,6 +3248,20 @@ window.App.Fields = {
 			}
 		}
 		/**
+		 * Get decoded password
+		 * @returns {Promise}
+		 */
+		getPassword() {
+			const field = this.getField();
+			return this.getResponse({
+				module: field.data('module'),
+				field: field.attr('name'),
+				record: $('input[name="record"]', this.container.closest('form')).val() || app.getRecordId(),
+				action: 'Password',
+				mode: 'getPwd'
+			});
+		}
+		/**
 		 * Clear data
 		 */
 		clear() {
@@ -3108,8 +3270,8 @@ window.App.Fields = {
 		}
 		/**
 		 * Get response
-		 * @param {Object} params
-		 * @returns
+		 * @param {Object|string} params
+		 * @returns {Promise}
 		 */
 		getResponse(params) {
 			const aDeferred = $.Deferred();
@@ -3177,7 +3339,6 @@ window.App.Fields = {
 
 			let fieldInfo = this.dataInput.data('fieldinfo') || {};
 			this.options = {
-				showCarousel: true,
 				formats: fieldInfo.formats || [],
 				limit: fieldInfo.limit || 1,
 				maxFileSize: fieldInfo.maxFileSize,
@@ -3397,14 +3558,14 @@ window.App.Fields = {
 		 *
 		 * @param {Event} e
 		 */
-		dragOver(e) {
+		dragOver(_e) {
 			this.container.addClass('c-multi-image__drop-effect');
 		}
 		/**
 		 * Dragleave event handler
 		 * @param {Event} e
 		 */
-		dragLeave(e) {
+		dragLeave(_e) {
 			this.container.removeClass('c-multi-image__drop-effect');
 		}
 		/**
@@ -3413,7 +3574,7 @@ window.App.Fields = {
 		 * @param {Event} e
 		 * @param {Object} data
 		 */
-		uploadError(e, data) {
+		uploadError(_e, data) {
 			this.progressInstance.progressIndicator({ mode: 'hide' });
 			this.filesActive--;
 			app.errorLog('File upload error.');
@@ -3526,7 +3687,7 @@ window.App.Fields = {
 				downloadBtn.appendChild(downloadBtnIcon);
 				buttons.appendChild(downloadBtn);
 			}
-			if (this.deleteButtonActive) {
+			if (this.deleteButtonActive && !file.lock) {
 				const deleteBtn = document.createElement('button');
 				deleteBtn.setAttribute('class', 'btn btn-sm btn-outline-danger js-multi-attachment__file-buttons-delete ml-1');
 				deleteBtn.setAttribute('data-key', file.key);
@@ -3605,6 +3766,112 @@ window.App.Fields = {
 			this.dataInput.val(JSON.stringify(formValues));
 		}
 	},
+	/**
+	 * Icon
+	 */
+	Icon: class Icon {
+		constructor(container) {
+			this.container = container;
+			this.init();
+		}
+		/**
+		 * Register function
+		 * @param {jQuery} container
+		 */
+		static register(container) {
+			if (container.hasClass('js-icon-container')) {
+				return new Icon(container);
+			}
+			const instances = [];
+			container.find('.js-icon-container').each((_, e) => {
+				instances.push(new Icon($(e)));
+			});
+
+			return instances;
+		}
+		/**
+		 * Initiation
+		 */
+		init() {
+			this.iconElement = $('.js-icon-show', this.container);
+			$('.js-clear-selection', this.container)
+				.off('click')
+				.on('click', () => {
+					this.clear();
+				});
+			$('.js-icon-select', this.container)
+				.off('click')
+				.on('click', () => {
+					App.Components.Icons.modalView().done((data) => {
+						if (data.type === 'icon') {
+							const span = document.createElement('span');
+							span.setAttribute('class', data.name);
+							this.iconElement.html('').append(span);
+						} else if (data.type === 'image') {
+							const image = document.createElement('img');
+							image.setAttribute('class', 'icon-img--picklist');
+							image.setAttribute('src', data.src);
+							this.iconElement.html('').append(image);
+						}
+						this.setValue(data);
+						this.setDisplayValue(data.name);
+					});
+				});
+		}
+		/**
+		 * Clear selection
+		 */
+		clear() {
+			let element = this.getField();
+			let fieldName = element.attr('name');
+			element.val('');
+			this.container.find(`#${fieldName}_display`).val('');
+			this.iconElement.html('');
+		}
+		/**
+		 * Set icon name
+		 * @param {string} data
+		 */
+		setDisplayValue(name) {
+			let fieldName = this.getField().attr('name');
+			this.container.find(`#${fieldName}_display`).val(name).attr('readonly', true);
+		}
+		/**
+		 * Set value
+		 * @param {Object} data
+		 */
+		setValue(data) {
+			let { type, name } = data;
+			if (data.key) {
+				name = data.key;
+			}
+			this.getField().val(JSON.stringify({ type: type, name: name }));
+		}
+		/**
+		 * Gets field
+		 */
+		getField() {
+			return this.container.find('.js-source-field');
+		}
+	},
+	Phone: {
+		/**
+		 * Register function
+		 * @param {jQuery} container
+		 */
+		register(container) {
+			Integrations_Pbx_Base.getInstance(container).registerEvents();
+		}
+	},
+	Mail: {
+		/**
+		 * Register function
+		 * @param {jQuery} container
+		 */
+		register(container) {
+			Integrations_Mail_Base.getInstance(container).registerEvents();
+		}
+	},
 	Utils: {
 		registerMobileDateRangePicker(element) {
 			this.hideMobileKeyboard(element);
@@ -3640,23 +3907,215 @@ window.App.Fields = {
 			picker.move();
 		},
 		/**
-		 * Set value
+		 * Set a value for the field
 		 *
-		 * @param   {object}  fieldElement  jQuery
-		 * @param   {string|boolean}  value
+		 * @param   {jQuery}  field Field element
+		 * @param   {mixed}  value The value to set
+		 * @param   {object}  params Additional parameters [optional]
+		 * @param   {boolean}  animation
 		 */
-		setValue(fieldElement, value) {
-			if (fieldElement.is('select')) {
-				App.Fields.Picklist.setValue(fieldElement, value);
-			} else {
-				fieldElement.val(value);
+		setValue(field, value, params, animation = true) {
+			const fieldInfo = field.data('fieldinfo');
+			switch (fieldInfo['type']) {
+				case 'picklist':
+				case 'languages':
+				case 'country':
+				case 'currencyList':
+				case 'modules':
+					App.Fields.Picklist.setValue(field, value, params);
+					break;
+				case 'multiReference':
+					App.Fields.MultiReference.setValue(field, value, params);
+					break;
+				default:
+					field.val(value);
+					break;
 			}
-			fieldElement.trigger('change');
-			let fieldValue = fieldElement.closest('.fieldValue');
-			fieldValue.addClass('border border-info');
-			setTimeout(function () {
-				fieldValue.removeClass('border border-info');
-			}, 5000);
+			if (animation) {
+				const fieldValue = field.closest('.fieldValue');
+				fieldValue.addClass('border border-info');
+				setTimeout(function () {
+					fieldValue.removeClass('border border-info');
+				}, 5000);
+			}
+		}
+	},
+	/**
+	 * Map coordinates field class
+	 */
+	MapCoordinates: class MapCoordinates {
+		/**
+		 * Register function for detail view
+		 * @param {jQuery} container
+		 */
+		static register(container) {
+			$('.js-show-map__btn', container).each(function () {
+				let self = new MapCoordinates($(this), {});
+				self.registerEvents();
+			});
+		}
+		/**
+		 * Register function for edit view
+		 * @param {jQuery} container
+		 * @param {Object} options
+		 */
+		static registerEdit(container, options = {}) {
+			if (container.hasClass('js-map-coordinates')) {
+				let self = new MapCoordinates(container, options);
+				self.registerEditEvents();
+				return self;
+			}
+			const instances = [];
+			container.find('.js-map-coordinates').each((_, e) => {
+				let self = new MapCoordinates($(e), options);
+				self.registerEditEvents();
+				instances.push(self);
+			});
+			return instances;
+		}
+		/**
+		 * Constructor
+		 * @param {jQuery} container
+		 * @param {Object} options
+		 */
+		constructor(container, options) {
+			this.container = container;
+			this.fieldInfo = this.container.find('input:first').data('fieldinfo') || {};
+			this.values = this.container.data('fieldinfo') || {};
+			this.options = { ...options };
+		}
+		/**
+		 * Register events for edit view
+		 */
+		registerEditEvents() {
+			this.container.find('.js-map-edit__btn').on('click', () => {
+				this.showMap();
+			});
+			this.container.find('.js-geo-type').on('change', (e) => {
+				this.container.find('.js-geo-value').addClass('d-none');
+				this.container.find('.js-geo-value[data-type="' + $(e.currentTarget).val() + '"]').removeClass('d-none');
+			});
+			const locationBtn = this.container.find('.js-my-location__btn');
+			if (navigator.geolocation) {
+				navigator.permissions.query({ name: 'geolocation' }).then((response) => {
+					if (response.state === 'denied') {
+						locationBtn.addClass('d-none');
+					}
+				});
+			} else {
+				locationBtn.addClass('d-none');
+			}
+			locationBtn.on('click', () => {
+				this.detectLocation();
+			});
+		}
+		/**
+		 * Set value
+		 * @param {mixed} value
+		 * @param {string} type
+		 */
+		setValue(value, type) {
+			this.container.find('.js-geo-type').val(type).trigger('change');
+			if (typeof value === 'object') {
+				$.each(value, (index, val) => {
+					this.container.find(`.js-geo-value[name="${this.fieldInfo['name']}[${type}][${index}]"]`).val(val);
+				});
+			} else {
+				this.container.find(`.js-geo-value[name="${this.fieldInfo['name']}[${type}]"]`).val(value);
+			}
+		}
+		/**
+		 * Get value
+		 * @returns {object}
+		 */
+		getValue() {
+			let ret = { type: this.container.find('.js-geo-type').val(), decimal: {}, degrees: {} };
+			this.container.find(`.js-geo-value`).each((_, e) => {
+				e = $(e);
+				if (e.data('key')) {
+					ret[e.data('type')][e.data('key')] = e.val();
+				} else {
+					ret[e.data('type')] = e.val();
+				}
+			});
+			ret['value'] = ret[ret['type']];
+			return ret;
+		}
+		/**
+		 * Detect user location
+		 */
+		detectLocation() {
+			navigator.geolocation.getCurrentPosition((position) => {
+				this.setValue({ lat: position.coords.latitude, lon: position.coords.longitude }, 'decimal');
+			});
+		}
+		/**
+		 * Show map modal
+		 */
+		showMap() {
+			const progress = jQuery.progressIndicator({ position: 'html', blockInfo: { enabled: true } });
+			AppConnector.request({
+				module: 'OpenStreetMap',
+				view: 'MapModal',
+				point: true,
+				srcModule: app.getModuleName(this.container),
+				srcField: this.fieldInfo['name'],
+				value: this.getValue()
+			})
+				.done((data) => {
+					progress.progressIndicator({ mode: 'hide' });
+					app.showModalWindow(data, (modal) => {
+						const mapView = new OpenStreetMap_Map_Js();
+						mapView.registerFromField(modal, this);
+					});
+				})
+				.fail((_error, err) => {
+					progress.progressIndicator({ mode: 'hide' });
+					app.showNotify({
+						title: app.vtranslate('JS_MESSAGE'),
+						text: err,
+						type: 'error'
+					});
+				});
+		}
+		/**
+		 * Register events for detail view
+		 */
+		registerEvents() {
+			this.container.on('click', (e) => {
+				e.preventDefault();
+				const element = $(e.currentTarget),
+					value = element.data('value');
+				if (!value) {
+					window.open(element.attr('href'), element.attr('href'), 'toolbar=0,menubar=0,location=0');
+					return;
+				}
+				const fieldName = element.closest('.js-field-block-column').data('field'),
+					progress = jQuery.progressIndicator({ position: 'html', blockInfo: { enabled: true } });
+				AppConnector.request({
+					module: 'OpenStreetMap',
+					view: 'MapModal',
+					point: true,
+					srcModule: app.getModuleName(this.container),
+					srcField: fieldName,
+					value: value
+				})
+					.done((data) => {
+						progress.progressIndicator({ mode: 'hide' });
+						app.showModalWindow(data, (modal) => {
+							const mapView = new OpenStreetMap_Map_Js();
+							mapView.registerFromField(modal, this);
+						});
+					})
+					.fail((_error, err) => {
+						progress.progressIndicator({ mode: 'hide' });
+						app.showNotify({
+							title: app.vtranslate('JS_MESSAGE'),
+							text: err,
+							type: 'error'
+						});
+					});
+			});
 		}
 	}
 };

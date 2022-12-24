@@ -158,7 +158,7 @@ jQuery.Class(
 		},
 		triggerMassQuickCreate: function (moduleName, data) {
 			const self = this.relatedListInstance;
-			if (self.checkListRecordSelected() != true) {
+			if (self.checkListRecordSelected() !== true) {
 				let listParams = self.getSelectedParams();
 				let progress = $.progressIndicator({ blockInfo: { enabled: true } });
 				let params = {
@@ -384,7 +384,7 @@ jQuery.Class(
 		},
 		showSelectRelation: function (extendParams) {
 			let params = $.extend(this.getRecordsListParams(), extendParams);
-			app.showRecordsList(params, (modal, instance) => {
+			app.showRecordsList(params, (_modal, instance) => {
 				instance.setSelectEvent((responseData) => {
 					this.addRelations(Object.keys(responseData)).done(() => {
 						app.event.trigger('RelatedListView.AfterSelectRelation', responseData, this, instance, params);
@@ -809,22 +809,41 @@ jQuery.Class(
 		registerRowsEvent: function () {
 			const self = this;
 			if (this.relatedView === 'List' || this.relatedView === 'Detail') {
+				let lastEvent = false;
 				this.content.find('.listViewEntries').on('click', function (e) {
 					if ($(e.target).hasClass('js-no-link')) return;
 					if ($(e.target).closest('div').hasClass('actions')) return;
 					if ($(e.target).is('button') || $(e.target).parent().is('button') || $(e.target).is('a')) return;
 					if ($(e.target).closest('a').hasClass('noLinkBtn')) return;
 					if ($(e.target).is('a')) return;
-					if ($(e.target, $(e.currentTarget)).is('td:first-child')) return;
 					if ($(e.target).is('input')) return;
-					if ($.contains($(e.currentTarget).find('td:last-child').get(0), e.target)) return;
-					if ($.contains($(e.currentTarget).find('td:first-child').get(0), e.target)) return;
-					let recordUrl = $(e.target).closest('tr').data('recordurl');
+					const element = $(e.currentTarget);
+					if ($(e.target, element).is('td:first-child')) return;
+					if ($.contains(element.find('td:last-child').get(0), e.target)) return;
+					if ($.contains(element.find('td:first-child').get(0), e.target)) return;
+					let recordUrl = element.data('recordurl');
 					if (!recordUrl) return;
-					if (app.getViewName() === 'DetailPreview') {
-						top.document.location.href = recordUrl;
+
+					if (lastEvent) {
+						lastEvent = e.timeStamp;
+						if (element.find('.js-quick-edit-modal').length) {
+							element.find('.js-quick-edit-modal').trigger('click');
+						} else if (element.find('.js-full-edit').length) {
+							element.find('.js-full-edit').trigger('click');
+						}
 					} else {
-						document.location.href = recordUrl;
+						lastEvent = e.timeStamp;
+						setTimeout(() => {
+							if (lastEvent === e.timeStamp) {
+								if (app.getViewName() === 'DetailPreview') {
+									top.document.location.href = recordUrl;
+								} else {
+									document.location.href = recordUrl;
+								}
+							} else {
+								lastEvent = false;
+							}
+						}, 300);
 					}
 				});
 				this.content.find('.js-toggle-hidden-row').on('click', function (e) {
@@ -964,9 +983,8 @@ jQuery.Class(
 			});
 		},
 		registerListEvents: function () {
-			let relatedContent = this.content;
 			let thisInstance = this;
-			this.content.find('a.favorites').on('click', function (e) {
+			this.content.find('a.favorites').on('click', function () {
 				let progressInstance = jQuery.progressIndicator({
 					position: 'html',
 					blockInfo: {
@@ -995,7 +1013,7 @@ jQuery.Class(
 					}
 				});
 			});
-			this.content.find('[name="addButton"]').on('click', function (e) {
+			this.content.find('[name="addButton"]').on('click', function () {
 				const element = $(this);
 				if (element.hasClass('quickCreateSupported') !== true) {
 					app.openUrl(element.data('url'));
@@ -1003,7 +1021,7 @@ jQuery.Class(
 				}
 				thisInstance.addRelatedRecord(element);
 			});
-			this.content.find('.relatedHeader button.selectRelation').on('click', function (e) {
+			this.content.find('.relatedHeader button.selectRelation').on('click', function () {
 				let restrictionsField = $(this).data('rf');
 				let params = {
 					relationId: thisInstance.getCompleteParams()['relationId']
@@ -1036,8 +1054,16 @@ jQuery.Class(
 				}
 				app.showConfirmModal(params);
 			});
-			this.content.find('.js-switch--calendar,select.js-relation-cv-id').on('change', function (e) {
-				thisInstance.loadRelatedList();
+			this.content.find('.js-switch--calendar,select.js-relation-cv-id').on('change', function () {
+				thisInstance.listSearchInstance.reloadList({
+					search_params: [],
+					search_key: '',
+					search_value: '',
+					operator: '',
+					lockedEmptyFields: [],
+					page: 1,
+					totalCount: 0
+				});
 			});
 		},
 		registerPostLoadEvents: function () {
@@ -1369,10 +1395,7 @@ jQuery.Class(
 		},
 		checkListRecordSelected: function (minNumberOfRecords = 1) {
 			let selectedIds = this.readSelectedIds();
-			if (typeof selectedIds === 'object' && selectedIds.length < minNumberOfRecords) {
-				return true;
-			}
-			return false;
+			return typeof selectedIds === 'object' && selectedIds.length < minNumberOfRecords;
 		},
 		readSelectedIds: function (decode) {
 			let selectedIdsDataAttr = this.getCurrentCvId() + 'selectedIds',
@@ -1548,10 +1571,10 @@ jQuery.Class(
 			const self = this;
 			self.getRelatedContainer().on('click', '.js-mass-record-event', function () {
 				let target = $(this);
-				if (self.checkListRecordSelected() != true) {
+				if (self.checkListRecordSelected() !== true) {
 					if (target.data('type') === 'modal') {
 						let params = self.getSelectedParams();
-						target.data('url').replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
+						target.data('url').replace(/[?&]+([^=&]+)=([^&]*)/gi, function (_m, key, value) {
 							params[key] = value;
 						});
 						AppConnector.request({

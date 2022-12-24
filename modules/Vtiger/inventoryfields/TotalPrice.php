@@ -20,26 +20,34 @@ class Vtiger_TotalPrice_InventoryField extends Vtiger_Basic_InventoryField
 	protected $summationValue = true;
 	protected $maximumLength = '99999999999999999999';
 	protected $purifyType = \App\Purifier::NUMBER;
+	/** {@inheritdoc} */
+	protected $params = ['summary_enabled'];
 
 	/** {@inheritdoc} */
 	public function getDisplayValue($value, array $rowData = [], bool $rawText = false)
 	{
-		return \App\Fields\Double::formatToDisplay($value);
+		$value = \App\Fields\Double::formatToDisplay($value);
+		if (isset($rowData['currency']) && $currencySymbol = \App\Fields\Currency::getById($rowData['currency'])['currency_symbol'] ?? '') {
+			$value = \CurrencyField::appendCurrencySymbol($value, $currencySymbol);
+		}
+
+		return $value;
 	}
 
 	/** {@inheritdoc} */
-	public function getEditValue($value)
+	public function getEditValue(array $itemData, string $column = '')
 	{
+		$value = parent::getEditValue($itemData, $column);
 		return \App\Fields\Double::formatToDisplay($value, false);
 	}
 
 	/** {@inheritdoc} */
 	public function getDBValue($value, ?string $name = '')
 	{
-		if (!isset($this->dbValue[$value])) {
-			$this->dbValue[$value] = App\Fields\Double::formatToDb($value);
+		if (!isset($this->dbValue["{$value}"])) {
+			$this->dbValue["{$value}"] = App\Fields\Double::formatToDb($value);
 		}
-		return $this->dbValue[$value];
+		return $this->dbValue["{$value}"];
 	}
 
 	/** {@inheritdoc} */
@@ -82,5 +90,11 @@ class Vtiger_TotalPrice_InventoryField extends Vtiger_Basic_InventoryField
 			$value = $userFormat ? $this->getDBValue($item[$column]) : $item[$column];
 		}
 		return $value;
+	}
+
+	/** {@inheritdoc} */
+	public function compare($value, $prevValue, string $column): bool
+	{
+		return \App\Validator::floatIsEqual((float) $value, (float) $prevValue, 8);
 	}
 }

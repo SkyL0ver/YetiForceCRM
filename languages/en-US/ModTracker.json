@@ -48,10 +48,9 @@
     "LBL_INV_UPDATED": "Updated",
     "LBL_INV_DELETED": "Deleted",
     "LBL_UPDATES_WIDGET_CONFIGURATION": "Updates widget config",
+    "LBL_UPDATES": "System update history",
     "LBL_PERSON_MAKING_CHANGES": "Person making changes",
     "LBL_MODULES": "Modules",
-    "LBL_SHOW_HIDDEN_DATA": "Showed hidden data",
-    "LBL_RECORD_DOES_NOT_EXIST": "Record does not exist",
-    "LBL_RECORD_DOES_NOT_EXIST_DESC": "The record has been deleted and the name cannot be displayed."
+    "LBL_SHOW_HIDDEN_DATA": "Showed hidden data"
   }
 }

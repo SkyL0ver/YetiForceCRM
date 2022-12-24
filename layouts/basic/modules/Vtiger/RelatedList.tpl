@@ -83,7 +83,7 @@
 												{if $RELATION_FIELD} data-name="{$RELATION_FIELD->getName()}" {/if}{' '}
 												data-url="{$RELATED_LINK->getUrl()}"
 											{else}
-												onclick='{$RELATED_LINK->getUrl()|substr:strlen("javascript:")};'
+												onclick='{substr($RELATED_LINK->getUrl(), strlen("javascript:"))}'
 											{/if}{' '}
 											{if $IS_SELECT_BUTTON neq true && stripos($RELATED_LINK->getUrl(), 'javascript:') !== 0}name="addButton" {/if}>
 											{if $IS_SELECT_BUTTON eq false}
@@ -98,7 +98,7 @@
 						{/if}
 						{if isset($RELATED_LIST_LINKS['RELATEDLIST_BASIC'])}
 							{foreach item=LINK from=$RELATED_LIST_LINKS['RELATEDLIST_BASIC']}
-								{include file=\App\Layout::getTemplatePath('ButtonLink.tpl', $MODULE) BUTTON_VIEW='relatedListView' CLASS='mr-sm-1 mb-1 c-btn-block-sm-down'}
+								{include file=\App\Layout::getTemplatePath('ButtonLink.tpl', $MODULE) BUTTON_VIEW='relatedListView' CLASS='mr-sm-1 c-btn-block-sm-down'}
 							{/foreach}
 						{/if}
 					</div>
@@ -115,7 +115,7 @@
 									</div>
 									<select class="form-control select2 js-relation-cv-id" data-js="change|select2|value">
 										{foreach key=CV_ID item=CV_NAME from=$CUSTOM_VIEW_LIST}
-											<option value="{$CV_ID}" {if $CV_ID == $VIEW_MODEL->get('cvId')}selected{/if}>{$CV_NAME}</option>
+											<option value="{$CV_ID}" {if $CV_ID == $VIEW_MODEL->get('viewId')}selected{/if}>{$CV_NAME}</option>
 										{/foreach}
 									</select>
 								</div>

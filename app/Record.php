@@ -1,11 +1,6 @@
 <?php
-
-namespace App;
-
-use vtlib\Functions;
-
 /**
- * Record basic class.
+ * Record basic file.
  *
  * @package App
  *
@@ -14,8 +9,23 @@ use vtlib\Functions;
  * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
  */
+
+namespace App;
+
+use vtlib\Functions;
+
+/**
+ * Record basic class.
+ */
 class Record
 {
+	/** @var int Record state - Active */
+	public const STATE_ACTIVE = 0;
+	/** @var int Record state - Deleted */
+	public const STATE_DELETED = 1;
+	/** @var int Record state - Archived */
+	public const STATE_ARCHIVED = 2;
+
 	/**
 	 * Get label.
 	 *
@@ -40,8 +50,9 @@ class Record
 			$query = (new \App\Db\Query())->select(['crmid', 'label'])->from('u_#__crmentity_label')->where(['crmid' => $missing]);
 			$dataReader = $query->createCommand()->query();
 			while ($row = $dataReader->read()) {
-				Cache::save('recordLabel', $row['crmid'], $row['label']);
-				$result[$row['crmid']] = $row['label'];
+				$label = \App\Utils\Completions::decodeEmoji($row['label']);
+				Cache::save('recordLabel', $row['crmid'], $label);
+				$result[$row['crmid']] = $label;
 			}
 			foreach (array_diff_key($missing, $result) as $id) {
 				$metaInfo = Functions::getCRMRecordMetadata($id);
@@ -151,14 +162,14 @@ class Record
 				$fieldModel = $moduleModel->getFieldByColumn($columnName);
 				$labelName[] = $fieldModel ? $fieldModel->getDisplayValue($row[$columnName], $recordId, false, true) : '';
 			}
-			$label = TextParser::textTruncate(trim(implode($separator, $labelName)), 250, false);
+			$label = TextUtils::textTruncate(trim(implode($separator, $labelName)), 250, false);
 			if ($search) {
 				$labelName = [];
 				foreach ($columnsSearch as $columnName) {
 					$fieldModel = $moduleModel->getFieldByColumn($columnName);
 					$labelName[] = $fieldModel ? $fieldModel->getDisplayValue($row[$columnName], $recordId, false, true) : '';
 				}
-				$searchLabel = TextParser::textTruncate(trim(implode($separator, $labelName)), 250, false);
+				$searchLabel = TextUtils::textTruncate(trim(implode($separator, $labelName)), 250, false);
 				$entityDisplay[$recordId] = ['name' => $label, 'search' => $searchLabel];
 			} else {
 				$entityDisplay[$recordId] = $label;
@@ -226,7 +237,7 @@ class Record
 				$fieldModel = $recordModel->getModule()->getFieldByColumn($columnName);
 				$labelName[] = $fieldModel->getDisplayValue($recordModel->get($fieldModel->getName()), $recordModel->getId(), $recordModel, true);
 			}
-			$label = TextParser::textTruncate(trim(implode($separator, $labelName)), 250, false) ?: '';
+			$label = TextUtils::textTruncate(trim(implode($separator, $labelName)), 250, false) ?: '';
 			if ($recordModel->isNew()) {
 				$dbCommand->insert('u_#__crmentity_label', ['crmid' => $recordModel->getId(), 'label' => $label])->execute();
 			} else {
@@ -239,7 +250,7 @@ class Record
 					$fieldModel = $recordModel->getModule()->getFieldByColumn($columnName);
 					$labelSearch[] = $fieldModel->getDisplayValue($recordModel->get($fieldModel->getName()), $recordModel->getId(), $recordModel, true);
 				}
-				$search = TextParser::textTruncate(trim(implode($separator, $labelSearch)), 250, false) ?: '';
+				$search = TextUtils::textTruncate(trim(implode($separator, $labelSearch)), 250, false) ?: '';
 				if ($recordModel->isNew()) {
 					$dbCommand->insert('u_#__crmentity_search_label', ['crmid' => $recordModel->getId(), 'searchlabel' => $search, 'tabid' => $recordModel->getModule()->getId()])->execute();
 				} else {
@@ -254,15 +265,18 @@ class Record
 	/**
 	 * Function checks if record exists.
 	 *
-	 * @param int    $recordId   - Record ID
-	 * @param string $moduleName
+	 * @param int      $recordId   Record ID
+	 * @param string   $moduleName
+	 * @param int|null $state      null = [self::STATE_ACTIVE, self::STATE_ARCHIVED]
 	 *
 	 * @return bool
 	 */
-	public static function isExists($recordId, $moduleName = false)
+	public static function isExists(int $recordId, string $moduleName = '', ?int $state = null)
 	{
 		$recordMetaData = Functions::getCRMRecordMetadata($recordId);
-		return (isset($recordMetaData) && 1 !== $recordMetaData['deleted'] && ($moduleName ? $recordMetaData['setype'] === $moduleName : true)) ? true : false;
+		return isset($recordMetaData)
+			&& (null === $state ? self::STATE_DELETED !== $recordMetaData['deleted'] : $recordMetaData['deleted'] === $state)
+			&& ($moduleName ? $recordMetaData['setype'] === $moduleName : true);
 	}
 
 	/**
@@ -324,9 +338,9 @@ class Record
 	 * @param int         $recordId
 	 * @param bool|string $moduleName
 	 *
-	 * @return bool|int
+	 * @return int|null
 	 */
-	public static function getParentRecord($recordId, $moduleName = false)
+	public static function getParentRecord($recordId, $moduleName = false): ?int
 	{
 		if (Cache::has(__METHOD__, $recordId)) {
 			return Cache::get(__METHOD__, $recordId);
@@ -334,7 +348,7 @@ class Record
 		if (!$moduleName) {
 			$moduleName = static::getType($recordId);
 		}
-		$parentId = false;
+		$parentId = null;
 		if ($parentModules = ModuleHierarchy::getModulesMap1M($moduleName)) {
 			foreach ($parentModules as $parentModule) {
 				if ($field = Field::getRelatedFieldForModule($moduleName, $parentModule)) {
@@ -375,5 +389,46 @@ class Record
 			->scalar();
 		Cache::staticSave(__METHOD__, $recordNumber, $id);
 		return $id;
+	}
+
+	/**
+	 * Get record link and label.
+	 *
+	 * @param int         $id
+	 * @param string|null $moduleName
+	 * @param int|null    $length
+	 * @param bool        $fullUrl
+	 *
+	 * @return string
+	 */
+	public static function getHtmlLink(int $id, ?string $moduleName = null, ?int $length = null, bool $fullUrl = false): string
+	{
+		$state = self::getState($id);
+		if (null === $state) {
+			return '<i class="color-red-500" title="' . $id . '">' . Language::translate('LBL_RECORD_DOES_NOT_EXIST') . '</i>';
+		}
+		$label = self::getLabel($id, true);
+		if (empty($label) && 0 != $label) {
+			return '<i class="color-red-500" title="' . $id . '">' . Language::translate('LBL_RECORD_DOES_NOT_EXIST') . '</i>';
+		}
+		if (null !== $length) {
+			$label = TextUtils::textTruncate($label, $length);
+		}
+		if (empty($moduleName)) {
+			$moduleName = self::getType($id);
+		}
+		if ('Trash' === $state) {
+			$label = '<s>' . $label . '</s>';
+		}
+		if ($id && !Privilege::isPermitted($moduleName, 'DetailView', $id)) {
+			return $label;
+		}
+		$moduleModel = \Vtiger_Module_Model::getInstance($moduleName);
+		$url = $moduleModel->getDetailViewUrl($id);
+		if ($fullUrl) {
+			$url = \Config\Main::$site_URL . $url;
+		}
+		$label = $moduleModel->getCustomLinkLabel($id, $label);
+		return "<a class=\"modCT_{$moduleName} showReferenceTooltip js-popover-tooltip--record\" href=\"{$url}\">$label</a>";
 	}
 }

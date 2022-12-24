@@ -112,6 +112,18 @@ class Vtiger_Widget_Model extends \App\Base
 		return $title;
 	}
 
+	/**
+	 * Function to get the translated title.
+	 *
+	 * @return string
+	 */
+	public function getTranslatedTitle(): string
+	{
+		$queryParams = parse_url($this->get('linkurl'), PHP_URL_QUERY);
+		parse_str($queryParams, $output);
+		return \App\Language::translate($this->getTitle(), $output['module'], null, true, 'Dashboard');
+	}
+
 	public function getName()
 	{
 		$widgetName = $this->get('name');
@@ -186,6 +198,7 @@ class Vtiger_Widget_Model extends \App\Base
 
 	public static function updateWidgetPosition($position, $linkId, $widgetId, $userId)
 	{
+		$currentPosition = [];
 		if (!$linkId && !$widgetId) {
 			return;
 		}
@@ -194,7 +207,10 @@ class Vtiger_Widget_Model extends \App\Base
 		} elseif ($widgetId) {
 			$where = ['userid' => $userId, 'id' => $widgetId];
 		}
-		$currentPosition = Json::decode((new \App\Db\Query())->select(['position'])->from('vtiger_module_dashboard_widgets')->where($where)->scalar());
+		$lastSavedPosition = (new \App\Db\Query())->select(['position'])->from('vtiger_module_dashboard_widgets')->where($where)->scalar();
+		if ($lastSavedPosition && !JSON::isEmpty($lastSavedPosition)) {
+			$currentPosition = JSON::decode($lastSavedPosition);
+		}
 		$currentPosition[App\Session::get('fingerprint')] = $position;
 		\App\Db::getInstance()->createCommand()
 			->update('vtiger_module_dashboard_widgets', ['position' => Json::encode($currentPosition)], $where)
@@ -219,7 +235,8 @@ class Vtiger_Widget_Model extends \App\Base
 		} elseif ($widgetId) {
 			$where = ['userid' => $userId, 'id' => $widgetId];
 		}
-		$currentSize = Json::decode((new \App\Db\Query())->select(['size'])->from('vtiger_module_dashboard_widgets')->where($where)->scalar());
+		$lastSize = (new \App\Db\Query())->select(['size'])->from('vtiger_module_dashboard_widgets')->where($where)->scalar();
+		$currentSize = \App\Json::isEmpty($lastSize) ? [] : Json::decode($lastSize);
 		$currentSize[App\Session::get('fingerprint')] = $size;
 		\App\Db::getInstance()->createCommand()
 			->update('vtiger_module_dashboard_widgets', ['size' => Json::encode($currentSize)], $where)
@@ -275,26 +292,22 @@ class Vtiger_Widget_Model extends \App\Base
 	/**
 	 * Function to check the Widget is Default widget or not.
 	 *
-	 * @return <boolean> true/false
+	 * @return bool
 	 */
-	public function isDefault()
+	public function isDefault(): bool
 	{
-		if (1 == $this->get('isdefault')) {
-			return true;
-		}
-		return false;
+		return 1 == $this->get('isdefault');
 	}
 
 	/**
 	 * Process the UI Widget requested.
 	 *
-	 * @param vtlib\Link             $widgetLink
-	 * @param Current Smarty Context $context
-	 * @param Vtiger_Record_Model    $recordModel
+	 * @param Vtiger_Link_Model   $widgetLink
+	 * @param Vtiger_Record_Model $recordModel
 	 */
 	public function processWidget(Vtiger_Link_Model $widgetLink, Vtiger_Record_Model $recordModel)
 	{
-		if (preg_match('/^block:\\/\\/(.*)/', $widgetLink->get('linkurl'), $matches)) {
+		if (preg_match('/^block:\\/\\/(.*)/', $widgetLink->get('linkurl') ?? '', $matches)) {
 			[$widgetControllerClass, $widgetControllerClassFile] = explode(':', $matches[1]);
 			if (!class_exists($widgetControllerClass)) {
 				\vtlib\Deprecated::checkFileAccessForInclusion($widgetControllerClassFile);
@@ -421,22 +434,26 @@ class Vtiger_Widget_Model extends \App\Base
 			case 'width':
 				$params['uitype'] = 16;
 				$params['typeofdata'] = 'V~M';
+				$params['maximumlength'] = '2';
 				$params['picklistValues'] = [3 => 3, 4 => 4, 5 => 5, 6 => 6, 7 => 7, 8 => 8, 9 => 9, 10 => 10, 11 => 11, 12 => 12];
 				$params['fieldvalue'] = $this->getWidth();
 				break;
 			case 'height':
 				$params['uitype'] = 16;
 				$params['typeofdata'] = 'V~M';
+				$params['maximumlength'] = '2';
 				$params['picklistValues'] = [3 => 3, 4 => 4, 5 => 5, 6 => 6, 7 => 7, 8 => 8, 9 => 9, 10 => 10, 11 => 11, 12 => 12];
 				$params['fieldvalue'] = $this->getHeight();
 				break;
 			case 'limit':
 				$params['uitype'] = 7;
 				$params['typeofdata'] = 'I~M';
+				$params['maximumlength'] = '127';
 				$params['fieldvalue'] = $this->get('limit') ?: 10;
 				break;
 			case 'default_owner':
 				$params['uitype'] = 16;
+				$params['maximumlength'] = '100';
 				$params['typeofdata'] = 'V~M';
 				$picklistValue = ['mine' => 'LBL_MINE', 'all' => 'LBL_ALL'];
 				foreach ($picklistValue as $key => $label) {
@@ -447,6 +464,7 @@ class Vtiger_Widget_Model extends \App\Base
 				break;
 			case 'owners_all':
 				$params['uitype'] = 33;
+				$params['maximumlength'] = '100';
 				$params['typeofdata'] = 'V~M';
 				$picklistValue = [
 					'mine' => 'LBL_MINE',
@@ -618,20 +636,54 @@ class Vtiger_Widget_Model extends \App\Base
 		], )->createCommand()->query();
 
 		$createCommand = \App\Db::getInstance()->createCommand();
-		while ($row = $dataReader->read()) {
-			$id = $row['id'];
-			unset($row['id']);
-			$position = Json::decode($row['position']);
+		while (['id' => $id,'position' => $position,'size' => $size] = $dataReader->read()) {
+			$position = $position ? Json::decode($position) : [];
 			if (isset($position[$fingerPrint])) {
 				unset($position[$fingerPrint]);
-				$row['position'] = Json::encode($position);
 			}
-			$size = Json::decode($row['size']);
+			$size = $size ? Json::decode($size) : [];
 			if (isset($size[$fingerPrint])) {
 				unset($size[$fingerPrint]);
-				$row['size'] = Json::encode($size);
 			}
-			$createCommand->update('vtiger_module_dashboard_widgets', $row, ['id' => $id])->execute();
+			$createCommand->update('vtiger_module_dashboard_widgets', ['position' => Json::encode($position), 'size' => Json::encode($size)], ['id' => $id])->execute();
 		}
+	}
+
+	/**
+	 * Check if the widget is removable.
+	 *
+	 * @return bool
+	 */
+	public function isDeletable(): bool
+	{
+		return !$this->get('isdefault');
+	}
+
+	/**
+	 * Check if the widget is viewable.
+	 *
+	 * @return bool
+	 */
+	public function isViewable(): bool
+	{
+		$userPrivModel = Users_Privileges_Model::getCurrentUserPrivilegesModel();
+		$params = vtlib\Functions::getQueryParams($this->get('linkurl'));
+		$moduleName = $params['module'];
+		$sourceModulePermission = true;
+		if (($name = $params['name'] ?? '') && \in_array($name, ['CalendarActivities', 'OverdueActivities'])) {
+			$sourceModulePermission = $userPrivModel->hasModulePermission('Calendar');
+		}
+
+		return 'ModTracker' === $moduleName || ($sourceModulePermission && $userPrivModel->hasModulePermission($moduleName));
+	}
+
+	/**
+	 * Check if the widget is creatable.
+	 *
+	 * @return bool
+	 */
+	public function isCreatable(): bool
+	{
+		return false;
 	}
 }

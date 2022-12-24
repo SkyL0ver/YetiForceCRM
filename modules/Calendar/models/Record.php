@@ -159,6 +159,9 @@ class Calendar_Record_Model extends Vtiger_Record_Model
 	 */
 	public function insertIntoInviteTable()
 	{
+		if (!\App\Config::module($this->getModuleName(), 'showInviteParticipantsBlock', true)) {
+			return false;
+		}
 		if (!\App\Request::_has('inviteesid')) {
 			\App\Log::info('No invitations in request, Exiting insertIntoInviteeTable method ...');
 			return;
@@ -174,7 +177,7 @@ class Calendar_Record_Model extends Vtiger_Record_Model
 		$dataReader->close();
 		if (!empty($inviteesRequest)) {
 			foreach ($inviteesRequest as &$invitation) {
-				if (\App\TextParser::getTextLength($invitation[0]) > 100 || !\App\Validator::email($invitation[0])) {
+				if (\App\TextUtils::getTextLength($invitation[0]) > 100 || !\App\Validator::email($invitation[0])) {
 					throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||inviteesid||Calendar||' . $invitation[0], 406);
 				}
 				if (isset($invities[$invitation[2]])) {
@@ -377,7 +380,7 @@ class Calendar_Record_Model extends Vtiger_Record_Model
 					'linklabel' => 'LBL_EDIT',
 					'linkurl' => $this->getEditViewUrl(),
 					'linkhref' => true,
-					'linkicon' => 'yfi yfi-full-editing-view',
+					'linkicon' => 'yfi yfi-full-editing-view js-full-edit',
 					'linkclass' => 'btn-sm btn-default',
 				]);
 			}

@@ -19,9 +19,7 @@ use App\Log;
  */
 class File
 {
-	/**
-	 * Temporary table name.
-	 */
+	/** @var string Temporary table name. */
 	public const TABLE_NAME_TEMP = 'u_#__file_upload_temp';
 
 	/**
@@ -51,6 +49,13 @@ class File
 	 * @var string
 	 */
 	private static $tmpPath;
+
+	/**
+	 * File name.
+	 *
+	 * @var string
+	 */
+	private $name;
 
 	/**
 	 * File path.
@@ -167,6 +172,39 @@ class File
 	}
 
 	/**
+	 * Load file instance from base string.
+	 *
+	 * @param string $contents
+	 * @param array  $param
+	 *
+	 * @return \self|null
+	 */
+	public static function loadFromBase(string $contents, array $param = []): ?self
+	{
+		$result = explode(',', $contents, 2);
+		$contentType = $isBase64 = false;
+		if (2 === \count($result)) {
+			[$metadata, $data] = $result;
+			foreach (explode(';', $metadata) as $cur) {
+				if ('base64' === $cur) {
+					$isBase64 = true;
+				} elseif ('data:' === substr($cur, 0, 5)) {
+					$contentType = str_replace('data:', '', $cur);
+				}
+			}
+		} else {
+			$data = $result[0];
+		}
+		$data = rawurldecode($data);
+		$rawData = $isBase64 ? base64_decode($data) : $data;
+		if (\strlen($rawData) < 12) {
+			Log::error('Incorrect content value: ' . $contents, __CLASS__);
+			return null;
+		}
+		return static::loadFromContent($rawData, false, array_merge($param, ['mimeType' => $contentType]));
+	}
+
+	/**
 	 * Load file instance from content.
 	 *
 	 * @param string   $contents
@@ -205,7 +243,7 @@ class File
 			return false;
 		}
 		if (mb_strlen($name) > 180) {
-			$name = \App\TextParser::textTruncate($name, 180, false) . '_' . uniqid() . ".$extension";
+			$name = \App\TextUtils::textTruncate($name, 180, false) . '_' . uniqid() . ".$extension";
 		}
 		$instance = new self();
 		$instance->name = trim(\App\Purifier::purify($name));
@@ -881,27 +919,7 @@ class File
 	 */
 	public static function saveFromString(string $contents, array $param = [])
 	{
-		$result = explode(',', $contents, 2);
-		$contentType = $isBase64 = false;
-		if (2 === \count($result)) {
-			[$metadata, $data] = $result;
-			foreach (explode(';', $metadata) as $cur) {
-				if ('base64' === $cur) {
-					$isBase64 = true;
-				} elseif ('data:' === substr($cur, 0, 5)) {
-					$contentType = str_replace('data:', '', $cur);
-				}
-			}
-		} else {
-			$data = $result[0];
-		}
-		$data = rawurldecode($data);
-		$rawData = $isBase64 ? base64_decode($data) : $data;
-		if (\strlen($rawData) < 12) {
-			Log::error('Incorrect content value: ' . $contents, __CLASS__);
-			return false;
-		}
-		$fileInstance = static::loadFromContent($rawData, false, array_merge($param, ['mimeType' => $contentType]));
+		$fileInstance = static::loadFromBase($contents, $param);
 		if ($fileInstance->validateAndSecure()) {
 			return $fileInstance;
 		}
@@ -942,21 +960,23 @@ class File
 	 */
 	public static function saveFromContent(self $file, $params = [])
 	{
-		$fileName = $file->getName();
-		$fileNameLength = \App\TextParser::getTextLength($fileName);
+		$notesTitle = $fileName = \App\Purifier::decodeHtml(\App\Purifier::purify($file->getName()));
+		$fileNameLength = \App\TextUtils::getTextLength($fileName);
 		$record = \Vtiger_Record_Model::getCleanInstance('Documents');
-		if ($fileNameLength > ($maxLength = $record->getField('filename')->get('maximumlength'))) {
+		if ($fileNameLength > ($maxLength = $record->getField('filename')->getMaxValue())) {
 			$extLength = 0;
 			if ($ext = $file->getExtension()) {
 				$ext .= ".{$ext}";
-				$extLength = \App\TextParser::getTextLength($ext);
+				$extLength = \App\TextUtils::getTextLength($ext);
 				$fileName = substr($fileName, 0, $fileNameLength - $extLength);
 			}
-			$fileName = \App\TextParser::textTruncate($fileName, $maxLength - $extLength, false) . $ext;
+			$fileName = \App\TextUtils::textTruncate($fileName, $maxLength - $extLength, false) . $ext;
 		}
-		$fileName = \App\Purifier::decodeHtml(\App\Purifier::purify($fileName));
+		if ($fileNameLength > ($maxLength = $record->getField('notes_title')->getMaxValue())) {
+			$notesTitle = \App\TextUtils::textTruncate((($params['titlePrefix'] ?? '') . $fileName), $maxLength, false);
+		}
 		$record->setData($params);
-		$record->set('notes_title', $fileName);
+		$record->set('notes_title', $notesTitle);
 		$record->set('filename', $fileName);
 		$record->set('filestatus', 1);
 		$record->set('filelocationtype', 'I');
@@ -973,6 +993,26 @@ class File
 			return array_merge(['crmid' => $record->getId()], $record->ext);
 		}
 		return false;
+	}
+
+	/**
+	 * Init storage diractory.
+	 *
+	 * @param string $path
+	 *
+	 * @return string
+	 */
+	public static function initStorage(string $path): string
+	{
+		if ('/' !== substr($path, '-1')) {
+			$path .= '/';
+		}
+		$result = 0 === strpos($path, 'storage/') || 0 === strpos($path, 'public_html/storage/');
+		if ($result && !is_dir($path)) {
+			$result = mkdir($path, 0755, true);
+		}
+
+		return $result ? $path : '';
 	}
 
 	/**
@@ -1230,7 +1270,7 @@ class File
 			'createdtime' => date('Y-m-d H:i:s'),
 			'fieldname' => null,
 			'key' => null,
-			'crmid' => 0
+			'crmid' => 0,
 		];
 		foreach ($data as $key => &$value) {
 			if (isset($params[$key])) {
@@ -1240,6 +1280,40 @@ class File
 		if ($db->createCommand()->insert(static::TABLE_NAME_TEMP, $data)->execute()) {
 			$result = $db->getLastInsertID(static::TABLE_NAME_TEMP . '_id_seq');
 		}
+		return $result;
+	}
+
+	/**
+	 * Add an entry to the media table of files.
+	 *
+	 * @param array $params
+	 *
+	 * @return int
+	 */
+	public function insertMediaFile(array $params): int
+	{
+		$db = \App\Db::getInstance();
+		$result = 0;
+		$data = [
+			'name' => $this->getName(true),
+			'type' => $this->getMimeType(),
+			'path' => null,
+			'ext' => $this->getExtension(),
+			'createdtime' => date('Y-m-d H:i:s'),
+			'fieldname' => '',
+			'key' => null,
+			'status' => 0,
+			'user' => \App\User::getCurrentUserRealId()
+		];
+		foreach ($data as $key => &$value) {
+			if (isset($params[$key])) {
+				$value = $params[$key];
+			}
+		}
+		if ($db->createCommand()->insert(\App\Layout\Media::TABLE_NAME_MEDIA, $data)->execute()) {
+			$result = $db->getLastInsertID(\App\Layout\Media::TABLE_NAME_MEDIA . '_id_seq');
+		}
+
 		return $result;
 	}
 

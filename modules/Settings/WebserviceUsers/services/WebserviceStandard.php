@@ -8,7 +8,7 @@
  * @copyright YetiForce S.A.
  * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
- * @author  Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
+ * @author    Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
 /**
@@ -16,18 +16,10 @@
  */
 class Settings_WebserviceUsers_WebserviceStandard_Service extends Settings_WebserviceUsers_Record_Model
 {
-	/**
-	 * Table name.
-	 *
-	 * @var string
-	 */
+	/** @var string Table name. */
 	public $baseTable = 'w_#__api_user';
 
-	/**
-	 * Table name.
-	 *
-	 * @var string
-	 */
+	/** @var string Table name. */
 	public $baseIndex = 'id';
 
 	/** {@inheritdoc} */
@@ -138,7 +130,11 @@ class Settings_WebserviceUsers_WebserviceStandard_Service extends Settings_Webse
 				];
 				break;
 			case 'password':
-				$params['typeofdata'] = 'P~M';
+				$params['uitype'] = 99;
+				$params['typeApi'] = $this->getModule()->typeApi;
+				$params['fieldparams'] = '{"validate":["pwned","config"],"auto-generate":true,"strengthMeter":true,"copy":true}';
+				$params['maximumlength'] = '100';
+				$params['typeofdata'] = 'V~O';
 				if ($this->has('id')) {
 					$params = null;
 				}
@@ -242,7 +238,7 @@ class Settings_WebserviceUsers_WebserviceStandard_Service extends Settings_Webse
 		switch ($name) {
 			case 'server_id':
 				$servers = Settings_WebserviceApps_Record_Model::getInstanceById($value);
-				$value = $servers ? $servers->getName() : '<span class="redColor">ERROR</span>';
+				$value = $servers ? \App\Purifier::encodeHtml($servers->getName()) : '<span class="redColor">ERROR</span>';
 				break;
 			case 'crmid':
 			case 'istorage':
@@ -270,7 +266,7 @@ class Settings_WebserviceUsers_WebserviceStandard_Service extends Settings_Webse
 				break;
 			case 'type':
 				$label = \App\Language::translate($this->getTypeValues($value), $this->getModule()->getName(true));
-				$value = \App\TextParser::textTruncate($label);
+				$value = \App\TextUtils::textTruncate($label);
 				break;
 			case 'custom_params':
 				if ($value) {
@@ -291,23 +287,21 @@ class Settings_WebserviceUsers_WebserviceStandard_Service extends Settings_Webse
 								break;
 						}
 						if (isset(Settings_WebserviceUsers_Record_Model::$customParamsLabels[$key])) {
-							$value .= \App\Language::translate(Settings_WebserviceUsers_Record_Model::$customParamsLabels[$key], 'Settings.WebserviceUsers') . ": $row \n";
+							$value .= \App\Language::translate(Settings_WebserviceUsers_Record_Model::$customParamsLabels[$key], 'Settings:WebserviceUsers') . ": $row \n";
 						}
 					}
 					$value = \App\Layout::truncateText($value, 50, true);
 				}
 				break;
-			default: break;
+			default:
+				$value = \App\Purifier::encodeHtml($value);
+				break;
 		}
 		return $value;
 	}
 
-	/**
-	 * Function to get the list view actions for the record.
-	 *
-	 * @return Vtiger_Link_Model[] - Associate array of Vtiger_Link_Model instances
-	 */
-	public function getRecordLinks()
+	/** {@inheritdoc} */
+	public function getRecordLinks(): array
 	{
 		$links = [];
 		$recordLinks = [
@@ -354,7 +348,7 @@ class Settings_WebserviceUsers_WebserviceStandard_Service extends Settings_Webse
 	 *
 	 * @param mixed|null $value
 	 *
-	 * @return string
+	 * @return string|string[]
 	 */
 	public function getTypeValues($value = null)
 	{

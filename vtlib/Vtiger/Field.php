@@ -33,7 +33,7 @@ class Field extends FieldBasic
 	public function setPicklistValues($values)
 	{
 		// Non-Role based picklist values
-		if (16 === $this->uitype) {
+		if (\in_array($this->uitype, [16, 18])) {
 			$this->setNoRolePicklistValues($values);
 			return true;
 		}
@@ -213,7 +213,7 @@ class Field extends FieldBasic
 	public static function getAllForBlock($blockInstance, $moduleInstance = false)
 	{
 		$cache = \Vtiger_Cache::getInstance();
-		if ($cache->getBlockFields($blockInstance->id, $moduleInstance->id)) {
+		if ($moduleInstance && $cache->getBlockFields($blockInstance->id, $moduleInstance->id)) {
 			return $cache->getBlockFields($blockInstance->id, $moduleInstance->id);
 		}
 		$instances = false;
@@ -287,7 +287,7 @@ class Field extends FieldBasic
 	public function setTreeTemplate($tree, $moduleInstance)
 	{
 		$db = \App\Db::getInstance();
-		$db->createCommand()->insert('vtiger_trees_templates', ['name' => (string) $tree->name, 'module' => $moduleInstance->id, 'access' => $tree->access])->execute();
+		$db->createCommand()->insert('vtiger_trees_templates', ['name' => (string) $tree->name, 'tabid' => $moduleInstance->id, 'access' => $tree->access])->execute();
 		$templateId = $db->getLastInsertID('vtiger_trees_templates_templateid_seq');
 
 		foreach ($tree->tree_values->tree_value as $treeValue) {

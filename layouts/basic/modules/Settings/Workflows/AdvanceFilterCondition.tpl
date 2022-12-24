@@ -6,7 +6,7 @@
 * The Initial Developer of the Original Code is vtiger.
 * Portions created by vtiger are Copyright (C) vtiger.
 * All Rights Reserved.
-*
+* Contributor(s): YetiForce S.A.
 ********************************************************************************/
 -->*}
 {strip}
@@ -33,7 +33,7 @@
 							{else}
 								{assign var=FIELD_VALUE value=""}
 							{/if}
-							<option value="{$FIELD_MODEL->$columnNameApi()}"
+							<option value="{$FIELD_MODEL->$columnNameApi()|escape}"
 								data-fieldtype="{$FIELD_MODEL->getFieldType()}" data-field-name="{$FIELD_NAME}"
 								{if !empty($CONDITION_INFO['columnname']) && App\Purifier::decodeHtml($FIELD_MODEL->$columnNameApi()) eq $CONDITION_INFO['columnname']}
 									{assign var=FIELD_TYPE value=$FIELD_MODEL->getFieldDataType()}
@@ -43,7 +43,6 @@
 								{/if}
 								{if in_array($FIELD_MODEL->get('uitype'), [302,309])}
 									{$FIELD_INFO['treetemplate'] = App\Purifier::decodeHtml($FIELD_MODEL->getFieldParams())}
-									{$FIELD_INFO['displayvalue'] = $FIELD_MODEL->getDisplayValue($FIELD_VALUE)}
 								{/if}
 								data-fieldinfo='{\App\Purifier::encodeHtml(\App\Json::encode($FIELD_INFO))}'
 								{if !empty($SPECIAL_VALIDATOR)}data-validator='{\App\Purifier::encodeHtml(\App\Json::encode($SPECIAL_VALIDATOR))}' {/if}>
@@ -74,7 +73,7 @@
 				</select>
 			</div>
 			<div class="col-md-4 fieldUiHolder">
-				<input name="{if !empty($SELECTED_FIELD_MODEL)}{$SELECTED_FIELD_MODEL->get('name')}{/if}" data-value="value"
+				<input name="{if !empty($SELECTED_FIELD_MODEL)}{$SELECTED_FIELD_MODEL->get('name')|escape}{/if}" data-value="value"
 					class="form-control" type="text"
 					value="{if !empty($CONDITION_INFO['value'])}{$CONDITION_INFO['value']|escape}{/if}" />
 			</div>
@@ -82,7 +81,7 @@
 				{if empty($CONDITION)}
 					{assign var=CONDITION value="and"}
 				{/if}
-				<input type="hidden" name="column_condition" value="{$CONDITION}" />
+				<input type="hidden" name="column_condition" value="{$CONDITION|escape}" />
 			</span>
 			<span class="col-md-1">
 				<button class="btn btn-danger js-condition-delete" type="button" data-js="click">

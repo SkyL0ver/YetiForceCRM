@@ -130,7 +130,7 @@
 			{/if}
 			{assign var=VERIFY value=\App\YetiForce\Shop::verify()}
 			{if $VERIFY}
-				<a class="d-flex align-items-center text-warning mr-2 js-popover-tooltip" role="button" data-content="{$VERIFY}" title="{\App\Purifier::encodeHtml('<span class="yfi yfi-shop-alert mr-1"></span>')}{\App\Language::translate('LBL_YETIFORCE_SHOP')}"
+				<a class="d-flex align-items-center text-warning mr-2 js-popover-tooltip" data-content="{$VERIFY}" aria-label="{\App\Language::translate('LBL_YETIFORCE_SHOP')}"
 					{if $USER_MODEL->isAdminUser()} href="index.php?module=YetiForce&parent=Settings&view=Shop" {else} href="#" {/if}>
 					<span class="yfi yfi-shop-alert fa-2x"></span>
 				</a>
@@ -162,31 +162,47 @@
 			</div>
 		{/if}
 		<div class="o-navbar__right ml-auto d-inline-flex flex-sm-nowrap">
-			{if !Settings_ModuleManager_Library_Model::checkLibrary('roundcube')}
-				{assign var=CONFIG value=Settings_Mail_Config_Model::getConfig('mailIcon')}
-				{if $CONFIG['showMailIcon']=='true' && App\Privilege::isPermitted('OSSMail')}
+			{if $HEADER_ADDITIONAL_TPL}
+				{foreach item=ADDITIONAL_TPL from=$HEADER_ADDITIONAL_TPL}
+					{if $ADDITIONAL_TPL->get('module') && $ADDITIONAL_TPL->get('tpl')}
+						{include file=\App\Layout::getTemplatePath({$ADDITIONAL_TPL->get('tpl')}, $ADDITIONAL_TPL->get('module'))}
+					{/if}
+				{/foreach}
+			{/if}
+			{if \App\Integrations\Pbx::isActive()}
+				{assign var=DEFAULT_PBX value=\App\Integrations\Pbx::getInstance()}
+				{if $DEFAULT_PBX->get('type') === 'BriaSoftphone'}
+					<div class="btn-group-sm mr-2">
+						<button type="button" class="btn btn-danger btn-sm d-none js-phone-status-btn" data-js="container">
+							<span class="fa-solid fa-phone-slash js-icon" data-js="container"></span>
+							<span class="js-text" data-js="container"></span>
+						</button>
+					</div>
+				{/if}
+			{/if}
+			{if \Config\Main::$isActiveSendingMails && 'InternalClient' === \App\Mail::getMailComposer() && !Settings_ModuleManager_Library_Model::checkLibrary('roundcube')}
+				{if \App\Mail::getConfig('mailIcon', 'showMailIcon')}
 					{assign var=AUTOLOGINUSERS value=OSSMail_Autologin_Model::getAutologinUsers()}
 					{if count($AUTOLOGINUSERS) > 0}
 						{assign var=MAIN_MAIL value=OSSMail_Module_Model::getDefaultMailAccount($AUTOLOGINUSERS)}
-						<div class="c-header__btn__container bg-white rounded js-header__btn--mail" {if $CONFIG['showNumberUnreadEmails']=='true'}data-numberunreademails="true" data-interval="{$CONFIG['timeCheckingMail']}" {/if}>
+						<div class="c-header__btn__container bg-white rounded js-header__btn--mail" {if \App\Mail::getConfig('mailIcon', 'showNumberUnreadEmails')}data-numberunreademails="true" data-interval="{\App\Mail::getConfig('mailIcon', 'timeCheckingMail')|escape}" {/if}>
 							{if count($AUTOLOGINUSERS) eq 1}
-								<a class="c-header__btn btn btn-outline-dark border-0 h-100" title="{$MAIN_MAIL.username}" href="index.php?module=OSSMail&view=Index">
+								<a class="c-header__btn btn btn-outline-dark border-0 h-100" title="{\App\Purifier::encodeHtml($MAIN_MAIL.name)}" href="index.php?module=OSSMail&view=Index">
 									<div class="d-none d-xxl-block">
-										{if !empty($ITEM.username)}{$ITEM.username}{/if}
-										<span class="mail_user_name">{$MAIN_MAIL.username}</span>
-										<span data-id="{$MAIN_MAIL.rcuser_id}" class="noMails"></span>
+										<span class="mail_user_name">{\App\Purifier::encodeHtml($MAIN_MAIL.name)}</span>
+										<span data-id="{$MAIN_MAIL.id}" class="noMails"></span>
 									</div>
 									<div class="d-xxl-none">
 										<span class="fas fa-inbox fa-fw" title="{\App\Language::translate('LBL_EMAIL')}"></span>
-										<span data-id="{$MAIN_MAIL.rcuser_id}" class="noMails"></span>
+										<span data-id="{$MAIN_MAIL.id}" class="noMails"></span>
 									</div>
 								</a>
 							{else}
-								<div class="d-none d-xxl-block">
+								<div class="d-none d-xxl-block u-min-w-150pxr">
 									<select id="mail-select" class="form-control-sm" title="{\App\Language::translate('LBL_SEARCH_MODULE', $MODULE_NAME)}">
 										{foreach key=KEY item=ITEM from=$AUTOLOGINUSERS}
 											<option value="{$KEY}" {if $ITEM.active}selected{/if} data-id="{$KEY}" data-nomail="" class="noMails">
-												{$ITEM.username}
+												{\App\Purifier::encodeHtml($ITEM.name)}
 											</option>
 										{/foreach}
 									</select>
@@ -199,7 +215,7 @@
 										{foreach key=KEY item=ITEM from=$AUTOLOGINUSERS}
 											<li value="{$KEY}" data-nomail="" class="dropdown-item js-mail-link px-2" data-js="click">
 												<div class="d-flex w-100">
-													<span class="mr-2">{$ITEM.username}</span>
+													<span class="mr-2">{\App\Purifier::encodeHtml($ITEM.name)}</span>
 													<span data-id="{$KEY}" class="noMails ml-auto"></span>
 												</div>
 											</li>
@@ -242,13 +258,13 @@
 							</a>
 						</div>
 						<div class="o-action-menu__item ml-md-2">
-							<a class="btn btn-light c-header__btn d-block" title="YetiForceCRM" role="button" href="#" data-toggle="modal" data-target="#yetiforceDetails">
+							<a class="btn btn-light c-header__btn d-block js-show-modal" title="YetiForceCRM" role="button" data-url="index.php?module=AppComponents&view=YetiForceDetailModal" data-js="click">
 								<span class="fas fa-info-circle fa-fw"></span>
 								<span class="c-header__label--sm-down ml-1">YetiForceCRM</span>
 							</a>
 						</div>
 					{/if}
-					{assign var=QUICKCREATE_MODULES_PARENT value=Vtiger_Module_Model::getQuickCreateModules(true, true)}
+					{assign var=QUICKCREATE_MODULES_PARENT value=\App\Module::getQuickCreateModules(true, true)}
 					{if \App\Config::main('isActiveRecordTemplate')}
 						{assign var=LIST_TEMPLATES value=\App\RecordAddsTemplates::getTemplatesList()}
 						{if count($LIST_TEMPLATES) > 1}
@@ -360,7 +376,7 @@
 							{assign var="HREF" value='#'}
 							{assign var="ICON_PATH" value=$obj->getIconPath()}
 							{assign var="LINK" value=$obj->convertToNativeLink()}
-							{assign var="ICON" value=$obj->getHeaderIcon()}
+							{assign var="ICON" value=$obj->getIcon()}
 							{assign var="TITLE" value=$obj->getLabel()}
 							{assign var="CHILD_LINKS" value=$obj->getChildLinks()}
 							{if !empty($LINK)}
@@ -374,13 +390,15 @@
 											data-{$DATA_NAME}="{$DATA_VALUE}"
 										{/foreach}
 									{/if}>
-									{if $ICON}
-										<span class="{$ICON}" title="{\App\Language::translate($TITLE)}"></span>
-										<span class="c-header__label--sm-down">{\App\Language::translate($TITLE)}</span>
-									{/if}
 									{if $ICON_PATH}
-										<img src="{$ICON_PATH}" alt="{\App\Language::translate($TITLE)}" title="{\App\Language::translate($TITLE)}" />
+										<img src="{$ICON_PATH|escape}" alt="{\App\Language::translate($TITLE)}" title="{\App\Language::translate($TITLE)}" />
+									{elseif $ICON}
+										<span class="{$ICON|escape}" title="{\App\Language::translate($TITLE, $obj->getModuleName())}"></span>
 									{/if}
+									{if !empty($obj->linkdata['auto-refresh'])}
+										<span class="badge badge-danger d-none mr-1">0</span>
+									{/if}
+									<span class="c-header__label--sm-down">{\App\Language::translate($TITLE, $obj->getModuleName())}</span>
 								</a>
 								{if !empty($CHILD_LINKS)}
 									<ul class="dropdown-menu">

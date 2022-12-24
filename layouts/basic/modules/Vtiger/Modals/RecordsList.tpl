@@ -1,6 +1,7 @@
 {*<!-- {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} -->*}
 {strip}
-	<div class="tpl-Modals-RecordsList modal-body js-modal-body" data-js="container">
+	<!-- tpl-Base-Modals-RecordsList -->
+	<div class="modal-body js-modal-body" data-js="container">
 		<input type="hidden" class="js-parent-module" data-js="value" value="{$SOURCE_MODULE}" />
 		<input type="hidden" class="js-source-record" data-js="value" value="{$SOURCE_RECORD}" />
 		<input type="hidden" class="js-source-field" data-js="value" value="{$SOURCE_FIELD}" />
@@ -19,6 +20,9 @@
 		{include file=\App\Layout::getTemplatePath('ListViewAlphabet.tpl', $MODULE)}
 		<input type="hidden" class="js-locked-fields" data-js="value" value="{\App\Purifier::encodeHtml(\App\Json::encode($LOCKED_FIELDS))}" />
 		<input type="hidden" class="js-empty-fields" data-js="value" value="{\App\Purifier::encodeHtml(\App\Json::encode($LOCKED_EMPTY_FIELDS))}" />
+		{if !empty($ADDITIONAL_DATA)}
+			<input type="hidden" class="js-rl-additional_data" data-js="value" value="{\App\Purifier::encodeHtml(\App\Json::encode($ADDITIONAL_DATA))}" />
+		{/if}
 		<div class="table-responsive">
 			<table class="table table-bordered listViewEntriesTable">
 				<thead>
@@ -76,8 +80,7 @@
 					</tr>
 					{foreach item=LISTVIEW_ENTRY from=$LISTVIEW_ENTRIES}
 						<tr class="u-cursor-pointer js-select-row listViewEntries" data-id="{$LISTVIEW_ENTRY->getId()}" data-js="click"
-							data-name='{$LISTVIEW_ENTRY->getName()}'
-							data-info='{App\Json::encode($LISTVIEW_ENTRY->getRawData())}'>
+							data-name='{$LISTVIEW_ENTRY->getName()}'>
 							<td class="{$WIDTHTYPE} u-cursor-auto text-center">
 								{if $MULTI_SELECT}
 									<input class="js-select-checkbox" title="{App\Language::translate('LBL_SELECT_RECORD')}" {if $RECORD_SELECTED} checked="checked" {/if}
@@ -86,7 +89,7 @@
 							</td>
 							{foreach item=LISTVIEW_HEADER from=$LISTVIEW_HEADERS}
 								{assign var=LISTVIEW_HEADERNAME value=$LISTVIEW_HEADER->getFieldName()}
-								<td class="{$WIDTHTYPE}" data-field="{$LISTVIEW_HEADERNAME}"
+								<td class="{$WIDTHTYPE} text-nowrap" data-field="{$LISTVIEW_HEADERNAME}"
 									data-type="{$LISTVIEW_HEADER->getFieldDataType()}">
 									{if $LISTVIEW_HEADER->get('fromOutsideList') eq true}
 										{$LISTVIEW_HEADER->getDisplayValue($LISTVIEW_ENTRY->get($LISTVIEW_HEADERNAME))}
@@ -106,4 +109,5 @@
 			{/if}
 		</div>
 	</div>
+	<!-- /tpl-Base-Modals-RecordsList -->
 {/strip}

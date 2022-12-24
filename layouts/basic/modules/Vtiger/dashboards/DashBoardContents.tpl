@@ -44,8 +44,8 @@
 					data-js="css-element-queries">
 					<div id="{$WIDGETDOMID}" {if $smarty.foreach.count.index % $COLUMNS == 0 and $smarty.foreach.count.index != 0} {/if}
 						class="grid-stack-item-content dashboardWidget dashboardWidget_{$smarty.foreach.count.index}"
-						data-url="{$WIDGET->getUrl()}"
-						data-mode="open" data-name="{$WIDGET->getName()}" data-cache="{$WIDGET->get('cache')}"
+						data-url="{$WIDGET->getUrl()|escape}"
+						data-mode="open" data-name="{\App\Purifier::encodeHtml($WIDGET->getName())}" data-cache="{$WIDGET->get('cache')|escape}"
 						data-loader="widgetLoader">
 					</div>
 				</div>
@@ -53,7 +53,7 @@
 			<div class="alert alert-info {if count($WIDGETS) > 0} d-none {/if} js-dashboards-alert" role="alert" data-js=”container”>
 				<p>
 					<span class="fas fa-exclamation-circle fa-3x vertical-middle"></span>&nbsp;&nbsp;
-					{\App\Language::translate('LBL_EMPTY_DASHBOARD','_DashBoard')}
+					{\App\Language::translate('LBL_EMPTY_DASHBOARD','Dashboard')}
 				</p>
 			</div>
 			<input type="hidden" id="row" value="{$ROW}" />

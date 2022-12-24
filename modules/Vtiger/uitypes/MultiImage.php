@@ -34,7 +34,7 @@ class Vtiger_MultiImage_UIType extends Vtiger_MultiAttachment_UIType
 		}
 		$fieldInfo = $this->getFieldModel()->getFieldInfo();
 		foreach ($value as $index => $item) {
-			if ((empty($item['name']) && empty($item['baseContent'])) && (empty($item['key']) || empty($item['name']) || empty($item['size']) || 50 !== App\TextParser::getTextLength($item['key']))) {
+			if ((empty($item['name']) && empty($item['baseContent'])) && (empty($item['key']) || empty($item['name']) || empty($item['size']) || 50 !== App\TextUtils::getTextLength($item['key']))) {
 				throw new \App\Exceptions\Security('ERR_ILLEGAL_FIELD_VALUE||' . $this->getFieldModel()->getName() . '||' . $this->getFieldModel()->getModuleName() . '||' . \App\Json::encode($value), 406);
 			}
 			if ($index > (int) $fieldInfo['limit']) {
@@ -72,8 +72,8 @@ class Vtiger_MultiImage_UIType extends Vtiger_MultiAttachment_UIType
 	/**
 	 * Get image url.
 	 *
-	 * @param {string} $key
-	 * @param {int}    $record
+	 * @param string $key
+	 * @param int    $record
 	 *
 	 * @return string
 	 */
@@ -85,7 +85,7 @@ class Vtiger_MultiImage_UIType extends Vtiger_MultiAttachment_UIType
 	/**
 	 * Get display value as string in JSON format.
 	 *
-	 * @param {string} $value
+	 * @param string   $value
 	 * @param bool|int $length
 	 * @param mixed    $record
 	 *
@@ -125,9 +125,7 @@ class Vtiger_MultiImage_UIType extends Vtiger_MultiAttachment_UIType
 		if (!\is_array($value)) {
 			return '';
 		}
-		$value = array_map(function ($v) {
-			return $v['name'];
-		}, $value);
+		$value = array_map(fn ($v) => $v['name'], $value);
 		$result = implode(', ', $value);
 		return trim($result, "\n\t, ");
 	}
@@ -170,7 +168,9 @@ class Vtiger_MultiImage_UIType extends Vtiger_MultiAttachment_UIType
 		if (!$value) {
 			return '';
 		}
-		$len = $length ?: \count($value);
+		$imageCount = (int) ($this->getFieldModel()->getFieldParams()['imageCount'] ?? 0);
+		$countValue = \count($value);
+		$len = ($imageCount <= $countValue) && ($imageCount > 0) ? $imageCount : $countValue;
 		if (!$record && $recordModel) {
 			$record = $recordModel->getId();
 		}
@@ -183,20 +183,15 @@ class Vtiger_MultiImage_UIType extends Vtiger_MultiAttachment_UIType
 				$val = $value[$i];
 				$result .= $val['name'] . ', ';
 			}
-			return \App\Purifier::encodeHtml(trim($result, "\n\t ,"));
+			return \App\Purifier::encodeHtml($length ? \App\TextUtils::textTruncate($result, $length) : $result, "\n\t ,");
 		}
 		if (!\is_array($value)) {
 			return '';
 		}
 		$result = '<div class="c-multi-image__result" style="width:100%">';
-		$width = 1 / \count($value) * 100;
+		$width = 1 / $len * 100;
 		for ($i = 0; $i < $len; ++$i) {
-			if ($record) {
-				$src = $this->getImageUrl($value[$i]['key'], $record);
-				$result .= '<div class="d-inline-block mr-1 c-multi-image__preview-img" style="background-image:url(' . $src . ')" style="width:' . $width . '%"></div>';
-			} else {
-				$result .= \App\Purifier::encodeHtml($value[$i]['name']) . ', ';
-			}
+			$result .= '<div class="d-inline-block mr-1 c-multi-image__preview-img" style="background-image:url(' . $this->getImageUrl($value[$i]['key'], $record) . ')" style="width:' . $width . '%"></div>';
 		}
 		return trim($result, "\n\t ") . '</div>';
 	}
@@ -208,6 +203,9 @@ class Vtiger_MultiImage_UIType extends Vtiger_MultiAttachment_UIType
 		if (!$value) {
 			return '';
 		}
+		$imageCount = (int) ($this->getFieldModel()->getFieldParams()['imageCount'] ?? 0);
+		$countValue = \count($value);
+		$len = ($imageCount <= $countValue) && ($imageCount > 0) ? $imageCount : $countValue;
 		if (!$record && $recordModel) {
 			$record = $recordModel->getId();
 		}
@@ -216,7 +214,6 @@ class Vtiger_MultiImage_UIType extends Vtiger_MultiAttachment_UIType
 			if (!\is_array($value)) {
 				return '';
 			}
-			$len = \count($value);
 			for ($i = 0; $i < $len; ++$i) {
 				$val = $value[$i];
 				$result .= $val['name'] . ', ';
@@ -227,12 +224,8 @@ class Vtiger_MultiImage_UIType extends Vtiger_MultiAttachment_UIType
 			return '';
 		}
 		$result = '<div class="c-multi-image__result text-center">';
-		foreach ($value as $item) {
-			if ($record) {
-				$result .= '<div class="d-inline-block mr-1 c-multi-image__preview-img middle" style="background-image:url(' . $this->getImageUrl($item['key'], $record) . ')"></div>';
-			} else {
-				$result .= \App\Purifier::encodeHtml($item['name']) . ', ';
-			}
+		for ($i = 0; $i < $len; ++$i) {
+			$result .= '<div class="d-inline-block mr-1 c-multi-image__preview-img middle js-show-image-preview" style="background-image:url(' . $this->getImageUrl($value[$i]['key'], $record) . ')"></div>';
 		}
 		return $result . '</div>';
 	}
@@ -264,7 +257,7 @@ class Vtiger_MultiImage_UIType extends Vtiger_MultiAttachment_UIType
 	}
 
 	/** {@inheritdoc} */
-	public function getApiDisplayValue($value, Vtiger_Record_Model $recordModel)
+	public function getApiDisplayValue($value, Vtiger_Record_Model $recordModel, array $params = [])
 	{
 		$value = \App\Json::decode($value);
 		if (!$value || !\is_array($value)) {
@@ -357,9 +350,12 @@ class Vtiger_MultiImage_UIType extends Vtiger_MultiAttachment_UIType
 		$params = $this->getFieldModel()->getFieldParams();
 		$fieldInfo['limit'] = $params['limit'] ?? static::LIMIT;
 		$fieldInfo['formats'] = $params['formats'] ?? \App\Fields\File::$allowedFormats['image'];
-		$fieldInfo['maxFileSize'] = $params['maxFileSize'] ?? \App\Config::main('upload_maxsize');
-		$fieldInfo['maxFileSizeDisplay'] = !empty($fieldInfo['maxFileSize']) ? \vtlib\Functions::showBytes($fieldInfo['maxFileSize']) : '';
-
+		$maxUploadSize = App\Config::getMaxUploadSize();
+		if (isset($params['maxFileSize']) && $params['maxFileSize'] < $maxUploadSize) {
+			$maxUploadSize = $params['maxFileSize'];
+		}
+		$fieldInfo['maxFileSize'] = $maxUploadSize;
+		$fieldInfo['maxFileSizeDisplay'] = \vtlib\Functions::showBytes($maxUploadSize);
 		return $fieldInfo;
 	}
 
@@ -380,9 +376,9 @@ class Vtiger_MultiImage_UIType extends Vtiger_MultiAttachment_UIType
 	/**
 	 * Upload and save attachment.
 	 *
-	 * @param array   $files
-	 * @param int     $recordId
-	 * @param ?string $hash
+	 * @param array       $files
+	 * @param int         $recordId
+	 * @param string|null $hash
 	 *
 	 * @return array
 	 */
@@ -391,10 +387,15 @@ class Vtiger_MultiImage_UIType extends Vtiger_MultiAttachment_UIType
 		$db = \App\Db::getInstance();
 		$attach = [];
 		$type = 'image';
+		$maxSize = $this->getFieldInfo()['maxFileSize'];
 		foreach (\App\Fields\File::transform($files, true) as $key => $transformFiles) {
 			foreach ($transformFiles as $fileDetails) {
 				$additionalNotes = '';
 				$file = \App\Fields\File::loadFromRequest($fileDetails);
+				if ($file->getSize() > $maxSize) {
+					$attach[] = ['name' => $file->getName(), 'error' => \App\Language::translateSingleMod('ERR_FILE_SIZE_EXCEEDED', 'Other.Exceptions'), 'hash' => $hash];
+					continue;
+				}
 				if (!$file->validate($type)) {
 					if (!\App\Fields\File::secureFile($file)) {
 						$attach[] = ['name' => $file->getName(), 'error' => $file->validateError, 'hash' => $hash];
@@ -415,7 +416,7 @@ class Vtiger_MultiImage_UIType extends Vtiger_MultiAttachment_UIType
 					'size' => $file->getSize(),
 					'path' => $file->getPath(),
 					'key' => $key,
-					'type' => $file->getMimeType()
+					'type' => $file->getMimeType(),
 				];
 				$this->validate([$tempValue]);
 
@@ -439,5 +440,63 @@ class Vtiger_MultiImage_UIType extends Vtiger_MultiAttachment_UIType
 			}
 		}
 		return $attach;
+	}
+
+	/** {@inheritdoc} */
+	public function getTilesDisplayValue($value, $record = false, $recordModel = false, $rawText = false)
+	{
+		$rawValue = $value;
+		if (!$value || !($value = \App\Json::decode($value))) {
+			return '';
+		}
+		if (!$record && $recordModel) {
+			$record = $recordModel->getId();
+		}
+		$result = '';
+		if ($rawText || !$record) {
+			if (!\is_array($value)) {
+				$result .= '</div></div>';
+				return $result;
+			}
+			$len = \count($value);
+			for ($i = 0; $i < $len; ++$i) {
+				$val = $value[$i];
+				$result .= $val['name'] . ', ';
+			}
+			return \App\Purifier::encodeHtml(trim($result, "\n\t ,"));
+		}
+
+		if (!\is_array($value)) {
+			$result .= '</div></div>';
+			return $result;
+		}
+		if (1 === \count($value)) {
+			return $this->getListViewDisplayValue($rawValue, $record, $recordModel, $rawText);
+		}
+		if ($record) {
+			$carouselId = App\Layout::getUniqueId("IC{$record}-");
+			$result = '<div id="' . $carouselId . '" class="carousel slide m-auto" data-interval="false">
+				<div class="carousel-inner">';
+			foreach ($value as $itemNumber => $item) {
+				if ($record) {
+					$active = 0 === $itemNumber ? 'active' : '';
+					$result .= '<div class="carousel-item ' . $active . '">
+				<img class="d-block carousel-image img-fluid js-show-image-preview" src="' . $this->getImageUrl($item['key'], $record) . '" alt="Carousel image">
+			  </div>';
+				} else {
+					$result .= \App\Purifier::encodeHtml($item['name']) . ', ';
+				}
+			}
+			$result .= '</div>
+			<a class="carousel-control-prev noLinkBtn" href="#' . $carouselId . '" role="button" data-slide="prev">
+				<span class="carousel-control-prev-icon" aria-hidden="true"></span>
+				<span class="sr-only">Previous</span>
+			</a>
+			<a class="carousel-control-next noLinkBtn" href="#' . $carouselId . '" role="button" data-slide="next">
+				<span class="carousel-control-next-icon" aria-hidden="true"></span>
+				<span class="sr-only">Next</span>
+			</a></div>';
+		}
+		return $result;
 	}
 }

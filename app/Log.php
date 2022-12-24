@@ -60,6 +60,26 @@ class Log extends Logger
 				'trace' => 'Text',
 			],
 		],
+		'wapro' => [
+			'label' => 'LBL_WAPRO_ERP',
+			'labelModule' => 'Settings:Wapro',
+			'table' => 'l_#__wapro',
+			'icon' => 'fab fa-connectdevelop',
+			'columns' => [
+				'time' => ['type' => 'DateTime', 'label' => 'LBL_TIME'],
+				'category' => ['type' => 'Text', 'label' => 'LBL_CATEGORY'],
+				'message' => ['type' => 'Text', 'label' => 'LBL_MESSAGE'],
+				'error' => ['type' => 'Text', 'label' => 'LBL_CODE'],
+				'trace' => ['type' => 'Text', 'label' => 'LBL_BACKTRACE'],
+			],
+			'filter' => [
+				'time' => 'DateTimeRange',
+				'category' => 'Text',
+				'message' => 'Text',
+				'code' => 'Text',
+				'trace' => 'Text',
+			],
+		],
 		'switchUsers' => [
 			'label' => 'LBL_SWITCH_USERS',
 			'labelModule' => 'Settings:Users',
@@ -139,6 +159,26 @@ class Log extends Logger
 				'duration' => 'Text',
 			],
 		],
+		'pbx' => [
+			'label' => 'LBL_PBX',
+			'labelModule' => 'Settings:PBX',
+			'table' => 'l_#__pbx',
+			'icon' => 'yfi yfi-pbx',
+			'columns' => [
+				'time' => ['type' => 'DateTime', 'label' => 'LBL_TIME'],
+				'driver' => ['type' => 'Text', 'label' => 'LBL_CATEGORY'],
+				'error' => ['type' => 'Text', 'label' => 'LBL_CODE'],
+				'message' => ['type' => 'Text', 'label' => 'LBL_MESSAGE'],
+				'params' => ['type' => 'Text', 'label' => 'LBL_MESSAGE'],
+			],
+			'filter' => [
+				'time' => 'DateTimeRange',
+				'driver' => 'Text',
+				// 'error' => 'Boolean',
+				'message' => 'Text',
+				'params' => 'Text',
+			],
+		],
 	];
 	public static $levelMap = [
 		'error' => Logger::LEVEL_ERROR,
@@ -175,9 +215,7 @@ class Log extends Logger
 				}
 			}
 		} else {
-			$bitmapValues = array_reduce(self::$levelMap, function ($carry, $item) {
-				return $carry | $item;
-			});
+			$bitmapValues = array_reduce(self::$levelMap, fn ($carry, $item) => $carry | $item);
 			if (!($bitmapValues & $levels) && 0 !== $levels) {
 				throw new Exceptions\AppException("Incorrect $levels value");
 			}

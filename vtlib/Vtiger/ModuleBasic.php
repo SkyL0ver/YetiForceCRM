@@ -156,7 +156,9 @@ class ModuleBasic
 		if ($this->isentitytype) {
 			$this->unsetEntityIdentifier();
 		}
-		\App\Db::getInstance()->createCommand()->delete('vtiger_tab', ['tabid' => $this->id])->execute();
+		$dbCommand = \App\Db::getInstance()->createCommand();
+		$dbCommand->delete('vtiger_tab', ['tabid' => $this->id])->execute();
+		$dbCommand->delete('a_#__settings_modules', ['name' => $this->name])->execute();
 		\App\Log::trace("Deleting Module $this->name ... DONE", __METHOD__);
 	}
 
@@ -293,6 +295,7 @@ class ModuleBasic
 					'entityidfield' => $this->entityidfield,
 					'entityidcolumn' => $this->entityidcolumn,
 					'searchcolumn' => $fieldInstance->name,
+					'sequence' => $this->id,
 				])->execute();
 				\App\Log::trace('Setting entity identifier ... DONE', __METHOD__);
 			} else {
@@ -441,10 +444,8 @@ class ModuleBasic
 		$db->createCommand()->delete('vtiger_relatedlists', ['or', ['tabid' => $this->id], ['related_tabid' => $this->id]])->execute();
 		if ($relations) {
 			$ids = array_keys($relations);
-			$db->createCommand()->delete('vtiger_relatedlists_fields', ['relation_id' => $ids])->execute();
-			$db->createCommand()->delete('a_#__relatedlists_inv_fields', ['relation_id' => $ids])->execute();
 			foreach ($ids as $id) {
-				\App\Relation::clearCacheById((int) $id, false);
+				\Vtiger_Relation_Model::removeRelationById($id);
 			}
 			foreach (array_unique($relations) as $tabId) {
 				\App\Relation::clearCacheByModule((string) \App\Module::getModuleName($tabId), false);

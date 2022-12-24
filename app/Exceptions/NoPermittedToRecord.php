@@ -19,18 +19,17 @@ class NoPermittedToRecord extends NoPermitted
 		\App\Session::init();
 
 		$request = \App\Request::init();
-		$record = $request->getInteger('record', 0);
 		$userName = \App\Session::get('full_user_name');
 		\App\DB::getInstance('log')->createCommand()->insert('o_#__access_to_record', [
 			'username' => empty($userName) ? '-' : $userName,
 			'date' => date('Y-m-d H:i:s'),
-			'ip' => \App\TextParser::textTruncate(\App\RequestUtil::getRemoteIP(), 100, false),
-			'record' => $record,
+			'ip' => \App\TextUtils::textTruncate(\App\RequestUtil::getRemoteIP(), 100, false),
+			'record' => $request->isEmpty('record') ? 0 : $request->getInteger('record'),
 			'module' => $request->getModule(),
-			'url' => \App\TextParser::textTruncate(\App\RequestUtil::getBrowserInfo()->url, 300, false),
-			'agent' => \App\TextParser::textTruncate(\App\Request::_getServer('HTTP_USER_AGENT', '-'), 500, false),
+			'url' => \App\TextUtils::textTruncate(\App\RequestUtil::getBrowserInfo()->url, 300, false),
+			'agent' => \App\TextUtils::textTruncate(\App\Request::_getServer('HTTP_USER_AGENT', '-'), 500, false),
 			'request' => json_encode((new \App\Anonymization())->setModuleName($request->getModule())->setData($_REQUEST)->anonymize()->getData()),
-			'referer' => \App\TextParser::textTruncate(\App\Request::_getServer('HTTP_REFERER', '-'), 300, false),
+			'referer' => \App\TextUtils::textTruncate(\App\Request::_getServer('HTTP_REFERER', '-'), 300, false),
 		])->execute();
 	}
 }

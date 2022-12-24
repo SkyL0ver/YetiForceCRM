@@ -48,7 +48,6 @@ class QueryGenerator
 	private $referenceFields = [];
 	private $ownerFields = [];
 	private $customColumns = [];
-	private $cvColumns;
 	private $advFilterList;
 	private $conditions;
 
@@ -203,9 +202,13 @@ class QueryGenerator
 	 *
 	 * @return \self
 	 */
-	public function setFields($fields)
+	public function setFields(array $fields)
 	{
-		$this->fields = $fields;
+		$this->fields = [];
+		foreach ($fields as $fieldName) {
+			$this->setField($fieldName);
+		}
+
 		return $this;
 	}
 
@@ -269,19 +272,23 @@ class QueryGenerator
 	/**
 	 * Set query field.
 	 *
-	 * @param string|string[] $fields
+	 * @param string $fieldName
 	 *
 	 * @return \self
 	 */
-	public function setField($fields): self
+	public function setField(string $fieldName): self
 	{
-		if (\is_array($fields)) {
-			foreach ($fields as $field) {
-				$this->fields[] = $field;
-			}
+		if (false !== strpos($fieldName, ':')) {
+			[$relatedFieldName, $relatedModule, $sourceField] = array_pad(explode(':', $fieldName), 3, null);
+			$this->addRelatedField([
+				'sourceField' => $sourceField,
+				'relatedModule' => $relatedModule,
+				'relatedField' => $relatedFieldName
+			]);
 		} else {
-			$this->fields[] = $fields;
+			$this->fields[] = $fieldName;
 		}
+
 		return $this;
 	}
 
@@ -391,8 +398,7 @@ class QueryGenerator
 	 */
 	public function loadRelatedFields()
 	{
-		$fields = [];
-		$checkIds = [];
+		$fields = $checkIds = [];
 		foreach ($this->relatedFields as $field) {
 			$joinTableName = $this->getModuleField($field['sourceField'])->getTableName();
 			$moduleTableIndexList = $this->entityModel->tab_name_index;
@@ -440,6 +446,8 @@ class QueryGenerator
 
 	/**
 	 * Appends a JOIN part to the query.
+	 *
+	 * @example ['INNER JOIN', 'vtiger_user2role', 'vtiger_user2role.userid = vtiger_users.id']
 	 *
 	 * @param array $join
 	 *
@@ -676,7 +684,6 @@ class QueryGenerator
 		$fieldName = $cvColumn['field_name'];
 		$sourceFieldName = $cvColumn['source_field_name'];
 		if (empty($sourceFieldName)) {
-			$this->customViewFields[] = 'id';
 			if ('id' !== $fieldName) {
 				$this->fields[] = $fieldName;
 			}
@@ -717,16 +724,15 @@ class QueryGenerator
 	 *
 	 * @param mixed $viewId
 	 * @param bool  $onlyFields
+	 *
+	 * @return $this
 	 */
 	public function initForCustomViewById($viewId, $onlyFields = false)
 	{
 		$this->fields[] = 'id';
 		$customView = CustomView::getInstance($this->moduleName, $this->user);
-		$this->cvColumns = $customView->getColumnsListByCvid($viewId);
-		if ($this->cvColumns) {
-			foreach ($this->cvColumns as &$cvColumn) {
-				$this->addCustomViewFields($cvColumn);
-			}
+		foreach ($customView->getColumnsListByCvid($viewId) as $cvColumn) {
+			$this->addCustomViewFields($cvColumn);
 		}
 		foreach (CustomView::getDuplicateFields($viewId) as $fields) {
 			$this->setSearchFieldsForDuplicates($fields['fieldname'], (bool) $fields['ignore']);
@@ -746,6 +752,8 @@ class QueryGenerator
 		if (!$onlyFields) {
 			$this->conditions = CustomView::getConditions($viewId);
 		}
+
+		return $this;
 	}
 
 	/**
@@ -995,9 +1003,7 @@ class QueryGenerator
 			$subQuery->andHaving((new \yii\db\Expression('COUNT(1) > 1')));
 			$this->joins['duplicates'] = ['INNER JOIN', ['duplicates' => $subQuery], implode(' AND ', $duplicateCheckClause)];
 		}
-		uksort($this->joins, function ($a, $b) use ($moduleTableIndexList) {
-			return (int) (!isset($moduleTableIndexList[$a]) && isset($moduleTableIndexList[$b]));
-		});
+		uksort($this->joins, fn ($a, $b) => (int) (!isset($moduleTableIndexList[$a]) && isset($moduleTableIndexList[$b])));
 		foreach ($this->joins as $join) {
 			$on = $join[2] ?? '';
 			$params = $join[3] ?? [];

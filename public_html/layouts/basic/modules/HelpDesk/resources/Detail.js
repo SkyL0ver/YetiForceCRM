@@ -11,14 +11,14 @@ Vtiger_Detail_Js(
 					src_module: 'HelpDesk',
 					src_record: app.getRecordId()
 				},
-				(modal, instance) => {
+				(_modal, instance) => {
 					instance.setSelectEvent((responseData) => {
 						Vtiger_Detail_Js.getInstance()
 							.saveFieldValues({
 								field: 'parent_id',
 								value: responseData.id
 							})
-							.done(function (response) {
+							.done(function () {
 								location.reload();
 							});
 					});
@@ -27,14 +27,17 @@ Vtiger_Detail_Js(
 		}
 	},
 	{
-		registerSetServiceContracts: function () {
-			var thisInstance = this;
-			$('.selectServiceContracts').on('click', 'ul li', function (e) {
-				var element = jQuery(e.currentTarget);
+		/**
+		 * Function sets the related module.
+		 */
+		registerSetReletedModule: function () {
+			const thisInstance = this;
+			$('.js-quick-add-relation').on('click', 'ul li', function (e) {
+				let element = jQuery(e.currentTarget);
 				thisInstance
 					.saveFieldValues({
 						setRelatedFields: true,
-						field: 'servicecontractsid',
+						field: element.data('field'),
 						value: element.data('id')
 					})
 					.done(function (response) {
@@ -42,10 +45,11 @@ Vtiger_Detail_Js(
 					});
 			});
 		},
+
 		/**
 		 * Function to get response from hierarchy
 		 * @param {array} params
-		 * @returns {jQuery}
+		 * @returns {Promise}
 		 */
 		getHierarchyResponseData: function (params) {
 			let thisInstance = this,
@@ -179,6 +183,7 @@ Vtiger_Detail_Js(
 		/**
 		 * Function save field values
 		 * @param {array} fieldDetailList
+		 * @returns {Promise}
 		 */
 		saveFieldValues: function (fieldDetailList) {
 			const self = this;
@@ -251,6 +256,7 @@ Vtiger_Detail_Js(
 		/**
 		 * Add time control when closed ticket
 		 * @param {array} params
+		 * @returns {Promise}
 		 */
 		addTimeControl(params, callback = () => {}) {
 			let aDeferred = jQuery.Deferred();
@@ -325,7 +331,7 @@ Vtiger_Detail_Js(
 		},
 		registerEvents: function () {
 			this._super();
-			this.registerSetServiceContracts();
+			this.registerSetReletedModule();
 			this.registerHierarchyRecordCount();
 			this.registerShowHierarchy();
 		}

@@ -96,7 +96,9 @@ class Response
 	 */
 	public function setStatus(int $status): void
 	{
-		$this->status = $status;
+		if (is_numeric($status)) {
+			$this->status = $status;
+		}
 	}
 
 	/**
@@ -114,7 +116,7 @@ class Response
 	/**
 	 * Set body data.
 	 *
-	 * @param array|\App\Fields\File $body
+	 * @param array $body
 	 *
 	 * @return void
 	 */
@@ -278,7 +280,11 @@ class Response
 				$log .= "----------- Response data -----------\n";
 				$log .= print_r($this->body, true) . PHP_EOL;
 			}
-			file_put_contents('cache/logs/webserviceDebug.log', $log, FILE_APPEND);
+			$path = ROOT_DIRECTORY . '/cache/logs/webserviceDebug.log';
+			if (isset(\Api\Controller::$container)) {
+				$path = ROOT_DIRECTORY . '/cache/logs/webservice' . \Api\Controller::$container . 'Debug.log';
+			}
+			file_put_contents($path, $log, FILE_APPEND);
 		}
 	}
 

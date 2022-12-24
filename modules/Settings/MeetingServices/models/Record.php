@@ -7,6 +7,7 @@
  * @copyright YetiForce S.A.
  * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
  * @author    Radosław Skrzypczak <r.skrzypczak@yetiforce.com>
+ * @author Mariusz Krzaczkowski <m.krzaczkowski@yetiforce.com>
  */
 
 /**
@@ -49,12 +50,8 @@ class Settings_MeetingServices_Record_Model extends Settings_Vtiger_Record_Model
 		return 'index.php?parent=Settings&module=MeetingServices&view=Edit&record=' . $this->getId();
 	}
 
-	/**
-	 * Function to get the list view actions for the record.
-	 *
-	 * @return array - Associate array of Vtiger_Link_Model instances
-	 */
-	public function getRecordLinks()
+	/** {@inheritdoc} */
+	public function getRecordLinks(): array
 	{
 		$links = [];
 		$recordLinks = [
@@ -63,7 +60,7 @@ class Settings_MeetingServices_Record_Model extends Settings_Vtiger_Record_Model
 				'linklabel' => 'BTN_RECORD_EDIT',
 				'linkdata' => ['url' => $this->getEditViewUrl()],
 				'linkicon' => 'yfi yfi-full-editing-view',
-				'linkclass' => 'btn btn-sm btn-primary js-edit-record',
+				'linkclass' => 'btn btn-sm btn-primary js-edit-record-modal',
 			],
 			[
 				'linktype' => 'LISTVIEWRECORD',
@@ -196,6 +193,7 @@ class Settings_MeetingServices_Record_Model extends Settings_Vtiger_Record_Model
 		switch ($name) {
 			case 'url':
 				$params['uitype'] = 17;
+				$params['maximumlength'] = '250';
 				break;
 			case 'status':
 				$params['uitype'] = 56;
@@ -212,6 +210,9 @@ class Settings_MeetingServices_Record_Model extends Settings_Vtiger_Record_Model
 		switch ($key) {
 			case 'status':
 				$value = \App\Language::translate(1 == $value ? 'LBL_ACTIVE' : 'LBL_INACTIVE', $this->getModule()->getName(true));
+				break;
+			default:
+				$value = \App\Purifier::encodeHtml($value);
 				break;
 		}
 		return $value;

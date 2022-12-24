@@ -87,6 +87,7 @@ class Condition
 		'om' => 'LBL_CURRENTLY_LOGGED_USER',
 		'nom' => 'LBL_USER_CURRENTLY_NOT_LOGGED',
 		'ogr' => 'LBL_CURRENTLY_LOGGED_USER_GROUP',
+		'ogu' => 'LBL_USERS_GROUP_LOGGED_IN_USER',
 		'wr' => 'LBL_IS_WATCHING_RECORD',
 		'nwr' => 'LBL_IS_NOT_WATCHING_RECORD',
 		'hs' => 'LBL_HAS_CHANGED',
@@ -106,7 +107,7 @@ class Condition
 	 * @var string[] Operators without values.
 	 */
 	const OPERATORS_WITHOUT_VALUES = [
-		'y', 'ny', 'om', 'nom', 'ogr', 'wr', 'nwr', 'hs', 'ro', 'rc', 'nco',
+		'y', 'ny', 'om', 'nom', 'ogr', 'wr', 'nwr', 'hs', 'ro', 'rc', 'nco', 'ogu',
 		'smallerthannow',
 		'greaterthannow',
 		'prevfy',
@@ -345,7 +346,7 @@ class Condition
 		if (isset($conditions['rules'])) {
 			foreach ($conditions['rules'] as &$condition) {
 				if (isset($condition['condition'])) {
-					$condition = static::getFieldsFromConditions($condition);
+					$fields = array_merge_recursive($fields, static::getFieldsFromConditions($condition));
 				} else {
 					[$fieldName, $moduleName, $sourceFieldName] = array_pad(explode(':', $condition['fieldname']), 3, false);
 					if ($sourceFieldName) {

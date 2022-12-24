@@ -2,7 +2,7 @@
 /**
  * The file contains: Record operations.
  *
- * @package Api
+ * @package API
  *
  * @copyright YetiForce S.A.
  * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
@@ -35,7 +35,7 @@ class Record extends \Api\ManageConsents\BaseAction
 		parent::checkPermission();
 		$moduleName = $this->controller->request->getModule();
 		$this->recordModel = \Vtiger_Record_Model::getCleanInstance($moduleName);
-		if (!$this->recordModel->isCreateable()) {
+		if (!$this->recordModel->isCreatable()) {
 			throw new \Api\Core\Exception('No permissions to create record', 403);
 		}
 	}

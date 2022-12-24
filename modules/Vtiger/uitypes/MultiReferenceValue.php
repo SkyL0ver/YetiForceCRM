@@ -17,11 +17,14 @@ class Vtiger_MultiReferenceValue_UIType extends Vtiger_Base_UIType
 	/** {@inheritdoc} */
 	public function getDisplayValue($value, $record = false, $recordModel = false, $rawText = false, $length = false)
 	{
+		if (null === $value) {
+			return '';
+		}
 		$value = str_replace(self::COMMA, ', ', $value);
 		$value = substr($value, 1);
 		$value = substr($value, 0, -2);
 		if (\is_int($length)) {
-			$value = \App\TextParser::textTruncate($value, $length);
+			$value = \App\TextUtils::textTruncate($value, $length);
 		}
 		return \App\Purifier::encodeHtml($value);
 	}
@@ -42,7 +45,7 @@ class Vtiger_MultiReferenceValue_UIType extends Vtiger_Base_UIType
 		} else {
 			return $this->getDisplayValue($value, $record, $recordModel, $rawText, $field->get('maxlengthtext'));
 		}
-		return \App\Purifier::encodeHtml(\App\TextParser::textTruncate($values, $field->get('maxlengthtext')));
+		return \App\Purifier::encodeHtml(\App\TextUtils::textTruncate($values, $field->get('maxlengthtext')));
 	}
 
 	/** {@inheritdoc} */
@@ -189,6 +192,9 @@ class Vtiger_MultiReferenceValue_UIType extends Vtiger_Base_UIType
 		$dataReader = $query->distinct()->createCommand()->query();
 		$values = [];
 		while (false !== ($value = $dataReader->readColumn(0))) {
+			if (null === $value) {
+				continue;
+			}
 			$value = explode(self::COMMA, trim($value, self::COMMA));
 			$values = array_merge($values, $value);
 		}

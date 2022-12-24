@@ -24,7 +24,7 @@ class Record extends \Api\Core\BaseAction
 	public $allowedMethod = ['GET', 'DELETE', 'PUT', 'POST'];
 
 	/** {@inheritdoc}  */
-	public $allowedHeaders = ['x-parent-id'];
+	public $allowedHeaders = ['x-parent-id', 'x-fields-params'];
 
 	/** @var \Vtiger_Record_Model Record model instance. */
 	public $recordModel;
@@ -36,7 +36,7 @@ class Record extends \Api\Core\BaseAction
 		$moduleName = $this->controller->request->getModule();
 		if ('POST' === $this->controller->method) {
 			$this->recordModel = \Vtiger_Record_Model::getCleanInstance($moduleName);
-			if (!$this->recordModel->isCreateable()) {
+			if (!$this->recordModel->isCreatable()) {
 				throw new \Api\Core\Exception('No permissions to create record', 403);
 			}
 		} else {
@@ -75,6 +75,8 @@ class Record extends \Api\Core\BaseAction
 	/**
 	 * Get record detail.
 	 *
+	 * @api
+	 *
 	 * @return array
 	 *
 	 * @OA\Get(
@@ -89,6 +91,9 @@ class Record extends \Api\Core\BaseAction
 	 *		@OA\Parameter(name="X-ENCRYPTED", in="header", @OA\Schema(ref="#/components/schemas/Header-Encrypted"), required=true),
 	 *		@OA\Parameter(name="x-raw-data", in="header", @OA\Schema(type="integer", enum={0, 1}), description="Gets raw data", required=false, example=1),
 	 *		@OA\Parameter(name="x-parent-id", in="header", @OA\Schema(type="integer"), description="Parent record id", required=false, example=5),
+	 * 		@OA\Parameter(name="x-fields-params", in="header", description="JSON array - list of fields to be returned in the specified way", required=false,
+	 *			@OA\JsonContent(ref="#/components/schemas/Fields-Settings"),
+	 *		),
 	 *		@OA\Response(
 	 *			response=200,
 	 *			description="Gets data for the record",
@@ -107,6 +112,13 @@ class Record extends \Api\Core\BaseAction
 	 *			@OA\JsonContent(ref="#/components/schemas/Exception"),
 	 *			@OA\XmlContent(ref="#/components/schemas/Exception"),
 	 *		),
+	 * ),
+	 * @OA\Schema(
+	 *		schema="Fields-Settings",
+	 *		title="Custom field settings",
+	 *		description="A list of custom parameters that can affect the return value of a given field.",
+	 *		type="object",
+	 * 		example={"password" : {"showHiddenData" : true}}
 	 * ),
 	 * @OA\Schema(
 	 *		schema="BaseModule_Get_Record_Response",
@@ -142,19 +154,19 @@ class Record extends \Api\Core\BaseAction
 	 */
 	public function get(): array
 	{
-		$moduleName = $this->controller->request->get('module');
-		$rawData = $this->recordModel->getData();
-		$setRawData = 1 === (int) ($this->controller->headers['x-raw-data'] ?? 0);
 		$displayData = $fieldsLabel = [];
-		$fields = $this->recordModel->getModule()->getFields();
-		\Api\WebserviceStandard\Fields::loadWebserviceFields($fields, $this);
-		foreach ($fields as $fieldModel) {
+		$moduleName = $this->controller->request->get('module');
+		$setRawData = 1 === (int) ($this->controller->headers['x-raw-data'] ?? 0);
+		$fieldParams = \App\Json::decode($this->controller->request->getHeader('x-fields-params')) ?: [];
+
+		\Api\WebserviceStandard\Fields::loadWebserviceFields($this->recordModel->getModule(), $this);
+		foreach ($this->recordModel->getModule()->getFields() as $fieldModel) {
 			if (!$fieldModel->isActiveField() || !$fieldModel->isViewable()) {
 				continue;
 			}
 			$uiTypeModel = $fieldModel->getUITypeModel();
 			$value = $this->recordModel->get($fieldModel->getName());
-			$displayData[$fieldModel->getName()] = $uiTypeModel->getApiDisplayValue($value, $this->recordModel);
+			$displayData[$fieldModel->getName()] = $uiTypeModel->getApiDisplayValue($value, $this->recordModel, $fieldParams[$fieldModel->getName()] ?? []);
 			$fieldsLabel[$fieldModel->getName()] = \App\Language::translate($fieldModel->get('label'), $moduleName);
 		}
 		$response = [
@@ -191,6 +203,12 @@ class Record extends \Api\Core\BaseAction
 			}
 		}
 		if ($setRawData) {
+			$rawData = [];
+			foreach ($this->recordModel->getData() as $key => $value) {
+				if ('id' === $key || 'record_module' === $key || (($fieldModel = $this->recordModel->getField($key)) && $fieldModel->isViewable())) {
+					$rawData[$key] = $this->recordModel->getRawValue($key);
+				}
+			}
 			$response['rawData'] = $rawData;
 		}
 		return $response;
@@ -198,6 +216,8 @@ class Record extends \Api\Core\BaseAction
 
 	/**
 	 * Delete record.
+	 *
+	 * @api
 	 *
 	 * @return bool
 	 *
@@ -236,6 +256,8 @@ class Record extends \Api\Core\BaseAction
 	/**
 	 * Edit record.
 	 *
+	 * @api
+	 *
 	 * @return array
 	 *
 	 * @OA\Put(
@@ -254,11 +276,15 @@ class Record extends \Api\Core\BaseAction
 	 *		@OA\Parameter(name="recordId", in="path", @OA\Schema(type="integer"), description="Record id", required=true, example=116),
 	 *		@OA\Parameter(name="X-ENCRYPTED", in="header", @OA\Schema(ref="#/components/schemas/Header-Encrypted"), required=true),
 	 *		@OA\Response(
-	 *			response=200,
-	 *			description="Contents of the response contains only id",
+	 *			response=200, description="Contents of the response contains only id",
 	 *			@OA\JsonContent(ref="#/components/schemas/BaseModule_Put_Record_Response"),
 	 *			@OA\XmlContent(ref="#/components/schemas/BaseModule_Put_Record_Response"),
 	 *			@OA\Link(link="GetRecordById", ref="#/components/links/GetRecordById")
+	 *		),
+	 *		@OA\Response(
+	 *			response=406, description="No input data",
+	 *			@OA\JsonContent(ref="#/components/schemas/Exception"),
+	 *			@OA\XmlContent(ref="#/components/schemas/Exception"),
 	 *		),
 	 * ),
 	 * @OA\Schema(
@@ -299,7 +325,7 @@ class Record extends \Api\Core\BaseAction
 	 */
 	public function put(): array
 	{
-		\Api\WebserviceStandard\Fields::loadWebserviceFields($this->recordModel->getModule()->getFields(), $this);
+		\Api\WebserviceStandard\Fields::loadWebserviceFields($this->recordModel->getModule(), $this);
 		$saveModel = new \Api\WebserviceStandard\Save();
 		$saveModel->init($this);
 		$saveModel->saveRecord($this->controller->request);
@@ -315,6 +341,8 @@ class Record extends \Api\Core\BaseAction
 
 	/**
 	 * Create record.
+	 *
+	 * @api
 	 *
 	 * @return array
 	 *
@@ -333,11 +361,15 @@ class Record extends \Api\Core\BaseAction
 	 *		@OA\Parameter(name="moduleName", in="path", @OA\Schema(type="string"), description="Module name", required=true, example="Contacts"),
 	 *		@OA\Parameter(name="X-ENCRYPTED", in="header", @OA\Schema(ref="#/components/schemas/Header-Encrypted"), required=true),
 	 *		@OA\Response(
-	 *			response=200,
-	 *			description="Contents of the response contains only id",
+	 *			response=200, description="Contents of the response contains only id",
 	 *			@OA\JsonContent(ref="#/components/schemas/BaseModule_Post_Record_Response"),
 	 *			@OA\XmlContent(ref="#/components/schemas/BaseModule_Post_Record_Response"),
 	 *			@OA\Link(link="GetRecordById", ref="#/components/links/GetRecordById")
+	 *		),
+	 *		@OA\Response(
+	 *			response=406, description="No input data",
+	 *			@OA\JsonContent(ref="#/components/schemas/Exception"),
+	 *			@OA\XmlContent(ref="#/components/schemas/Exception"),
 	 *		),
 	 * ),
 	 * @OA\Schema(

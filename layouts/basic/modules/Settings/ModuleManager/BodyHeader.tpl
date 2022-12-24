@@ -15,7 +15,7 @@
 			</div>
 			{assign var=VERIFY value=\App\YetiForce\Shop::verify()}
 			{if $VERIFY}
-				<a class="d-flex align-items-center text-warning mr-2 js-popover-tooltip" role="button" data-content="{$VERIFY}" title="{\App\Purifier::encodeHtml('<span class="yfi yfi-shop-alert mr-1"></span>')}{\App\Language::translate('LBL_YETIFORCE_SHOP')}"
+				<a class="d-flex align-items-center text-warning mr-2 js-popover-tooltip" data-content="{$VERIFY}" aria-label="{\App\Language::translate('LBL_YETIFORCE_SHOP')}"
 					{if $USER_MODEL->isAdminUser()} href="index.php?module=YetiForce&parent=Settings&view=Shop" {else} href="#" {/if}>
 					<span class="yfi yfi-shop-alert fa-2x"></span>
 				</a>
@@ -51,7 +51,7 @@
 					<a class="btn btn-light c-header__btn ml-2" title="{\App\Language::translate('LBL_YETIFORCE_ISSUES', $QUALIFIED_MODULE)}" role="button" href="https://github.com/YetiForceCompany/YetiForceCRM/issues" target="_blank" rel="noreferrer noopener">
 						<span class="fas fa-bug fa-fw"></span>
 					</a>
-					<a class="btn btn-light c-header__btn ml-2" title="YetiForceCRM" role="button" href="#" data-toggle="modal" data-target="#yetiforceDetails">
+					<a class="btn btn-light c-header__btn ml-2 js-show-modal" title="YetiForceCRM" role="button" data-url="index.php?module=AppComponents&view=YetiForceDetailModal" data-js="click">
 						<span class="fas fa-info-circle fa-fw"></span>
 					</a>
 				</div>
@@ -67,27 +67,29 @@
 							{assign var="HREF" value='#'}
 							{assign var="ICON_PATH" value=$obj->getIconPath()}
 							{assign var="LINK" value=$obj->convertToNativeLink()}
-							{assign var="ICON" value=$obj->getHeaderIcon()}
+							{assign var="ICON" value=$obj->getIcon()}
 							{assign var="TITLE" value=$obj->getLabel()}
 							{assign var="CHILD_LINKS" value=$obj->getChildLinks()}
 							{if !empty($LINK)}
 								{assign var="HREF" value=$LINK}
 							{/if}
 							<div class="o-action-menu__item">
-								<a class="c-header__btn ml-2 btn btn js-popover-tooltip {if $obj->getClassName()|strrpos:"btn-" === false}btn-light {$obj->getClassName()}{else}{$obj->getClassName()}{/if} {if !empty($CHILD_LINKS)}dropdownMenu{/if}" href="{$HREF}" data-placement="bottom"
+								<a class="c-header__btn ml-2 btn btn js-popover-tooltip {if $obj->getClassName() && strrpos($obj->getClassName(),"btn-") !== false}{$obj->getClassName()}{else}btn-light {$obj->getClassName()}{/if} {if !empty($CHILD_LINKS)}dropdownMenu{/if}" href="{$HREF}" data-placement="bottom"
 									role="button" data-js="popover" data-content="{\App\Language::translate($TITLE)}"
 									{if isset($obj->linkdata) && $obj->linkdata && is_array($obj->linkdata)}
 										{foreach item=DATA_VALUE key=DATA_NAME from=$obj->linkdata}
 											data-{$DATA_NAME}="{$DATA_VALUE}"
 										{/foreach}
 									{/if}>
-									{if $ICON}
-										<span class="{$ICON}" title="{\App\Language::translate($TITLE)}"></span>
-										<span class="c-header__label--sm-down">{\App\Language::translate($TITLE)}</span>
-									{/if}
 									{if $ICON_PATH}
-										<img src="{$ICON_PATH}" alt="{\App\Language::translate($TITLE)}" title="{\App\Language::translate($TITLE)}" />
+										<img src="{$ICON_PATH|escape}" alt="{\App\Language::translate($TITLE)}" title="{\App\Language::translate($TITLE)}" />
+									{elseif $ICON}
+										<span class="{$ICON|escape}" title="{\App\Language::translate($TITLE, $obj->getModuleName())}"></span>
 									{/if}
+									{if !empty($obj->linkdata['auto-refresh'])}
+										<span class="badge badge-danger d-none mr-1">0</span>
+									{/if}
+									<span class="c-header__label--sm-down">{\App\Language::translate($TITLE, $obj->getModuleName())}</span>
 								</a>
 								{if !empty($CHILD_LINKS)}
 									<ul class="dropdown-menu">

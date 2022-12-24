@@ -3,7 +3,8 @@
 /**
  * Order map file.
  *
- * The file is part of the paid functionality. Using the file is allowed only after purchasing a subscription. File modification allowed only with the consent of the system producer.
+ * The file is part of the paid functionality. Using the file is allowed only after purchasing a subscription.
+ * File modification allowed only with the consent of the system producer.
  *
  * @package Integration
  *
@@ -191,16 +192,16 @@ class Order extends Inventory
 			$parsedData = \array_replace_recursive($parsedData, $billingAddress);
 		}
 		if (!empty($parsedData['phone'])) {
-			$parsedData = $this->parsePhone('phone', $parsedData);
+			$parsedData = \App\Fields\Phone::parsePhone('phone', $parsedData);
 		}
 		if (!empty($parsedData['mobile'])) {
-			$parsedData = $this->parsePhone('mobile', $parsedData);
+			$parsedData = \App\Fields\Phone::parsePhone('mobile', $parsedData);
 		}
 		if (!empty($parsedData['phone_a'])) {
-			$parsedData = $this->parsePhone('phone_a', $parsedData);
+			$parsedData = \App\Fields\Phone::parsePhone('phone_a', $parsedData);
 		}
 		if (!empty($parsedData['phone_b'])) {
-			$parsedData = $this->parsePhone('phone_b', $parsedData);
+			$parsedData = \App\Fields\Phone::parsePhone('phone_b', $parsedData);
 		}
 		return $this->dataCrm = $parsedData;
 	}

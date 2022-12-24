@@ -15,13 +15,13 @@
 		type="hidden" id="hiddenDays" />
 	<input value="{\App\Purifier::encodeHtml(\App\Json::encode($HISTORY_PARAMS))}" type="hidden" id="historyParams" />
 	<input value="{\App\Purifier::encodeHtml(\App\Config::module('Calendar', 'SHOW_EDIT_FORM'))}" type="hidden" id="showEditForm" />
-	<div class="calendarViewContainer rowContent js-css-element-queries" data-js="css-element-queries">
+	<div class="calendarViewContainer rowContent js-css-element-queries js-calendar-container" data-js="css-element-queries|container">
 		<div class="o-calendar__container mt-2" data-js="offset">
 			<div class="d-none js-calendar__header-buttons">
 				<div class="js-calendar__view-btn mb-1 mb-sm-0 mr-1">
 					{include file=\App\Layout::getTemplatePath('ButtonViewLinks.tpl') LINKS=$QUICK_LINKS['SIDEBARLINK'] CLASS='listViewMassActions u-remove-dropdown-icon' BTN_CLASS='btn-light o-calendar__view-btn d-flex align-items-center'}
 				</div>
-				<div class="js-calendar__filter-container">
+				<div class="o-calendar__filter js-calendar__filter-container" data-js="clone container">
 					{if $CUSTOM_VIEWS|@count gt 0}
 						<ul class="nav nav-pills u-w-fit js-calendar__extended-filter-tab" data-js="change"
 							role="tablist">
@@ -32,14 +32,14 @@
 											data-cvid="{$CUSTOM_VIEW->getId()}" data-js="click">
 											<a class="nav-link{if !empty($HISTORY_PARAMS['cvid']) && $HISTORY_PARAMS['cvid'] eq {$CUSTOM_VIEW->getId()}} active show{/if}"
 												href="#"
-												{if $CUSTOM_VIEW->get('color')}style="color: {$CUSTOM_VIEW->get('color')};" {/if}
+												{if $CUSTOM_VIEW->get('color')}style="color: {\App\Purifier::encodeHtml($CUSTOM_VIEW->get('color'))};" {/if}
 												data-toggle="tab" role="tab"
 												aria-selected="{if !empty($HISTORY_PARAMS['cvid']) && $HISTORY_PARAMS['cvid'] eq {$CUSTOM_VIEW->getId()}}true{else}false{/if}">
 												{\App\Language::translate($CUSTOM_VIEW->get('viewname'), $MODULE_NAME)}
 												{if $CUSTOM_VIEW->get('description')}
 													<span class="js-popover-tooltip ml-1" data-toggle="popover"
 														data-placement="top"
-														data-content="{\App\Purifier::encodeHtml($CUSTOM_VIEW->get('description'))}" data-js="popover">
+														data-content="{\App\Purifier::encodeHtml(\App\Purifier::purifyHtml($CUSTOM_VIEW->get('description')))}" data-js="popover">
 														<span class="fas fa-info-circle"></span>
 													</span>
 												{/if}

@@ -18,17 +18,17 @@ namespace Api\Core;
 class Containers
 {
 	/** @var string[] List of available API containers */
-	public static $list = [
-		'WebserviceStandard', 'WebservicePremium', 'ManageConsents',
+	const LIST = [
+		'WebserviceStandard', 'WebservicePremium', 'ManageConsents', 'SMS', 'Token', 'PBX', 'OAuth'
 	];
 
 	/** @var string[] List of GUI tabs */
-	public static $listTab = [
-		'WebserviceStandard', 'WebservicePremium', 'ManageConsents',
+	const LIST_TAB = [
+		'WebserviceStandard', 'WebservicePremium', 'ManageConsents', 'SMS',
 	];
 
 	/** @var array List of db tables */
-	public static $listTables = [
+	const LIST_TABLES = [
 		'WebserviceStandard' => [
 			'user' => 'w_#__api_user',
 			'session' => 'w_#__api_session',
@@ -42,5 +42,16 @@ class Containers
 		'ManageConsents' => [
 			'user' => 'w_#__manage_consents_user',
 		],
+		'SMS' => [
+			'user' => 'w_#__sms_user',
+		],
+	];
+
+	/** @var array List of container configuration fields */
+	const CONFIG_FIELDS = [
+		'SMS' => ['name' => 'M', 'status' => 'M', 'type' => 'M', 'ips' => 'M'],
+		'PBX' => ['name' => 'M', 'status' => 'M', 'type' => 'M', 'ips' => 'O'],
+		'Token' => ['name' => 'M', 'status' => 'M', 'type' => 'M', 'ips' => 'O', 'url' => 'O'],
+		'OAuth' => ['name' => 'M', 'status' => 'M', 'type' => 'M', 'ips' => 'O'],
 	];
 }

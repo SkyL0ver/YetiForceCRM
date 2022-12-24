@@ -29,19 +29,23 @@ class Occurrences_GetRelatedMembers_Relation extends Vtiger_GetRelatedList_Relat
 		'comment_rel' => [
 			'label' => 'LBL_COMMENT_REL',
 			'uitype' => 21,
+			'maximumlength' => 65535
 		],
 		'rel_created_user' => [
 			'label' => 'LBL_RELATION_CREATED_USER',
 			'uitype' => 52,
+			'displaytype' => 10
 		],
 	];
 
 	/**
 	 * Field list.
 	 *
+	 * @param bool $editable
+	 *
 	 * @return array
 	 */
-	public function getFields()
+	public function getFields(bool $editable = false)
 	{
 		$fields = [];
 		$sourceModule = $this->relationModel->getParentModuleModel();
@@ -54,7 +58,9 @@ class Occurrences_GetRelatedMembers_Relation extends Vtiger_GetRelatedList_Relat
 			foreach ($data as $key => $value) {
 				$field->set($key, $value);
 			}
-			$fields[$fieldName] = $field;
+			if (!$editable || !$field->isEditableReadOnly()) {
+				$fields[$fieldName] = $field;
+			}
 		}
 		return $fields;
 	}

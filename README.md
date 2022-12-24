@@ -5,7 +5,7 @@
 [![Latest Stable Version](https://poser.pugx.org/yetiforce/yetiforce-crm/v/stable)](https://packagist.org/packages/yetiforce/yetiforce-crm)
 ![release date](https://img.shields.io/github/release-date/YetiForceCompany/YetiForceCRM)
 ![PHP Version](https://img.shields.io/packagist/php-v/yetiforce/yetiforce-crm)
-[![Tested on PHP 7.4 to nightly](https://img.shields.io/badge/tested%20on-PHP%207.4%20%7C%208.0%20%7C%208.1%20-brightgreen.svg?maxAge=2419200)](https://github.com/YetiForceCompany/YetiForceCRM/actions?query=workflow%3Atests)
+[![Tested on PHP 7.4 to nightly](https://img.shields.io/badge/tested%20on-PHP%207.4%20%7C%208.0%20%7C%208.1%20dev%20-brightgreen.svg?maxAge=2419200)](https://github.com/YetiForceCompany/YetiForceCRM/actions?query=workflow%3Atests)
 [![Download YetiForce CRM](https://img.shields.io/sourceforge/dt/yetiforce.svg)](https://sourceforge.net/projects/yetiforce/files/latest/download)
 [![GitHub contributors](https://img.shields.io/github/contributors/YetiForceCompany/YetiForceCRM.svg)](https://GitHub.com/YetiForceCompany/YetiForceCRM/graphs/contributors/)
 [![Crowdin](https://d322cqt584bo4o.cloudfront.net/yetiforcecrm/localized.svg)](https://crowdin.com/project/yetiforcecrm)
@@ -50,7 +50,7 @@
 	</a>
 </p>
 
-We design an innovative CRM system that is dedicated for large and medium sized companies. We dedicate it to everyone who values open source software, security and innovation. YetiForce was built on a rock-solid Vtiger foundation, but has hundreds of changes that help to accomplish even the most challenging tasks in the simplest way. Every function within the system was thought through and automated to ensure that all of them work together seamlessly and form a coherent integrity. We looked at the entire sales process and consequently refined the system, module by module. We have years of experience creating tailor made CRM software for a variety of different companies. Download it and have a first-hand experience.
+We design an innovative CRM system that is dedicated to large and medium-sized companies. We dedicate it to everyone who values open source software, security, and innovation. YetiForce was built on a rock-solid Vtiger foundation but has hundreds of changes that help to accomplish even the most challenging tasks in the simplest way. Every function within the system was thought through and automated to ensure that all of them work together seamlessly and form coherent integrity. We looked at the entire sales process and consequently refined the system, module by module. We have years of experience creating tailor-made CRM software for a variety of different companies. Download it and have a first-hand experience.
 
 ## 😎 Demos
 

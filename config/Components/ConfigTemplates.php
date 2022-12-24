@@ -7,12 +7,12 @@
  */
 return [
 	'AddressFinder' => [
-		'REMAPPING_OPENCAGE' => [
+		'remappingOpenCage' => [
 			'type' => 'function',
 			'default' => 'return null;',
 			'description' => 'The main function to remapping fields for OpenCage. It should be a function.',
 		],
-		'REMAPPING_OPENCAGE_FOR_COUNTRY' => [
+		'remappingOpenCageForCountry' => [
 			'type' => 'function',
 			'default' => "return [
 		'Australia' => function (\$row) {
@@ -339,42 +339,26 @@ return [
 		'footerName' => [
 			'default' => '',
 			'description' => 'Footer\'s name',
-			'validation' => function () {
-				return true;
-			},
-			'sanitization' => function () {
-				return \App\Purifier::purify(func_get_arg(0));
-			},
+			'validation' => fn () => true,
+			'sanitization' => fn () => \App\Purifier::purify(func_get_arg(0)),
 		],
 		'urlLinkedIn' => [
 			'default' => 'https://www.linkedin.com/groups/8177576',
 			'description' => 'LinkedIn URL',
-			'validation' => function () {
-				return true;
-			},
-			'sanitization' => function () {
-				return \App\Purifier::purify(func_get_arg(0));
-			},
+			'validation' => fn () => true,
+			'sanitization' => fn () => \App\Purifier::purify(func_get_arg(0)),
 		],
 		'urlTwitter' => [
 			'default' => 'https://twitter.com/YetiForceEN',
 			'description' => 'Twitter URL',
-			'validation' => function () {
-				return true;
-			},
-			'sanitization' => function () {
-				return \App\Purifier::purify(func_get_arg(0));
-			},
+			'validation' => fn () => true,
+			'sanitization' => fn () => \App\Purifier::purify(func_get_arg(0)),
 		],
 		'urlFacebook' => [
 			'default' => 'https://www.facebook.com/YetiForce-CRM-158646854306054/',
 			'description' => 'Facebook URL',
-			'validation' => function () {
-				return true;
-			},
-			'sanitization' => function () {
-				return \App\Purifier::purify(func_get_arg(0));
-			},
+			'validation' => fn () => true,
+			'sanitization' => fn () => \App\Purifier::purify(func_get_arg(0)),
 		],
 	],
 	'MeetingService' => [
@@ -393,6 +377,35 @@ return [
 			'description' => 'Determines the way the default country in the phone field is downloaded. True retrieves the value from the countries panel, false retrieves the country from the users default language.',
 			'validation' => '\App\Validator::bool',
 			'sanitization' => '\App\Purifier::bool',
+		],
+		'advancedVerification' => [
+			'default' => true,
+			'description' => 'Enable advanced phone number validation. Enabling it will block saving invalid phone number.',
+			'validation' => '\App\Validator::bool',
+			'sanitization' => '\App\Purifier::bool',
+		],
+		'advancedFormat' => [
+			'default' => new \Nette\PhpGenerator\PhpLiteral('\libphonenumber\PhoneNumberFormat::INTERNATIONAL'),
+			'description' => "Phone number display format. Values:\nfalse - formatting is disabled \n\\libphonenumber\\PhoneNumberFormat::E164 (0) - `+48446681800`, `+48884998123`\n\\libphonenumber\\PhoneNumberFormat::INTERNATIONAL (1) - `+48 44 668 18 00`, `+48 884 998 123`\n\\libphonenumber\\PhoneNumberFormat::NATIONAL (2) - `44 668 18 00`, `884 998 123`\n\\libphonenumber\\PhoneNumberFormat::RFC3966 (3) - `tel:+48-44-668-18-00`, `tel:+48-884-998-123`.",
+			'validation' => function () {
+				return \in_array(func_get_arg(0), [
+					false,
+					\libphonenumber\PhoneNumberFormat::E164,
+					\libphonenumber\PhoneNumberFormat::INTERNATIONAL,
+					\libphonenumber\PhoneNumberFormat::NATIONAL,
+					\libphonenumber\PhoneNumberFormat::RFC3966,
+				]);
+			},
+		],
+	],
+	'Pbx' => [
+		'phoneSearchField' => [
+			'default' => [
+				'Contacts' => ['phone', 'mobile'],
+				'Accounts' => ['phone', 'otherphone'],
+				'Leads' => ['phone', 'mobile', 'fax'],
+			],
+			'description' => 'Map of modules and fields to search for relations by telephone number, for call history.',
 		],
 	],
 	'InterestsConflict' => [
@@ -439,9 +452,7 @@ return [
 		'modules' => [
 			'default' => [],
 			'description' => 'List of modules where the conflict of interests mechanism is enabled.',
-			'validation' => function () {
-				return true;
-			},
+			'validation' => fn () => true,
 		],
 	],
 	'Pdf' => [

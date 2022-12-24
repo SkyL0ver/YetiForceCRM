@@ -34,7 +34,7 @@
 							<img class="q-message-avatar gt-sm mr-2" alt="userImage" src="{$IMAGE['url']}">
 						{else}
 							<div class="q-message-avatar gt-sm visible u-fs-26px flex flex-center">
-								<span class="{if $COMMENT->get('customer')}yfi-public-webservice{else}fas fa-user{/if}"></span>
+								<span class="{if $COMMENT->get('customer')}yfi-share-portal-record{else}fas fa-user{/if}"></span>
 							</div>
 						{/if}
 						<div class="full-width">
@@ -78,8 +78,9 @@
 												title="{$CHILD_COMMENTS_COUNT}&nbsp;{if $CHILD_COMMENTS_COUNT eq 1}{\App\Language::translate('LBL_REPLY',$MODULE_NAME)}{else}{\App\Language::translate('LBL_REPLIES',$MODULE_NAME)}{/if}"
 												data-js="click">
 												<span class="js-child-comments-count">{$CHILD_COMMENTS_COUNT}</span>
-												&nbsp;
-												<span class="fas fa-share"></span>
+												{if empty($IS_READ_ONLY)}
+													<span class="fas fa-share ml-1"></span>
+												{/if}
 											</button>
 										</span>
 										<span class="d-none hideThreadBlock" data-child-comments-count="{$CHILD_COMMENTS_COUNT}">

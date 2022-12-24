@@ -57,7 +57,7 @@ class Gantt {
 						id: 4,
 						label: app.vtranslate('JS_DAYS'),
 						value: (task) => {
-							return task.duration / 24 / 60 / 60;
+							return task.duration / 24 / 60 / 60 / 1000;
 						},
 						width: 75,
 						style: {
@@ -203,8 +203,8 @@ class Gantt {
 				LANG.JS_JULY,
 				LANG.JS_AUGUST,
 				LANG.JS_SEPTEMBER,
-				LANG.JS_NOVEMBER,
 				LANG.JS_OCTOBER,
+				LANG.JS_NOVEMBER,
 				LANG.JS_DECEMBER
 			],
 			monthsShort: [
@@ -217,8 +217,8 @@ class Gantt {
 				LANG.JS_JUL,
 				LANG.JS_AUG,
 				LANG.JS_SEP,
-				LANG.JS_NOV,
 				LANG.JS_OCT,
+				LANG.JS_NOV,
 				LANG.JS_DEC
 			],
 			ordinal: (n) => `${n}`,
@@ -234,22 +234,16 @@ class Gantt {
 	/**
 	 * Filter project data
 	 *
-	 * @param {Object} projectData
+	 * @param {Object} _projectData
 	 * @returns {Object}
 	 */
-	filterProjectData(projectData) {
+	filterProjectData(_projectData) {
 		let tasks = this.allTasks.map((task) => Object.assign({}, task));
 		for (let moduleName in this.filter.status) {
 			if (this.filter.status.hasOwnProperty(moduleName)) {
 				const visibleLabels = this.filter.status[moduleName].map((status) => status.label);
 				tasks = tasks.filter((task) => {
-					if (task.module !== moduleName) {
-						return true;
-					}
-					if (visibleLabels.indexOf(task.status_label) >= 0) {
-						return true;
-					}
-					return false;
+					return task.module !== moduleName || visibleLabels.indexOf(task.status_label) >= 0;
 				});
 			}
 		}

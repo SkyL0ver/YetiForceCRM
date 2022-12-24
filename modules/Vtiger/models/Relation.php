@@ -34,6 +34,11 @@ class Vtiger_Relation_Model extends \App\Base
 	 */
 	protected $customViewList;
 
+	/**
+	 * @var array Event handler exceptions
+	 */
+	protected $handlerExceptions = [];
+
 	//one to many
 	const RELATION_O2M = 1;
 
@@ -239,7 +244,7 @@ class Vtiger_Relation_Model extends \App\Base
 	/**
 	 * Get relation type.
 	 *
-	 * @return int|self::RELATION_O2M|self::RELATION_M2M
+	 * @return int
 	 */
 	public function getRelationType()
 	{
@@ -600,6 +605,22 @@ class Vtiger_Relation_Model extends \App\Base
 	}
 
 	/**
+	 * Get delete url from parent record.
+	 *
+	 * @param int $relatedRecordId
+	 *
+	 * @return string
+	 */
+	public function getDeleteUrl(int $relatedRecordId)
+	{
+		$parentModuleName = $this->getParentModuleModel()->getName();
+		$relatedModuleName = $this->getRelationModuleModel()->getName();
+		$recordId = $this->getParentRecord()->getId();
+
+		return "index.php?module={$parentModuleName}&related_module={$relatedModuleName}&action=RelationAjax&mode=deleteRelation&related_record_list=[{$relatedRecordId}]&src_record={$recordId}&relationId={$this->getId()}";
+	}
+
+	/**
 	 * Add relation.
 	 *
 	 * @param int       $sourceRecordId
@@ -621,18 +642,45 @@ class Vtiger_Relation_Model extends \App\Base
 			'destinationModule' => $this->getRelationModuleModel()->getName(),
 			'relationId' => $this->getId(),
 		];
-		$eventHandler = new \App\EventHandler();
-		$eventHandler->setModuleName($sourceModuleName);
+		$eventHandler = (new \App\EventHandler())->setModuleName($this->getRelationModuleModel()->getName());
+		$eventHandlerBySource = (new \App\EventHandler())->setModuleName($sourceModuleName);
+		if (!empty($this->getHandlerExceptions())) {
+			$eventHandler->setExceptions($this->getHandlerExceptions());
+		}
 		foreach ($destinationRecordIds as $destinationRecordId) {
 			$data['destinationRecordId'] = $destinationRecordId;
-			$eventHandler->setParams($data);
-			$eventHandler->trigger('EntityBeforeLink');
+			$eventHandler->setParams($data)->trigger('EntityBeforeLink');
+			$eventHandlerBySource->setParams($data)->trigger('EntityBeforeLinkForSource');
 			if ($result = $relationModel->create($sourceRecordId, $destinationRecordId)) {
 				\CRMEntity::trackLinkedInfo($sourceRecordId);
 				$eventHandler->trigger('EntityAfterLink');
+				$eventHandler->trigger('EntityAfterLinkForSource');
 			}
 		}
 		return $result;
+	}
+
+	/**
+	 * Set handler exceptions.
+	 *
+	 * @param array $exceptions
+	 *
+	 * @return $this
+	 */
+	public function setHandlerExceptions(array $exceptions)
+	{
+		$this->handlerExceptions = $exceptions;
+		return $this;
+	}
+
+	/**
+	 * get handler exceptions.
+	 *
+	 * @return array
+	 */
+	public function getHandlerExceptions(): array
+	{
+		return $this->handlerExceptions;
 	}
 
 	/**
@@ -715,22 +763,25 @@ class Vtiger_Relation_Model extends \App\Base
 			$result = true;
 		} elseif (!($this->getRelationField() && $this->getRelationField()->isMandatory())) {
 			$destinationModuleFocus = $this->getRelationModuleModel()->getEntityInstance();
-			$eventHandler = new \App\EventHandler();
-			$eventHandler->setModuleName($sourceModuleName);
-			$eventHandler->setParams([
+			$params = [
 				'CRMEntity' => $destinationModuleFocus,
 				'sourceModule' => $sourceModuleName,
 				'sourceRecordId' => $sourceRecordId,
 				'destinationModule' => $destinationModuleName,
 				'destinationRecordId' => $relatedRecordId,
 				'relatedName' => $this->get('name'),
-			]);
+			];
+			$eventHandler = (new \App\EventHandler())->setModuleName($destinationModuleName)->setParams($params);
+			$eventHandlerBySource = (new \App\EventHandler())->setModuleName($sourceModuleName)->setParams($params);
 			$eventHandler->trigger('EntityBeforeUnLink');
+			$eventHandlerBySource->trigger('EntityBeforeUnLinkForSource');
 			if ($result = $this->getTypeRelationModel()->delete($sourceRecordId, $relatedRecordId)) {
 				$destinationModuleFocus->trackUnLinkedInfo($sourceRecordId);
 				$eventHandler->trigger('EntityAfterUnLink');
+				$eventHandlerBySource->trigger('EntityAfterUnLinkForSource');
 			}
 		}
+
 		return $result;
 	}
 
@@ -850,15 +901,21 @@ class Vtiger_Relation_Model extends \App\Base
 		return $relationModels;
 	}
 
-	public function getAutoCompleteField($recordModel)
+	/**
+	 * Get autocomplete fields.
+	 *
+	 * @param \Vtiger_Record_Model $recordModel
+	 *
+	 * @return array
+	 */
+	public function getAutoCompleteField($recordModel): array
 	{
 		$fields = [];
 		$fieldsReferenceList = [];
 		$excludedModules = ['Users'];
 		$relatedModel = $this->getRelationModuleModel();
-		$relatedModuleName = $relatedModel->getName();
 		if ($relationField = $this->getRelationField()) {
-			$fields[$relationField->getFieldName()] = $recordModel->getId();
+			$fields[$relationField->getName()] = $recordModel->getId();
 		}
 		$parentModelFields = $this->getParentModuleModel()->getFields();
 		foreach ($parentModelFields as $fieldName => $fieldModel) {
@@ -867,9 +924,6 @@ class Vtiger_Relation_Model extends \App\Base
 				foreach ($referenceList as $module) {
 					if (!\in_array($module, $excludedModules) && 'userCreator' !== !$fieldModel->getFieldDataType()) {
 						$fieldsReferenceList[$module] = $fieldModel;
-					}
-					if ($relatedModuleName == $module) {
-						$fields[$fieldName] = $recordModel->getId();
 					}
 				}
 			}
@@ -882,13 +936,14 @@ class Vtiger_Relation_Model extends \App\Base
 					if (\array_key_exists($module, $fieldsReferenceList) && $module != $recordModel->getModuleName()) {
 						$parentFieldModel = $fieldsReferenceList[$module];
 						$relId = $recordModel->get($parentFieldModel->getName());
-						if ('' != $relId && 0 != $relId) {
+						if (!empty($relId) && \App\Record::isExists($relId)) {
 							$fields[$fieldName] = $relId;
 						}
 					}
 				}
 			}
 		}
+
 		return $fields;
 	}
 
@@ -945,6 +1000,11 @@ class Vtiger_Relation_Model extends \App\Base
 			$dbCommand->delete('vtiger_relatedlists', ['relation_id' => $relationId])->execute();
 			$dbCommand->delete('vtiger_relatedlists_fields', ['relation_id' => $relationId])->execute();
 			App\Db::getInstance('admin')->createCommand()->delete('a_yf_relatedlists_inv_fields', ['relation_id' => $relationId])->execute();
+			$widgets = (new \App\Db\Query())->select(['id', 'tabid'])->from('vtiger_widgets')->where(['and', ['type' => 'RelatedModule'], ['like', 'data', "\"relation_id\":{$relationId},"]])->createCommand()->queryAllByGroup();
+			foreach ($widgets as $widgetId => $tabId) {
+				$dbCommand->delete('vtiger_widgets', ['id' => $widgetId])->execute();
+				\App\Cache::delete('ModuleWidgets', $tabId);
+			}
 		}
 		\App\Relation::clearCacheById($relationId);
 	}

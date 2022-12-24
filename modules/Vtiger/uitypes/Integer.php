@@ -6,6 +6,7 @@
  * The Initial Developer of the Original Code is vtiger.
  * Portions created by vtiger are Copyright (C) vtiger.
  * All Rights Reserved.
+ * Contributor(s): YetiForce S.A.
  * *********************************************************************************** */
 
 class Vtiger_Integer_UIType extends Vtiger_Base_UIType
@@ -21,15 +22,17 @@ class Vtiger_Integer_UIType extends Vtiger_Base_UIType
 	{
 		$this->validate($value, true);
 		preg_match_all('/\D+/', $value, $matches);
+		$matches[0] = array_map('trim', $matches[0]);
 		if ($matches && $operators = \array_intersect(array_map('App\\Purifier::decodeHtml', $matches[0]), App\Conditions\QueryFields\IntegerField::$extendedOperators)) {
 			$value = \App\Purifier::decodeHtml($value);
-			$valueConvert = '';
-			foreach ($operators as $operator) {
-				$ev = explode($operator, $value);
-				$valueConvert .= $operator . (int) $ev[1];
-				$value = str_replace($valueConvert, '', $value);
+			$valueConvert = [];
+			$operators = array_values($operators);
+			$explodeBySpace = explode(' ', $value);
+			foreach ($explodeBySpace as $key => $valueToCondition) {
+				$ev = explode($operators[$key], $valueToCondition);
+				$valueConvert[] = $operators[$key] . (int) $ev[1] . '';
 			}
-			return $valueConvert;
+			return implode(' ', $valueConvert);
 		}
 		return $this->getDBValue($value);
 	}

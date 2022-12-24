@@ -2,7 +2,7 @@
 /**
  * Webservice premium container - A store functionality - creates a record in an advanced module (orders) file.
  *
- * @package Api
+ * @package API
  *
  * @copyright YetiForce S.A.
  * @license   YetiForce Public License 5.0 (licenses/LicenseEN.txt or yetiforce.com)
@@ -41,7 +41,7 @@ class SaveInventory extends \Api\Core\BaseAction
 		parent::checkPermission();
 		$moduleName = $this->controller->request->getModule();
 		$this->recordModel = \Vtiger_Record_Model::getCleanInstance($moduleName);
-		if (!$this->recordModel->isCreateable()) {
+		if (!$this->recordModel->isCreatable()) {
 			throw new \Api\Core\Exception('No permissions to create record', 403);
 		}
 	}
@@ -106,7 +106,7 @@ class SaveInventory extends \Api\Core\BaseAction
 			return $result;
 		}
 		foreach ($this->moduleModel->getFields() as $fieldName => $fieldModel) {
-			if (!$fieldModel->isWritable()) {
+			if (!$fieldModel->isWritable('Create')) {
 				continue;
 			}
 			if ($this->controller->request->has($fieldName)) {
@@ -188,12 +188,25 @@ class SaveInventory extends \Api\Core\BaseAction
 				],
 			];
 		}
-		$this->inventory = new \Api\WebservicePremium\Inventory($this->moduleName, $this->controller->request->getArray('inventory'), $this->getUserStorageId(), $this->getParentCrmId());
+		$this->inventory = new \Api\WebservicePremium\Inventory($this->moduleName, $this);
 		if ($this->getCheckStockLevels() && !$this->inventory->validate()) {
 			return [
 				'errors' => $this->inventory->getErrors(),
 			];
 		}
 		return [];
+	}
+
+	/**
+	 * Get information, whether to check inventory levels.
+	 *
+	 * @return bool
+	 */
+	public function getCheckStockLevels(): bool
+	{
+		if (\Api\WebservicePremium\Privilege::USER_PERMISSIONS !== $this->getPermissionType() && ($parentId = $this->getParentCrmId())) {
+			return (bool) \Vtiger_Record_Model::getInstanceById($parentId)->get('check_stock_levels');
+		}
+		return false;
 	}
 }
