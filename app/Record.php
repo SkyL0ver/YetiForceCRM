@@ -19,12 +19,21 @@ use vtlib\Functions;
  */
 class Record
 {
+	/** @var int Record state - Deleted permanently */
+	public const STATE_DELETED = -1;
 	/** @var int Record state - Active */
 	public const STATE_ACTIVE = 0;
-	/** @var int Record state - Deleted */
-	public const STATE_DELETED = 1;
+	/** @var int Record state - Deleted (Recycle bin) */
+	public const STATE_TRASH = 1;
 	/** @var int Record state - Archived */
 	public const STATE_ARCHIVED = 2;
+
+	/** @var string[] Possible record states */
+	public const STATES = [
+		self::STATE_ACTIVE => 'Active',
+		self::STATE_TRASH => 'Trash',
+		self::STATE_ARCHIVED => 'Archived'
+	];
 
 	/**
 	 * Get label.
@@ -275,7 +284,7 @@ class Record
 	{
 		$recordMetaData = Functions::getCRMRecordMetadata($recordId);
 		return isset($recordMetaData)
-			&& (null === $state ? self::STATE_DELETED !== $recordMetaData['deleted'] : $recordMetaData['deleted'] === $state)
+			&& (null === $state ? self::STATE_TRASH !== $recordMetaData['deleted'] : $recordMetaData['deleted'] === $state)
 			&& ($moduleName ? $recordMetaData['setype'] === $moduleName : true);
 	}
 
@@ -311,25 +320,24 @@ class Record
 	 *
 	 * @param int $recordId
 	 *
-	 * @return string
+	 * @return int
 	 */
-	public static function getState($recordId)
+	public static function getState(int $recordId): int
 	{
 		$metadata = Functions::getCRMRecordMetadata($recordId);
-		switch ($metadata['deleted'] ?? 3) {
-			case 0:
-				$state = 'Active';
-				break;
-			case 1:
-				$state = 'Trash';
-				break;
-			case 2:
-				$state = 'Archived';
-				break;
-			default:
-				$state = null;
-		}
-		return $state;
+		return $metadata['deleted'] ?? self::STATE_DELETED;
+	}
+
+	/**
+	 * Get record state label.
+	 *
+	 * @param int $recordId
+	 *
+	 * @return string {@see \App\Record::STATES}
+	 */
+	public static function getStateLabel(int $recordId): string
+	{
+		return self::STATES[self::getState($recordId)] ?? '';
 	}
 
 	/**
@@ -417,11 +425,9 @@ class Record
 		if (empty($moduleName)) {
 			$moduleName = self::getType($id);
 		}
-		if ('Trash' === $state) {
-			$label = '<s>' . $label . '</s>';
-		}
+		$deleted = 'Trash' === $state;
 		if ($id && !Privilege::isPermitted($moduleName, 'DetailView', $id)) {
-			return $label;
+			return $deleted ? "<s>{$label}</s>" : $label;
 		}
 		$moduleModel = \Vtiger_Module_Model::getInstance($moduleName);
 		$url = $moduleModel->getDetailViewUrl($id);
@@ -429,6 +435,59 @@ class Record
 			$url = \Config\Main::$site_URL . $url;
 		}
 		$label = $moduleModel->getCustomLinkLabel($id, $label);
-		return "<a class=\"modCT_{$moduleName} showReferenceTooltip js-popover-tooltip--record\" href=\"{$url}\">$label</a>";
+		$label = "<a class=\"modCT_{$moduleName} showReferenceTooltip js-popover-tooltip--record\" href=\"{$url}\">{$label}</a>";
+
+		return $deleted ? "<s>{$label}</s>" : $label;
+	}
+
+	/**
+	 * Check if record is related in relations or inventory.
+	 *
+	 * @param \Vtiger_Record_Model $parentRecordModel
+	 * @param bool                 $checkRelations
+	 * @param bool                 $checkInventory
+	 *
+	 * @return string|false|null
+	 */
+	public static function isRelated(\Vtiger_Record_Model $parentRecordModel, bool $checkRelations = true, bool $checkInventory = false)
+	{
+		$parentModuleModel = $parentRecordModel->getModule();
+		$relatedRecord = false;
+		if ($checkRelations) {
+			$relations = \Vtiger_Relation_Model::getAllRelations($parentModuleModel, false, true, true);
+			foreach ($relations as $relationModel) {
+				$relationModel->set('parentRecord', $parentRecordModel);
+				$queryGenerator = $relationModel->getQuery();
+				$queryGenerator->permissions = false;
+				$queryGenerator->clearFields()->setFields(['id']);
+				if ($result = $queryGenerator->createQuery()->scalar()) {
+					$relatedRecord = $result;
+					break;
+				}
+			}
+		}
+		if ($checkInventory && !$relatedRecord) {
+			$recordId = $parentRecordModel->getId();
+			$parentModuleName = $parentModuleModel->getName();
+			$allModules = \vtlib\Functions::getAllModules(false, true);
+			foreach ($allModules as $moduleData) {
+				$moduleModel = \Vtiger_Module_Model::getInstance($moduleData['name']);
+				$inventoryModel = \Vtiger_Inventory_Model::getInstance($moduleData['name']);
+				if ($moduleModel->isInventory()
+				 && ($inventoryModel = \Vtiger_Inventory_Model::getInstance($moduleData['name']))
+				 && ($inventoryNameField = $inventoryModel->getField('name'))
+				 && ($modules = $inventoryNameField->getModules())
+				 && \in_array($parentModuleName, $modules)
+				 ) {
+					$inventoryTable = $inventoryModel->getDataTableName();
+					$result = (new \App\Db\Query())->select(['crmid'])->from($inventoryTable)->where(['name' => $recordId])->scalar();
+					if ($result) {
+						$relatedRecord = $result;
+						break;
+					}
+				}
+			}
+		}
+		return $relatedRecord;
 	}
 }

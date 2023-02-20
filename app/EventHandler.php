@@ -38,6 +38,18 @@ class EventHandler
 	public const EDIT_VIEW_CHANGE_VALUE = 'EditViewChangeValue';
 	/** @var string Record converter after create record */
 	public const RECORD_CONVERTER_AFTER_SAVE = 'RecordConverterAfterSave';
+	/** @var string This handler executes before the record is deleted */
+	public const ENTITY_BEFORE_DELETE = 'EntityBeforeDelete';
+	/**
+	 * @var string This handler executes before the record is deleted and gives the option to return a response to the user.
+	 *             Usage: custom record deletion verification.
+	 */
+	public const PRE_DELETE = 'PreDelete';
+	/**
+	 * @var string This handler executes before the record state changes and gives the possibility to return a response to the user.
+	 *             Usage: custom record state change verification.
+	 */
+	public const PRE_STATE_CHANGE = 'PreStateChange';
 
 	/**
 	 * Handler types.
@@ -498,10 +510,10 @@ class EventHandler
 			throw new \App\Exceptions\AppException('LBL_HANDLER_NOT_FOUND');
 		}
 		if (isset($this->handlers[$className])) {
-			$handler = $this->handlers[$className];
+			$handlerInstance = $this->handlers[$className];
 		} else {
-			$handler = $this->handlers[$className] = new $className();
+			$handlerInstance = $this->handlers[$className] = new $className();
 		}
-		return $handler->{$function}($this);
+		return $handlerInstance->{$function}($this, $handler);
 	}
 }

@@ -3433,7 +3433,7 @@ const app = (window.app = {
 				}
 			} else {
 				let widget, block;
-				if (responseData.result._reload) {
+				if (responseData.result && responseData.result._reload) {
 					window.location.reload();
 				} else if (app.getUrlVar('mode') === 'showRelatedList') {
 					app.pageController.loadRelatedList();
@@ -3450,10 +3450,247 @@ const app = (window.app = {
 		}
 	},
 	/**
+	 * Handler validation for ajax (quick edit)
+	 * @param {Object} params
+	 * @param {String} mode
+	 * @returns
+	 */
+	handlerEventAjax: function (params, mode = '') {
+		const aDeferred = $.Deferred();
+		let paramsTemp = JSON.parse(JSON.stringify(params));
+		if (mode) paramsTemp.data.mode = mode;
+
+		AppConnector.request(paramsTemp)
+			.done((data) => {
+				const response = data.result;
+				let lock = false;
+				let handlers = Object.fromEntries(
+					Object.entries(response).filter(([_key, val]) => typeof val === 'object' && val.result === false)
+				);
+				for (let i in handlers) {
+					let handler = handlers[i];
+					switch (handler.type) {
+						case 'confirm':
+							app.showConfirmModal({
+								text: handler.message || '',
+								confirmedCallback: () => {
+									let handlers = {};
+									if (typeof params.data.skipHandlers !== 'undefined') {
+										handlers = JSON.parse(params.data.skipHandlers);
+									}
+									handlers[i] = handler.hash;
+									params.data.skipHandlers = JSON.stringify(handlers);
+									app.handlerEventAjax(params, mode).then((responsePart, data) => {
+										aDeferred.resolve(responsePart, data);
+									});
+								},
+								rejectedCallback: () => {
+									aDeferred.resolve(false);
+								}
+							});
+							lock = true;
+							break;
+						case 'modal':
+							app.showModalWindow(null, handler.url, function (modalContainer) {
+								app.registerModalController(undefined, modalContainer, function (_, instance) {
+									instance.handlerEvent = aDeferred;
+									instance.handlerResponse = handler;
+									instance.form = params;
+								});
+							});
+							lock = true;
+							break;
+						case 'notice':
+						default:
+							app.showNotify({
+								text: handler.message ? handler.message : app.vtranslate('JS_ERROR2'),
+								type: 'error'
+							});
+							break;
+					}
+				}
+				if (Object.keys(handlers).length <= 0) {
+					aDeferred.resolve(true, response);
+				} else if (!lock) {
+					aDeferred.resolve(false, response);
+				}
+			})
+			.fail((_textStatus, _errorThrown) => {
+				app.showNotify({
+					text: app.vtranslate('JS_ERROR'),
+					type: 'error'
+				});
+				aDeferred.resolve(false);
+			});
+
+		return aDeferred.promise();
+	},
+	/**
+	 * Handler validation for jQuery FORM
+	 * @param {jQuery} params
+	 * @param {String} mode
+	 * @returns
+	 */
+	handlerEventForm: function (form, mode = '') {
+		const aDeferred = $.Deferred();
+		document.progressLoader = $.progressIndicator({
+			message: app.vtranslate('JS_SAVE_LOADER_INFO'),
+			position: 'html',
+			blockInfo: {
+				enabled: true
+			}
+		});
+		let formData = new FormData(form[0]);
+		if (mode) formData.append('mode', mode);
+		AppConnector.request({
+			async: false,
+			url: 'index.php',
+			type: 'POST',
+			data: formData,
+			processData: false,
+			contentType: false
+		})
+			.done((data) => {
+				document.progressLoader.progressIndicator({ mode: 'hide' });
+				let response = data.result;
+				for (let i in response) {
+					let handler = response[i];
+					switch (handler.type) {
+						case 'confirm':
+							app.showConfirmModal({
+								text: handler.message || '',
+								confirmedCallback: () => {
+									let handlers = {},
+										handlerElement = form.find('input[name="skipHandlers"]');
+									if (handlerElement.length) {
+										handlers = JSON.parse(handlerElement.val());
+										handlerElement.remove();
+									}
+									handlers[i] = handler.hash;
+									form.append($('<input>', { name: 'skipHandlers', value: JSON.stringify(handlers), type: 'hidden' }));
+									form.submit();
+								}
+							});
+							break;
+						case 'modal':
+							app.showModalWindow(null, handler.url, function (modalContainer) {
+								app.registerModalController(undefined, modalContainer, function (_, instance) {
+									instance.handlerEvent = aDeferred;
+									instance.handlerResponse = handler;
+									instance.form = form;
+								});
+							});
+							break;
+						case 'notice':
+						default:
+							app.showNotify({
+								text: handler.message ? handler.message : app.vtranslate('JS_ERROR'),
+								type: 'error'
+							});
+							if (handler.hoverField) {
+								form.find('[name="' + handler.hoverField + '"]').focus();
+							}
+							break;
+					}
+				}
+				aDeferred.resolve(data.result.length <= 0);
+			})
+			.fail((textStatus, errorThrown) => {
+				document.progressLoader.progressIndicator({ mode: 'hide' });
+				app.showNotify({
+					text: app.vtranslate('JS_ERROR'),
+					type: 'error'
+				});
+				app.errorLog(textStatus, errorThrown);
+				aDeferred.resolve(false);
+			});
+
+		return aDeferred.promise();
+	},
+
+	/**
+	 * Handler validation
+	 * @param {*} params jQuery FORM or object or url
+	 * @param {String} mode
+	 * @param {Boolean} skip Skip the verification action
+	 * @returns
+	 */
+	handlerEvent: function (params, mode = '', skip = false) {
+		const aDeferred = $.Deferred();
+		if (skip) {
+			aDeferred.resolve(true);
+		} else if (params instanceof jQuery && params.is('form')) {
+			app.handlerEventForm(params, mode).done((response) => {
+				aDeferred.resolve(response);
+			});
+		} else {
+			if ('string' === typeof params) {
+				params = {
+					data: app.convertUrlToObject(params),
+					async: false,
+					dataType: 'json'
+				};
+			}
+			app.handlerEventAjax(params, mode).done((response, data) => {
+				aDeferred.resolve(response, data);
+			});
+		}
+
+		return aDeferred.promise();
+	},
+
+	/**
 	 * Function to register the records events
 	 * @param {jQuery} container - Jquery container.
 	 */
 	registerRecordActionsEvents: function (container) {
+		container.on('click', '.js-record-action', function (event) {
+			event.stopPropagation();
+			let target = $(this),
+				addBtnIcon = target.data('addBtnIcon'),
+				presaveMode = target.data('presave-mode') || '';
+			let params = {
+				icon: false,
+				title: target.data('content'),
+				confirmedCallback: () => {
+					let url = target.data('url');
+					app.handlerEvent(url, presaveMode).done((response, data) => {
+						if (response === true) {
+							if (typeof data === 'object') {
+								for (let i in data) {
+									switch (i) {
+										case 'notify':
+											app.showNotify(data[i]);
+											app.reloadAfterSave(data, app.convertUrlToObject(url), null, target);
+											break;
+										case 'url':
+											app.openUrl(data[i]);
+											break;
+										default:
+											app.reloadAfterSave(data, app.convertUrlToObject(url), null, target);
+											break;
+									}
+								}
+							}
+						}
+					});
+				}
+			};
+			if (target.data('confirm')) {
+				params.text = target.data('confirm');
+				addBtnIcon = 1;
+			}
+			if (addBtnIcon == 1) {
+				params.title = target.html() + (params.title ? ' ' + params.title : '');
+			}
+			app.showConfirmModal(params);
+		});
+	},
+	/**
+	 * Function to register the records events
+	 * @param {jQuery} container - Jquery container.
+	 */
+	registerConfirmActionsEvents: function (container) {
 		container.on('click', '.js-action-confirm', function (event) {
 			event.stopPropagation();
 			let target = $(this),
@@ -3586,6 +3823,7 @@ $(function () {
 	app.registerShowHideBlock(document);
 	app.registerAfterLoginEvents(document);
 	app.registerFormsEvents(document);
+	app.registerConfirmActionsEvents(document);
 	app.registerRecordActionsEvents(document);
 	app.registerPrintEvent(document);
 	app.registerKeyboardShortcutsEvent(document);
@@ -3620,9 +3858,9 @@ $(function () {
 	$.fn.setValue = function (value, params) {
 		return App.Fields.Utils.setValue($(this), value, params);
 	};
-	$.fn.formatNumber = function () {
+	$.fn.formatNumber = function (mode = App.Fields.Double.FORMAT_USER_WITHOUT_ROUNDING) {
 		let element = $(this);
-		element.val(App.Fields.Double.formatToDisplay(App.Fields.Double.formatToDb(element.val()), false));
+		element.val(App.Fields.Double.formatToDisplay(App.Fields.Double.formatToDb(element.val()), mode));
 	};
 	$.fn.disable = function () {
 		this.attr('disabled', 'disabled');

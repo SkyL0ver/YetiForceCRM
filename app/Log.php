@@ -39,47 +39,7 @@ class Log extends Logger
 	 *
 	 * @var array
 	 */
-	public static $logsViewerColumnMapping = [
-		'magento' => [
-			'label' => 'LBL_MAGENTO',
-			'labelModule' => 'Settings:Magento',
-			'table' => 'l_#__magento',
-			'icon' => 'yfi-magento',
-			'columns' => [
-				'time' => ['type' => 'DateTime', 'label' => 'LBL_TIME'],
-				'category' => ['type' => 'Text', 'label' => 'LBL_CATEGORY'],
-				'message' => ['type' => 'Text', 'label' => 'LBL_MESSAGE'],
-				'code' => ['type' => 'Text', 'label' => 'LBL_CODE'],
-				'trace' => ['type' => 'Text', 'label' => 'LBL_BACKTRACE'],
-			],
-			'filter' => [
-				'time' => 'DateTimeRange',
-				'category' => 'Text',
-				'message' => 'Text',
-				'code' => 'Text',
-				'trace' => 'Text',
-			],
-		],
-		'wapro' => [
-			'label' => 'LBL_WAPRO_ERP',
-			'labelModule' => 'Settings:Wapro',
-			'table' => 'l_#__wapro',
-			'icon' => 'fab fa-connectdevelop',
-			'columns' => [
-				'time' => ['type' => 'DateTime', 'label' => 'LBL_TIME'],
-				'category' => ['type' => 'Text', 'label' => 'LBL_CATEGORY'],
-				'message' => ['type' => 'Text', 'label' => 'LBL_MESSAGE'],
-				'error' => ['type' => 'Text', 'label' => 'LBL_CODE'],
-				'trace' => ['type' => 'Text', 'label' => 'LBL_BACKTRACE'],
-			],
-			'filter' => [
-				'time' => 'DateTimeRange',
-				'category' => 'Text',
-				'message' => 'Text',
-				'code' => 'Text',
-				'trace' => 'Text',
-			],
-		],
+	const LOGS_VIEWER_COLUMN_MAP = [
 		'switchUsers' => [
 			'label' => 'LBL_SWITCH_USERS',
 			'labelModule' => 'Settings:Users',
@@ -167,16 +127,78 @@ class Log extends Logger
 			'columns' => [
 				'time' => ['type' => 'DateTime', 'label' => 'LBL_TIME'],
 				'driver' => ['type' => 'Text', 'label' => 'LBL_CATEGORY'],
-				'error' => ['type' => 'Text', 'label' => 'LBL_CODE'],
+				'error' => ['type' => 'Boolean', 'label' => 'LBL_ERROR'],
 				'message' => ['type' => 'Text', 'label' => 'LBL_MESSAGE'],
-				'params' => ['type' => 'Text', 'label' => 'LBL_MESSAGE'],
+				'params' => ['type' => 'Text', 'label' => 'LBL_PARAMS'],
 			],
 			'filter' => [
 				'time' => 'DateTimeRange',
 				'driver' => 'Text',
-				// 'error' => 'Boolean',
+				'error' => 'Boolean',
 				'message' => 'Text',
 				'params' => 'Text',
+			],
+		],
+		'magento' => [
+			'label' => 'LBL_MAGENTO',
+			'labelModule' => 'Settings:Magento',
+			'table' => 'l_#__magento',
+			'icon' => 'yfi-magento',
+			'columns' => [
+				'time' => ['type' => 'DateTime', 'label' => 'LBL_TIME'],
+				'category' => ['type' => 'Text', 'label' => 'LBL_CATEGORY'],
+				'message' => ['type' => 'Text', 'label' => 'LBL_MESSAGE'],
+				'code' => ['type' => 'Text', 'label' => 'LBL_CODE'],
+				'trace' => ['type' => 'Text', 'label' => 'LBL_BACKTRACE'],
+			],
+			'filter' => [
+				'time' => 'DateTimeRange',
+				'category' => 'Text',
+				'message' => 'Text',
+				'code' => 'Text',
+				'trace' => 'Text',
+			],
+		],
+		'woocommerce' => [
+			'label' => 'LBL_WOOCOMMERCE',
+			'labelModule' => 'Settings:WooCommerce',
+			'table' => 'l_#__woocommerce',
+			'icon' => 'fa-solid fa-cash-register',
+			'columns' => [
+				'time' => ['type' => 'DateTime', 'label' => 'LBL_TIME'],
+				'error' => ['type' => 'Boolean', 'label' => 'LBL_ERROR'],
+				'category' => ['type' => 'Text', 'label' => 'LBL_CATEGORY'],
+				'message' => ['type' => 'Text', 'label' => 'LBL_MESSAGE'],
+				'params' => ['type' => 'Text', 'label' => 'LBL_PARAMS'],
+				'trace' => ['type' => 'Text', 'label' => 'LBL_BACKTRACE'],
+			],
+			'filter' => [
+				'time' => 'DateTimeRange',
+				'error' => 'Boolean',
+				'category' => 'Text',
+				'message' => 'Text',
+				'params' => 'Text',
+				'trace' => 'Text',
+			],
+		],
+		'wapro' => [
+			'label' => 'LBL_WAPRO_ERP',
+			'labelModule' => 'Settings:Wapro',
+			'table' => 'l_#__wapro',
+			'icon' => 'fab fa-connectdevelop',
+			'columns' => [
+				'time' => ['type' => 'DateTime', 'label' => 'LBL_TIME'],
+				'category' => ['type' => 'Text', 'label' => 'LBL_CATEGORY'],
+				'message' => ['type' => 'Text', 'label' => 'LBL_MESSAGE'],
+				'error' => ['type' => 'Boolean', 'label' => 'LBL_ERROR'],
+				'trace' => ['type' => 'Text', 'label' => 'LBL_BACKTRACE'],
+			],
+			'filter' => [
+				'time' => 'DateTimeRange',
+				'category' => 'Text',
+				'message' => 'Text',
+				'error' => 'Boolean',
+				'trace' => 'Text',
 			],
 		],
 	];
